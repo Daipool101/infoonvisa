@@ -1,0 +1,23 @@
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# env / secrets
+.env
+.env.production
+.dev.vars
+.wrangler/
+
+# logs
+npm-debug.log*
+*.log
+
+# os
+.DS_Store
+Thumbs.db
+
+# claude local settings (machine-specific)
+.claude/settings.local.json

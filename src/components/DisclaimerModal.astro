@@ -1,0 +1,72 @@
+---
+// AI-generated-content consent modal. Shown once per browser (localStorage).
+---
+
+<div class="modal" id="iov-disclaimer" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="iov-disc-title">
+    <h3 id="iov-disc-title">Before you continue</h3>
+    <p>
+      InfoOnVisa provides <strong>AI-assisted travel information</strong> for general guidance only.
+      It is not legal or immigration advice, and visa rules can change at any time.
+    </p>
+    <label>
+      <input type="checkbox" id="iov-disc-check" checked />
+      <span>I understand this is AI-generated information and I will verify critical details on official government sources before travelling.</span>
+    </label>
+    <button class="btn" id="iov-disc-ok" type="button">I understand — continue</button>
+  </div>
+</div>
+
+<style>
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(43, 42, 61, 0.55);
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal[hidden] { display: none; }
+  .box {
+    background: #fff;
+    border-radius: 18px;
+    max-width: 460px;
+    width: 100%;
+    padding: 28px;
+    text-align: center;
+  }
+  .box h3 { font-size: 20px; margin-bottom: 10px; }
+  .box p { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+  .box label {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    text-align: left;
+    font-size: 13px;
+    background: var(--bg);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .box .btn { width: 100%; }
+  .box button[disabled] { opacity: 0.5; cursor: not-allowed; }
+</style>
+
+<script>
+  const KEY = 'iov_disclaimer_v1';
+  const modal = document.getElementById('iov-disclaimer');
+  const ok = document.getElementById('iov-disc-ok') as HTMLButtonElement | null;
+  const check = document.getElementById('iov-disc-check') as HTMLInputElement | null;
+  if (modal && ok && check) {
+    if (!localStorage.getItem(KEY)) modal.hidden = false;
+    const sync = () => (ok.disabled = !check.checked);
+    check.addEventListener('change', sync);
+    sync();
+    ok.addEventListener('click', () => {
+      if (!check.checked) return;
+      localStorage.setItem(KEY, new Date().toISOString());
+      modal.hidden = true;
+    });
+  }
+</script>

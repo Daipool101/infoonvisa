@@ -1,0 +1,38 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()
+);
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+---
+
+<Base title="Travel & visa blog — InfoOnVisa" description="Practical guides and tips on visas, documents and smart trip planning.">
+  <div class="wrap blog">
+    <h1>The InfoOnVisa blog</h1>
+    <p class="muted lead">Practical guides on visas, documents and getting trip-ready.</p>
+    <div class="list">
+      {posts.map((p) => (
+        <a class="post" href={`/blog/${p.id}`}>
+          <span class="date">{fmt(p.data.pubDate)}</span>
+          <h2>{p.data.title}</h2>
+          <p class="muted">{p.data.description}</p>
+          <span class="read">Read article →</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .blog { max-width: 760px; padding: 40px 20px; }
+  .blog h1 { font-size: 32px; }
+  .lead { margin: 6px 0 26px; }
+  .list { display: flex; flex-direction: column; gap: 14px; }
+  .post { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; }
+  .post:hover { text-decoration: none; border-color: var(--brand-soft); }
+  .post .date { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .post h2 { font-size: 20px; margin: 6px 0 8px; }
+  .post .read { color: var(--accent); font-size: 14px; font-weight: 600; }
+</style>

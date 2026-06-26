@@ -1,0 +1,24 @@
+{
+  "name": "infoonvisa",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Search-first visa corridor guides — From X to Y.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "wrangler pages dev ./dist",
+    "astro": "astro",
+    "deploy": "astro build && wrangler pages deploy ./dist"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^13.7.0",
+    "@astrojs/sitemap": "^3.7.3",
+    "@google/genai": "^2.9.0",
+    "@supabase/supabase-js": "^2.108.2",
+    "astro": "^6.4.8"
+  },
+  "devDependencies": {
+    "wrangler": "^4.103.0"
+  }
+}

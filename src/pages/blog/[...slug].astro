@@ -1,0 +1,47 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.pubDate.toISOString(),
+  author: { '@type': 'Organization', name: post.data.author },
+};
+---
+
+<Base title={`${post.data.title} — InfoOnVisa`} description={post.data.description} jsonLd={jsonLd}>
+  <article class="wrap post">
+    <a href="/blog" class="back muted">← All articles</a>
+    <span class="date">{fmt(post.data.pubDate)}</span>
+    <h1>{post.data.title}</h1>
+    <div class="body">
+      <Content />
+    </div>
+  </article>
+</Base>
+
+<style>
+  .post { max-width: 720px; padding: 36px 20px; }
+  .back { display: inline-block; margin-bottom: 16px; }
+  .date { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .post h1 { font-size: 32px; margin: 6px 0 22px; line-height: 1.2; }
+  .body :global(h2) { font-size: 22px; margin: 28px 0 10px; }
+  .body :global(p) { margin-bottom: 14px; }
+  .body :global(ul), .body :global(ol) { margin: 0 0 14px 20px; }
+  .body :global(li) { margin-bottom: 6px; }
+  .body :global(hr) { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+</style>

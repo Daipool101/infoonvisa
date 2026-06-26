@@ -1,0 +1,277 @@
+---
+import type { CorridorData } from '../lib/corridor';
+import { VERDICT_LABEL, isGoodVerdict } from '../lib/corridor';
+import type { Country } from '../lib/countries';
+import AdSlot from './AdSlot.astro';
+
+interface Props {
+  data: CorridorData;
+  from: Country;
+  to: Country;
+  verifiedDate: string; // human readable
+  status: string;
+}
+const { data, from, to, verifiedDate, status } = Astro.props;
+const good = isGoodVerdict(data.verdict);
+const verdictClass = good ? 'good' : 'caution';
+const opt = data.visaOptions?.[0];
+---
+
+<div class="verdict" data-v={verdictClass}>
+  <span class="pill">● {VERDICT_LABEL[data.verdict]}</span>
+  <h1>{from.flag} {from.name} → {to.flag} {to.name}: {data.verdictHeadline}</h1>
+  <p class="muted">{data.summary}</p>
+  <div class="badges">
+    <span>🗓 Last verified: <b>{verifiedDate}</b></span>
+    <a href={data.officialSource.url} rel="nofollow noopener" target="_blank">🔗 Source: <b>{data.officialSource.label}</b></a>
+    {status !== 'verified' && <span class="warn">⚠ Awaiting human review</span>}
+  </div>
+</div>
+
+<div class="grid">
+  <div class="main">
+    <!-- B. Visa details -->
+    <section class="card" id="visa-types">
+      <h2><i>B</i>Visa types &amp; details</h2>
+      <p class="bsub muted">Choose a visa category to see its details — all options for travel from {from.name} to {to.name}:</p>
+
+      <div class="vpicker">
+        <label class="vlabel" for="iov-visa-select">Visa type</label>
+        <div class="vselect-wrap">
+          <select id="iov-visa-select" class="vselect" aria-controls="iov-visa-panels">
+            {data.visaOptions.map((o, i) => (
+              <option value={i}>{o.type}</option>
+            ))}
+          </select>
+          <span class="vchevron" aria-hidden="true">▾</span>
+        </div>
+      </div>
+
+      <div id="iov-visa-panels">
+        {data.visaOptions.map((o, i) => (
+          <article class="vpanel" data-i={i} hidden={i !== 0}>
+            <h3 class="opttype">{o.type}</h3>
+            <div class="optgrid">
+              {o.validity && <div class="kv"><span>Validity</span><strong>{o.validity}</strong></div>}
+              {o.maxStay && <div class="kv"><span>Max stay</span><strong>{o.maxStay}</strong></div>}
+              {o.entries && <div class="kv"><span>Entries</span><strong>{o.entries}</strong></div>}
+              {o.eligibility && <div class="kv full"><span>Best for</span><strong>{o.eligibility}</strong></div>}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {data.processingTime && <div class="row"><span>Typical processing time</span><strong>{data.processingTime}</strong></div>}
+      <p class="feenote">Government fee: <a href={data.officialSource.url} rel="nofollow noopener" target="_blank">check the official portal →</a> (fees vary by visa type and nationality, and change often).</p>
+    </section>
+
+    <script>
+      const sel = document.getElementById('iov-visa-select') as HTMLSelectElement | null;
+      const panels = Array.from(document.querySelectorAll<HTMLElement>('#iov-visa-panels .vpanel'));
+      if (sel && panels.length) {
+        sel.addEventListener('change', () => {
+          const i = sel.value;
+          panels.forEach((p) => (p.hidden = p.dataset.i !== i));
+        });
+      }
+    </script>
+
+    <!-- C. Documents -->
+    <section class="card">
+      <h2><i>C</i>Documents checklist</h2>
+      {data.documents.map((d) => (
+        <label class="check">
+          <input type="checkbox" />
+          <span>{d.label}{d.note && <small>{d.note}</small>}</span>
+        </label>
+      ))}
+    </section>
+
+    <!-- D. How & where to apply -->
+    <section class="card">
+      <h2><i>D</i>How &amp; where to apply</h2>
+      {data.applySteps.map((s, i) => (
+        <div class="step">
+          <div class="n">{i + 1}</div>
+          <div>{s.text} {s.link && <a href={s.link.url} rel="nofollow noopener" target="_blank">{s.link.label} ↗</a>}</div>
+        </div>
+      ))}
+    </section>
+
+    <!-- E. Trip essentials (monetization) -->
+    <section class="card">
+      <h2><i>E</i>Trip essentials</h2>
+      <div class="ess">
+        <div class="e"><div class="t">🛡 Travel insurance</div><small>Cover for medical emergencies &amp; delays.</small><span class="aff">Compare plans ↗ <em class="tag">soon</em></span></div>
+        <div class="e"><div class="t">📶 eSIM &amp; data</div><small>Get online the moment you land.</small><span class="aff">Get an eSIM ↗ <em class="tag">soon</em></span></div>
+        <div class="e"><div class="t">✈ Flights</div><small>Compare routes to {to.name}.</small><span class="aff">Find flights ↗ <em class="tag">soon</em></span></div>
+        <div class="e"><div class="t">🏨 Stays</div><small>Hotels &amp; rentals at your destination.</small><span class="aff">Browse stays ↗ <em class="tag">soon</em></span></div>
+      </div>
+    </section>
+
+    <AdSlot label="Advertisement" minHeight={120} />
+
+    <!-- F. Things to know + places -->
+    <section class="card">
+      <h2><i>F</i>Things to know &amp; places to visit</h2>
+      {data.tips.map((t) => (
+        <div class="check static"><span class="bang">!</span><span>{t}</span></div>
+      ))}
+      {data.bestTimeToVisit && <div class="row"><span>Best time to visit</span><strong>{data.bestTimeToVisit}</strong></div>}
+      {data.topPlaces?.length && <div class="row"><span>Top places</span><strong>{data.topPlaces.join(' · ')}</strong></div>}
+    </section>
+
+    <!-- G. FAQ -->
+    <section class="card">
+      <h2><i>G</i>Frequently asked questions</h2>
+      {data.faq.map((f) => (
+        <details class="faq">
+          <summary>{f.q}</summary>
+          <p>{f.a}</p>
+        </details>
+      ))}
+    </section>
+
+    <div class="disc">⚠ <div>This page is AI-assisted and last verified on {verifiedDate}. Visa rules change — always confirm on the official source linked above before you travel.</div></div>
+  </div>
+
+  <aside>
+    <AdSlot label="Advertisement" minHeight={250} />
+    <div class="sidecard">
+      <h3>At a glance</h3>
+      <div class="li"><span>Verdict</span><strong class={good ? 'g' : 'a'}>{VERDICT_LABEL[data.verdict]}</strong></div>
+      {opt?.maxStay && <div class="li"><span>Max stay</span><strong>{opt.maxStay}</strong></div>}
+      {data.processingTime && <div class="li"><span>Processing</span><strong>{data.processingTime}</strong></div>}
+    </div>
+    <div class="sidecard sources">
+      <h3>Sources</h3>
+      {data.sources.map((s) => (
+        <a class="li" href={s.url} rel="nofollow noopener" target="_blank">{s.label} ↗</a>
+      ))}
+    </div>
+  </aside>
+</div>
+
+<style>
+  .verdict {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 6px solid var(--success);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  .verdict[data-v='caution'] { border-left-color: var(--accent); }
+  .pill {
+    display: inline-flex;
+    gap: 7px;
+    background: var(--success-soft);
+    color: var(--success-ink);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 5px 13px;
+    border-radius: 999px;
+  }
+  .verdict[data-v='caution'] .pill { background: var(--accent-soft); color: #9a4a16; }
+  .verdict h1 { font-size: 24px; margin: 12px 0 6px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; font-size: 13px; }
+  .badges span, .badges a {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    padding: 5px 11px;
+    border-radius: 8px;
+    color: var(--muted);
+  }
+  .badges b { color: var(--brand); }
+  .badges .warn { background: var(--accent-soft); color: #9a4a16; border-color: #f0cf8a; }
+
+  .grid { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
+  .card h2 { font-size: 18px; display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+  .card h2 i {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: var(--brand-soft); color: var(--brand);
+    display: grid; place-items: center; font-size: 14px; font-style: normal; font-weight: 700;
+  }
+  .row { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px dashed var(--line); font-size: 15px; }
+  .row span { color: var(--muted); }
+  .row strong { text-align: right; }
+  .feenote { margin-top: 12px; font-size: 13px; color: var(--muted); }
+
+  .bsub { font-size: 14px; margin-bottom: 14px; }
+
+  .vpicker { margin-bottom: 14px; }
+  .vlabel { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+  .vselect-wrap { position: relative; }
+  .vselect {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg);
+    border: 1px solid var(--brand-soft);
+    border-radius: 12px;
+    padding: 13px 40px 13px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brand);
+    cursor: pointer;
+  }
+  .vselect:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(241, 100, 46, 0.12); }
+  .vchevron { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--accent); pointer-events: none; font-size: 14px; }
+
+  .vpanel { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; background: var(--bg); }
+  .vpanel[hidden] { display: none; }
+  .opttype {
+    font-size: 15px; font-weight: 600; color: var(--brand);
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  }
+  .opttype::before {
+    content: ''; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); flex: none;
+  }
+  .optgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+  .kv { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+  .kv.full { grid-column: 1 / -1; }
+  .kv span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .kv strong { color: var(--ink); font-weight: 600; }
+
+  .check { display: flex; gap: 11px; padding: 9px 0; font-size: 15px; align-items: flex-start; cursor: pointer; }
+  .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--success); flex: none; }
+  .check small { display: block; color: var(--muted); font-size: 13px; }
+  .check.static { cursor: default; }
+  .check .bang {
+    width: 20px; height: 20px; border: 2px solid var(--accent); color: var(--accent);
+    border-radius: 6px; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; margin-top: 2px;
+  }
+
+  .step { display: flex; gap: 13px; padding: 10px 0; font-size: 15px; }
+  .step .n { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; }
+
+  .ess { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ess .e { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--bg); }
+  .ess .e .t { font-weight: 600; color: var(--brand); margin-bottom: 4px; }
+  .ess .e small { color: var(--muted); font-size: 13px; }
+  .ess .e .aff { display: block; margin-top: 9px; font-size: 13px; font-weight: 600; color: var(--accent); }
+  .tag { font-size: 10px; background: var(--accent-soft); color: #9a4a16; padding: 1px 6px; border-radius: 6px; font-style: normal; font-weight: 700; }
+
+  .faq { border-bottom: 1px solid var(--line); padding: 13px 0; }
+  .faq summary { font-weight: 600; color: var(--brand); cursor: pointer; }
+  .faq p { color: var(--muted); font-size: 14px; margin-top: 7px; }
+
+  .disc { background: var(--accent-soft); border: 1px solid #f0cf8a; border-radius: 12px; padding: 13px 18px; font-size: 13px; color: #8a4513; display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+
+  aside .sidecard { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 18px 0; }
+  .sidecard h3 { font-size: 14px; margin-bottom: 10px; }
+  .sidecard .li { font-size: 14px; padding: 7px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; }
+  .sidecard .li:last-child { border: none; }
+  .sidecard .g { color: var(--success-ink); }
+  .sidecard .a { color: var(--accent); }
+  .sources .li { color: var(--accent); }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; }
+    .ess { grid-template-columns: 1fr; }
+    .optgrid { grid-template-columns: 1fr; }
+    aside { order: 2; }
+  }
+</style>

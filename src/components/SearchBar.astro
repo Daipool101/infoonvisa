@@ -1,0 +1,140 @@
+---
+import { COUNTRIES } from '../lib/countries';
+
+interface Props {
+  fromSlug?: string;
+  toSlug?: string;
+  prominent?: boolean;
+}
+const { fromSlug = 'india', toSlug = 'japan', prominent = false } = Astro.props;
+const options = [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
+---
+
+<form class:list={['searchbar', { float: prominent }]} id="iov-search" role="search" aria-label="Find visa requirements">
+  <label class="field">
+    <span>From</span>
+    <select name="from" aria-label="Country you travel from">
+      {options.map((c) => (
+        <option value={c.slug} selected={c.slug === fromSlug}>{c.flag} {c.name}</option>
+      ))}
+    </select>
+  </label>
+
+  <button type="button" class="swap" id="iov-swap" aria-label="Swap countries">⇄</button>
+
+  <label class="field">
+    <span>To</span>
+    <select name="to" aria-label="Destination country">
+      {options.map((c) => (
+        <option value={c.slug} selected={c.slug === toSlug}>{c.flag} {c.name}</option>
+      ))}
+    </select>
+  </label>
+
+  <button type="submit" class="gobtn">Search</button>
+</form>
+
+<style>
+  .searchbar {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    box-shadow: var(--shadow);
+  }
+  /* Prominent / floating variant used on the home hero. */
+  .searchbar.float {
+    padding: 14px;
+    border: 1px solid #f3d9b0;
+    box-shadow:
+      0 0 0 5px rgba(241, 100, 46, 0.08),
+      0 18px 40px -12px rgba(80, 78, 118, 0.28),
+      0 6px 14px rgba(80, 78, 118, 0.1);
+    transform: translateY(2px);
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .searchbar.float:focus-within {
+    box-shadow:
+      0 0 0 5px rgba(241, 100, 46, 0.16),
+      0 22px 48px -12px rgba(80, 78, 118, 0.34),
+      0 6px 14px rgba(80, 78, 118, 0.12);
+    transform: translateY(-1px);
+  }
+  .field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 6px 14px;
+  }
+  .field span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .field select {
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    padding: 2px 0;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field select:focus { outline: none; }
+  .swap {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--brand);
+    font-size: 16px;
+    cursor: pointer;
+    flex: none;
+  }
+  .gobtn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 0 26px;
+    height: 52px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: none;
+  }
+  @media (max-width: 620px) {
+    .searchbar { flex-wrap: wrap; }
+    .field { flex-basis: 40%; }
+    .gobtn { flex-basis: 100%; height: 48px; }
+  }
+</style>
+
+<script>
+  const form = document.getElementById('iov-search') as HTMLFormElement | null;
+  const swap = document.getElementById('iov-swap');
+  if (form) {
+    const from = form.querySelector('select[name="from"]') as HTMLSelectElement;
+    const to = form.querySelector('select[name="to"]') as HTMLSelectElement;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (from.value === to.value) {
+        to.focus();
+        return;
+      }
+      window.location.href = `/${from.value}-to-${to.value}`;
+    });
+    swap?.addEventListener('click', () => {
+      const t = from.value;
+      from.value = to.value;
+      to.value = t;
+    });
+  }
+</script>

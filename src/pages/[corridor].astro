@@ -1,0 +1,83 @@
+---
+import Base from '../layouts/Base.astro';
+import SearchBar from '../components/SearchBar.astro';
+import CorridorContent from '../components/CorridorContent.astro';
+import LoadingScreen from '../components/LoadingScreen.astro';
+import { parseCorridorSlug, isFresh, VERDICT_LABEL } from '../lib/corridor';
+import { getEnv, getCorridor, bumpSearchCount } from '../lib/supabase';
+
+const { corridor } = Astro.params;
+const parsed = corridor ? parseCorridorSlug(corridor) : null;
+
+// Unknown / malformed route → render the 404 page with a real 404 status.
+if (!parsed) {
+  return Astro.rewrite('/404');
+}
+
+const env = getEnv();
+const row = await getCorridor(env, parsed.slug);
+
+const { from, to } = parsed;
+const title = `${from.name} to ${to.name} visa guide — requirements, documents & how to apply | InfoOnVisa`;
+const description = row
+  ? `${row.data.verdictHeadline} Documents, application steps and travel tips for ${from.name} citizens visiting ${to.name}.`
+  : `Visa requirements for ${from.name} citizens travelling to ${to.name} — generating your verified guide now.`;
+
+let verifiedDate = '';
+let jsonLd: object[] = [];
+if (row) {
+  bumpSearchCount(env, row.id);
+  verifiedDate = new Date(row.generated_at).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+  jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://infoonvisa.com/' },
+        { '@type': 'ListItem', position: 2, name: `${from.name} to ${to.name}`, item: `https://infoonvisa.com/${parsed.slug}` },
+      ],
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: row.data.faq.map((f) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ];
+}
+
+// Index only human-verified pages (BUILD_PLAN principle #4).
+const noindex = !row || row.status !== 'verified';
+---
+
+<Base
+  title={title}
+  description={description}
+  noindex={noindex}
+  jsonLd={jsonLd}
+  showDisclaimer={!!row}
+>
+  <div class="wrap page">
+    <SearchBar fromSlug={from.slug} toSlug={to.slug} />
+    {row ? (
+      <CorridorContent
+        data={row.data}
+        from={from}
+        to={to}
+        verifiedDate={verifiedDate}
+        status={row.status}
+      />
+    ) : (
+      <LoadingScreen from={from} to={to} slug={parsed.slug} />
+    )}
+  </div>
+</Base>
+
+<style>
+  .page { padding: 22px 20px 10px; }
+</style>

@@ -1,0 +1,23 @@
+// Rotating travel tips shown on the loading screen while a corridor generates.
+export const LOADING_TIPS: string[] = [
+  'Always keep digital and printed copies of your passport and visa.',
+  'Check that your passport is valid for at least 6 months beyond your trip.',
+  'Note your country’s embassy contact in your destination before you fly.',
+  'Travel insurance can save you thousands in a medical emergency abroad.',
+  'An eSIM gets you online the moment you land — no airport SIM queues.',
+  'Carry some local currency in cash; not everywhere takes cards.',
+  'Screenshot your hotel address in the local language for taxis.',
+  'Learn the local emergency number for your destination.',
+  'Keep a return or onward ticket handy — immigration often asks.',
+  'Register with your government’s traveler program if available.',
+  'Check baggage rules and liquid limits before you pack.',
+  'Avoid airport currency exchange — rates are usually poor.',
+  'Save offline maps of your destination city in advance.',
+  'Know the local tipping customs to avoid awkward moments.',
+  'Confirm your phone is unlocked or roaming is set up.',
+  'Photograph your luggage contents in case of a claim.',
+  'Check vaccination or health entry requirements early.',
+  'Keep emergency cash separate from your wallet.',
+  'Verify visa rules on the official government site before you travel.',
+  'Arrive at the airport at least 3 hours before international flights.',
+];

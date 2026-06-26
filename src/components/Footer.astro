@@ -1,0 +1,54 @@
+---
+const year = 2026;
+---
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <div class="logo"><span aria-hidden="true">✈</span> infoonvisa</div>
+        <p class="muted">We don’t process visas. We point you to official sources and trusted partners, with a clear “last verified” date on every page.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <a href="/">Search a route</a>
+        <a href="/blog">Travel blog</a>
+        <a href="/about">About &amp; method</a>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </div>
+    <div class="base muted">
+      © {year} InfoOnVisa · Information is AI-assisted and for guidance only — always confirm on official government sources.
+    </div>
+  </div>
+</footer>
+
+<style>
+  footer {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    margin-top: 40px;
+    padding: 34px 0 26px;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 28px;
+  }
+  .logo { font-weight: 700; color: var(--brand); margin-bottom: 8px; }
+  h4 { font-size: 14px; margin-bottom: 10px; }
+  footer a { display: block; color: var(--brand); font-size: 14px; padding: 4px 0; }
+  .base {
+    border-top: 1px solid var(--line);
+    margin-top: 24px;
+    padding-top: 16px;
+    font-size: 13px;
+  }
+  @media (max-width: 620px) {
+    .cols { grid-template-columns: 1fr; gap: 18px; }
+  }
+</style>

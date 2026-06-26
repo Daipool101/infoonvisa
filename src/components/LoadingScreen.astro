@@ -1,0 +1,75 @@
+---
+import { LOADING_TIPS } from '../lib/tips';
+import type { Country } from '../lib/countries';
+
+interface Props {
+  from: Country;
+  to: Country;
+  slug: string;
+}
+const { from, to, slug } = Astro.props;
+---
+
+<div class="loading">
+  <div class="plane" aria-hidden="true">
+    <span class="route">{from.flag}</span>
+    <span class="track"><span class="dash"></span><span class="emoji">✈️</span></span>
+    <span class="route">{to.flag}</span>
+  </div>
+  <h1>Preparing your guide</h1>
+  <p class="muted">Gathering verified visa info for <b>{from.name} → {to.name}</b>…</p>
+
+  <div class="tipbox">
+    <span class="tiplabel">Travel tip</span>
+    <p id="iov-tip">{LOADING_TIPS[0]}</p>
+  </div>
+
+  <div class="bar"><div class="fill"></div></div>
+</div>
+
+<script type="application/json" id="iov-tips" set:html={JSON.stringify(LOADING_TIPS)}></script>
+<script define:vars={{ slug }}>
+  const tips = JSON.parse(document.getElementById('iov-tips').textContent);
+  const el = document.getElementById('iov-tip');
+  let i = 0;
+  const rotate = setInterval(() => {
+    i = (i + 1) % tips.length;
+    el.style.opacity = '0';
+    setTimeout(() => { el.textContent = tips[i]; el.style.opacity = '1'; }, 200);
+  }, 3000);
+
+  // Kick off generation, then reload to show the cached result.
+  fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slug }),
+  })
+    .then((r) => r.json())
+    .then((res) => {
+      clearInterval(rotate);
+      if (res && res.ok) {
+        window.location.reload();
+      } else {
+        el.textContent = 'We couldn’t generate this route right now. Please try again shortly.';
+      }
+    })
+    .catch(() => {
+      el.textContent = 'Something went wrong. Please try again shortly.';
+    });
+</script>
+
+<style>
+  .loading { text-align: center; padding: 60px 0 40px; max-width: 540px; margin: 0 auto; }
+  .plane { display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 34px; margin-bottom: 22px; }
+  .track { position: relative; width: 140px; height: 40px; display: flex; align-items: center; }
+  .track .dash { position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed var(--brand-soft); }
+  .track .emoji { position: absolute; font-size: 26px; animation: fly 2.4s ease-in-out infinite; }
+  @keyframes fly { 0% { left: 0; } 50% { left: 110px; } 100% { left: 0; } }
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  .tipbox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 28px 0; box-shadow: var(--shadow); }
+  .tiplabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 700; }
+  #iov-tip { margin-top: 8px; transition: opacity 0.2s; min-height: 44px; }
+  .bar { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .fill { height: 100%; width: 30%; background: var(--accent); border-radius: 999px; animation: load 2s ease-in-out infinite; }
+  @keyframes load { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+</style>

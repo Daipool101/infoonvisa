@@ -1,0 +1,60 @@
+---
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/#popular', label: 'Countries' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/about', label: 'About' },
+];
+---
+
+<header>
+  <div class="wrap nav">
+    <a href="/" class="logo" aria-label="InfoOnVisa home">
+      <span class="dot" aria-hidden="true">✈</span>infoon<b>visa</b>
+    </a>
+    <nav class="navlinks">
+      {links.map((l) => <a href={l.href}>{l.label}</a>)}
+    </nav>
+  </div>
+</header>
+
+<style>
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 62px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--brand);
+  }
+  .logo:hover { text-decoration: none; }
+  .logo .dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: var(--brand);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+  }
+  .logo b { color: var(--accent); font-weight: 700; }
+  .navlinks { display: flex; gap: 26px; font-size: 15px; }
+  .navlinks a { color: var(--brand); }
+  @media (max-width: 620px) {
+    .navlinks { gap: 16px; font-size: 14px; }
+  }
+</style>

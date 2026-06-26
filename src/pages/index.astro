@@ -1,0 +1,93 @@
+---
+import Base from '../layouts/Base.astro';
+import SearchBar from '../components/SearchBar.astro';
+import { countryByIso } from '../lib/countries';
+
+// Curated launch corridors (BUILD_PLAN §12) shown as quick links.
+const popular: [string, string][] = [
+  ['IN', 'AE'], ['IN', 'TH'], ['IN', 'SG'], ['IN', 'JP'],
+  ['IN', 'GB'], ['IN', 'US'], ['IN', 'FR'], ['IN', 'CA'],
+  ['IN', 'AU'], ['IN', 'MY'], ['IN', 'VN'], ['IN', 'MV'],
+];
+
+const cards = popular
+  .map(([f, t]) => ({ from: countryByIso(f)!, to: countryByIso(t)! }))
+  .filter((c) => c.from && c.to);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'InfoOnVisa',
+  url: 'https://infoonvisa.com',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://infoonvisa.com/{search_term_string}',
+    'query-input': 'required name=search_term_string',
+  },
+};
+---
+
+<Base title="InfoOnVisa — visa requirements & trip guides for any route" jsonLd={jsonLd}>
+  <section class="hero">
+    <div class="wrap">
+      <span class="kicker">From → To, sorted in seconds</span>
+      <h1>Know exactly what visa you need —<br />for any country, anywhere.</h1>
+      <p class="sub">Pick where you’re from and where you’re going. Get one clean, verified page: requirements, documents, how to apply, and what to do when you land.</p>
+      <SearchBar fromSlug="india" toSlug="japan" prominent={true} />
+      <div class="trust">
+        <span>✓ Official sources linked</span>
+        <span>✓ “Last verified” date on every page</span>
+        <span>✓ No signup</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="popular">
+    <h2>Popular routes</h2>
+    <div class="cards">
+      {cards.map((c) => (
+        <a class="rcard" href={`/${c.from.slug}-to-${c.to.slug}`}>
+          <span class="flags">{c.from.flag} → {c.to.flag}</span>
+          <span class="names">{c.from.name} to {c.to.name}</span>
+          <span class="go">View guide →</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="wrap how">
+    <h2>How it works</h2>
+    <div class="steps">
+      <div><span class="n">1</span><b>Search a route</b><p class="muted">Choose your passport country and destination.</p></div>
+      <div><span class="n">2</span><b>We verify & assemble</b><p class="muted">We pull from official sources and structure it into one page.</p></div>
+      <div><span class="n">3</span><b>Plan with confidence</b><p class="muted">Documents, steps, links and tips — dated and sourced.</p></div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero { background: var(--surface); border-bottom: 1px solid var(--line); padding: 54px 0 44px; }
+  .kicker { color: var(--accent); font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .hero h1 { font-size: 38px; line-height: 1.15; margin: 12px 0 14px; }
+  .hero .sub { color: var(--muted); font-size: 17px; max-width: 620px; margin-bottom: 26px; }
+  .trust { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; color: var(--success-ink); font-size: 14px; font-weight: 600; }
+
+  section.wrap { padding: 40px 20px; }
+  h2 { font-size: 24px; margin-bottom: 20px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .rcard { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px; transition: transform 0.1s, border-color 0.1s; }
+  .rcard:hover { text-decoration: none; transform: translateY(-2px); border-color: var(--brand-soft); }
+  .rcard .flags { font-size: 22px; }
+  .rcard .names { font-weight: 600; color: var(--brand); }
+  .rcard .go { color: var(--accent); font-size: 13px; font-weight: 600; }
+
+  .how .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+  .how .steps > div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .how .n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; margin-bottom: 10px; }
+  .how b { color: var(--brand); display: block; margin-bottom: 4px; }
+
+  @media (max-width: 620px) {
+    .hero h1 { font-size: 28px; }
+  }
+</style>

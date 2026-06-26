@@ -1,0 +1,33 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="About & our method — InfoOnVisa" description="How InfoOnVisa researches, verifies and dates every visa corridor guide.">
+  <div class="wrap prose">
+    <h1>About InfoOnVisa</h1>
+    <p>Visa research is scattered across confusing government sites, outdated forums and blogs. Travelers waste hours and still aren’t sure. InfoOnVisa collapses it into one clean, trustworthy page per route — <b>From [country] → To [country]</b>.</p>
+
+    <h2>How we build each page</h2>
+    <ol>
+      <li><b>We start from official sources.</b> Every corridor page links the government or e-visa portal it draws from.</li>
+      <li><b>We structure it with AI assistance.</b> We use AI to organise sourced facts into a consistent, readable format — it never invents visa rules.</li>
+      <li><b>We date everything.</b> Each page shows a “last verified” date so you know how current it is.</li>
+      <li><b>We review before indexing.</b> Auto-generated pages are held back from search until checked.</li>
+    </ol>
+
+    <h2>What we don’t do</h2>
+    <p>We don’t process visa applications. For routes that need help, we point you to the official portal and may link trusted partners. Always confirm critical details on the official source before you travel.</p>
+
+    <h2>Accuracy &amp; disclaimer</h2>
+    <p>Information here is AI-assisted and provided for general guidance only. It is not legal or immigration advice. Visa rules can change at any time — the official government source is always authoritative.</p>
+  </div>
+</Base>
+
+<style>
+  .prose { max-width: 720px; padding: 40px 20px; }
+  .prose h1 { font-size: 32px; margin-bottom: 16px; }
+  .prose h2 { font-size: 20px; margin: 28px 0 10px; }
+  .prose p, .prose li { color: var(--ink); margin-bottom: 10px; }
+  .prose ol { padding-left: 20px; }
+  .prose li { margin-bottom: 8px; }
+</style>
