@@ -40,6 +40,10 @@ create policy "anon reads verified"
   to anon
   using (status = 'verified');
 
+-- Lock down the searches table too (analytics only; written server-side via service-role).
+-- RLS with no policy = default-deny for the public anon key.
+alter table searches enable row level security;
+
 -- The service-role key bypasses RLS, so server-side writes/generation work without extra policies.
 
 -- ---------------------------------------------------------------------------
