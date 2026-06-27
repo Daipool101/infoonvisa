@@ -12,6 +12,7 @@ interface Props {
   noindex?: boolean;
   jsonLd?: object | object[];
   showDisclaimer?: boolean;
+  hideChrome?: boolean; // skip the shared Nav/Footer (page supplies its own)
 }
 
 const {
@@ -21,6 +22,7 @@ const {
   noindex = false,
   jsonLd,
   showDisclaimer = false,
+  hideChrome = false,
 } = Astro.props;
 
 const env = getEnv();
@@ -47,6 +49,10 @@ const ldArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
     {ldArray.map((ld) => (
       <script type="application/ld+json" set:html={JSON.stringify(ld)} />
     ))}
@@ -59,11 +65,11 @@ const ldArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     )}
   </head>
   <body>
-    <Nav />
+    {!hideChrome && <Nav />}
     <main>
       <slot />
     </main>
-    <Footer />
+    {!hideChrome && <Footer />}
     {showDisclaimer && <DisclaimerModal />}
   </body>
 </html>
