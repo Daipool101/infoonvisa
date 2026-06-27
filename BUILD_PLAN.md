@@ -245,6 +245,34 @@ CREATE TABLE searches (             -- analytics / "last searched" / popularity
 **Phase 3 — Scale & enhance**
 - Cron refresh worker, country hubs for all countries, currency auto-conversion.
 - Localization, paid AI chatbot + user accounts (future).
+- **Fully-automatic on-demand generation via Vertex AI** (see below).
+
+---
+
+## Known constraint & future task: on-demand generation on Cloudflare
+
+**Constraint discovered at deploy:** the **Google AI Studio Gemini API is geo-restricted** and
+rejects requests coming from Cloudflare's edge servers with
+`400 — "User location is not supported for the API use."` This is **independent of billing** —
+a paid AI Studio key has the *same* geographic restriction.
+
+**Two separate limits, do not conflate them:**
+| Limit | Symptom | Fixed by |
+|---|---|---|
+| Daily **quota** | `429 quota exceeded` | ✅ Enabling Gemini **billing** |
+| **Geo-location** of caller | `400 location not supported` (only from Cloudflare) | ❌ NOT billing — needs **Vertex AI** |
+
+**Current launch approach (works today):** generation runs from a supported region via
+`scripts/generate.mjs` (your machine / a GitHub Action) and writes to Supabase. Cloudflare only
+READS from Supabase. The on-demand flow on the Worker (search → if missing, call Gemini, store,
+serve) is therefore **disabled in production** and shows a "guide is on the way" message instead.
+
+**Future task — enable true on-demand generation on Cloudflare:**
+Switch the Worker's generation call from the AI Studio API to **Vertex AI** (Google Cloud project,
+region you choose, service-account auth). Vertex is not caller-location restricted, so the Worker
+can generate any of the ~40k routes live on first search. Requires: GCP project + billing,
+enable Vertex AI API, service account credential, and OAuth-token handling in the Worker.
+Until then, the curate-first batch model is the launch path.
 
 ---
 
