@@ -6,6 +6,8 @@
 //   node scripts/generate.mjs                       # generate the default launch list
 //   node scripts/generate.mjs india-to-japan ...    # generate specific slugs
 //   node scripts/generate.mjs --verified india-to-japan   # also mark as verified (indexable)
+//   node scripts/generate.mjs --force india-to-japan      # regenerate even if already in DB
+// By default, routes already in the DB are skipped (saves Gemini quota).
 //
 // This script is self-contained on purpose (no cloudflare:workers imports).
 
@@ -105,11 +107,17 @@ async function main() {
   const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
   const db = createClient(env.PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
   const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const force = args.includes('--force');
 
-  let ok = 0, fail = 0;
+  // Skip routes already stored (saves quota), unless --force.
+  const { data: existing } = await db.from('corridors').select('slug');
+  const have = new Set((existing || []).map((r) => r.slug));
+
+  let ok = 0, fail = 0, skipped = 0;
   for (const slug of list) {
     const c = parseSlug(slug);
     if (!c) { console.log(`✗ ${slug} — unknown route`); fail++; continue; }
+    if (!force && have.has(slug)) { console.log(`• ${slug} — already in DB, skipped`); skipped++; continue; }
     try {
       const res = await ai.models.generateContent({
         model, contents: prompt(c.from, c.to),
@@ -135,7 +143,7 @@ async function main() {
     }
     await sleep(7000); // stay under free-tier rate limits
   }
-  console.log(`\nDone. ${ok} generated, ${fail} failed.`);
+  console.log(`\nDone. ${ok} generated, ${fail} failed, ${skipped} skipped (already in DB).`);
 }
 
 main();
