@@ -29,15 +29,17 @@ export const POST: APIRoute = async ({ request }) => {
   const existing = await getCorridor(env, parsed.slug);
   if (existing) return json({ ok: true, cached: true });
 
-  const data = await generateCorridor(env, parsed.from, parsed.to);
-  if (!data) return json({ ok: false, error: 'generation_failed' }, 502);
+  const result = await generateCorridor(env, parsed.from, parsed.to);
+  if (!result.data) {
+    return json({ ok: false, error: 'generation_failed', reason: result.error }, 502);
+  }
 
   const saved = await saveCorridor(env, {
     id: parsed.id,
     from_country: parsed.from.iso,
     to_country: parsed.to.iso,
     slug: parsed.slug,
-    data,
+    data: result.data,
   });
   if (!saved) return json({ ok: false, error: 'save_failed' }, 500);
 

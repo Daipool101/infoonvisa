@@ -99,12 +99,17 @@ HARD RULES — accuracy over completeness:
 - Be concise and factual. No marketing language.`;
 }
 
+export interface GenerationResult {
+  data: CorridorData | null;
+  error?: string;
+}
+
 export async function generateCorridor(
   env: AppEnv,
   from: Country,
   to: Country
-): Promise<CorridorData | null> {
-  if (!env.GEMINI_API_KEY) return null;
+): Promise<GenerationResult> {
+  if (!env.GEMINI_API_KEY) return { data: null, error: 'missing GEMINI_API_KEY' };
   try {
     const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
     const res = await ai.models.generateContent({
@@ -117,13 +122,16 @@ export async function generateCorridor(
       },
     });
     const text = res.text;
-    if (!text) return null;
+    if (!text) return { data: null, error: 'empty response from model' };
     const parsed = JSON.parse(text) as CorridorData;
     // Minimum quality gate: must carry at least one official source.
-    if (!parsed.sources?.length || !parsed.officialSource?.url) return null;
-    return parsed;
-  } catch (err) {
-    console.error('Gemini generation failed', err);
-    return null;
+    if (!parsed.sources?.length || !parsed.officialSource?.url) {
+      return { data: null, error: 'no official source in response' };
+    }
+    return { data: parsed };
+  } catch (err: any) {
+    const msg = (err?.message || String(err)).slice(0, 300);
+    console.error('Gemini generation failed:', msg);
+    return { data: null, error: msg };
   }
 }
