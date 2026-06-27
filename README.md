@@ -35,15 +35,23 @@ renders from a local seed (`src/lib/seed.ts`) so you can preview the corridor pa
 - New pages are `noindex` until you flip `status` to `verified` in Supabase
   (the curate-first strategy from the build plan).
 
-## Deploy (Cloudflare Pages)
+## Deploy (Cloudflare Workers)
+
+The `@astrojs/cloudflare` adapter builds a Worker and generates `dist/server/wrangler.json`
+(merging `wrangler.jsonc` at the repo root, which sets `nodejs_compat`).
 
 ```bash
-npm run build
-npm run deploy   # wrangler pages deploy ./dist
+npx wrangler login      # one-time browser auth
+npm run deploy          # astro build && wrangler deploy --config dist/server/wrangler.json
 ```
 
-Set the same env vars as Pages project variables/secrets (mark the service-role and
-Gemini keys as encrypted secrets).
+Or connect the GitHub repo in the Cloudflare dashboard (Workers & Pages → Import repository)
+for push-to-deploy, with:
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy --config dist/server/wrangler.json`
+
+Set the 5 env vars (see `.env.example`) as **encrypted Secrets** on the Worker — especially
+`SUPABASE_SERVICE_ROLE_KEY` and `GEMINI_API_KEY`.
 
 ## Project layout
 ```
