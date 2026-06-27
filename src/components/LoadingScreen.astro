@@ -49,13 +49,25 @@ const { from, to, slug } = Astro.props;
       clearInterval(rotate);
       if (res && res.ok) {
         window.location.reload();
-      } else {
-        el.textContent = 'We couldn’t generate this route right now. Please try again shortly.';
+        return;
       }
+      showNotReady();
     })
     .catch(() => {
-      el.textContent = 'Something went wrong. Please try again shortly.';
+      clearInterval(rotate);
+      showNotReady();
     });
+
+  function showNotReady() {
+    const box = document.querySelector('.loading');
+    if (!box) return;
+    box.innerHTML =
+      '<span style="font-size:42px">🛫</span>' +
+      '<h1>This guide is on the way</h1>' +
+      '<p class="muted">We haven’t published this route yet — we add and verify new corridors regularly. ' +
+      'Check back soon, or explore one of our ready guides.</p>' +
+      '<a href="/#popular" class="btn" style="margin-top:18px;display:inline-block">Browse popular routes</a>';
+  }
 </script>
 
 <style>
