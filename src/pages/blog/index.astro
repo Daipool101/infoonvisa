@@ -1,38 +1,91 @@
 ---
 import Base from '../../layouts/Base.astro';
+import BrandNav from '../../components/BrandNav.astro';
+import BrandFooter from '../../components/BrandFooter.astro';
 import { getCollection } from 'astro:content';
+import '../../styles/brand.css';
 
 const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()
 );
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const COVERS = ['/images/japan.jpg', '/images/thailand.jpg', '/images/singapore.jpg', '/images/france.jpg', '/images/uae.jpg', '/images/uk.jpg'];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: 'InfoOnVisa Blog',
+  url: 'https://infoonvisa.com/blog',
+  description: 'Practical guides on visas, documents and smart trip planning.',
+};
 ---
 
-<Base title="Travel & visa blog — InfoOnVisa" description="Practical guides and tips on visas, documents and smart trip planning.">
-  <div class="wrap blog">
-    <h1>The InfoOnVisa blog</h1>
-    <p class="muted lead">Practical guides on visas, documents and getting trip-ready.</p>
-    <div class="list">
-      {posts.map((p) => (
-        <a class="post" href={`/blog/${p.id}`}>
-          <span class="date">{fmt(p.data.pubDate)}</span>
-          <h2>{p.data.title}</h2>
-          <p class="muted">{p.data.description}</p>
-          <span class="read">Read article →</span>
-        </a>
-      ))}
-    </div>
+<Base
+  title="Travel & visa blog — practical guides | InfoOnVisa"
+  description="Clear, practical guides on visas, documents and getting trip-ready — from a team obsessed with verified, dated information."
+  jsonLd={jsonLd}
+  hideChrome={true}
+>
+  <div class="brand">
+    <BrandNav active="blog" />
+
+    <header class="bhero">
+      <div class="glow ga" aria-hidden="true"></div>
+      <div class="glow gb" aria-hidden="true"></div>
+      <div class="container bhero-in reveal">
+        <span class="kicker">The InfoOnVisa blog</span>
+        <h1 class="bhero-h1">Travel smarter, <span class="ul">visa-ready</span> every time.</h1>
+        <p class="bhero-sub">Practical, verified guides on visas, documents and getting trip-ready — no fluff, no jargon, just what actually helps before you fly.</p>
+      </div>
+    </header>
+
+    <section class="container blist-wrap">
+      <div class="blist">
+        {posts.map((p, i) => (
+          <a href={`/blog/${p.id}`} class="pcard reveal" style={`transition-delay:${(i % 3) * 90}ms`}>
+            <div class="pcard-media">
+              <img src={p.data.cover ?? COVERS[i % COVERS.length]} alt={p.data.title} loading="lazy" />
+              {p.data.tags?.[0] && <span class="pcard-tag">{p.data.tags[0]}</span>}
+            </div>
+            <div class="pcard-body">
+              <div class="pcard-meta">{fmt(p.data.pubDate)}{p.data.readMins && <span> · {p.data.readMins} min read</span>}</div>
+              <h2 class="pcard-title">{p.data.title}</h2>
+              <p class="pcard-desc">{p.data.description}</p>
+              <span class="pcard-read">Read article →</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <BrandFooter />
   </div>
 </Base>
 
 <style>
-  .blog { max-width: 760px; padding: 40px 20px; }
-  .blog h1 { font-size: 32px; }
-  .lead { margin: 6px 0 26px; }
-  .list { display: flex; flex-direction: column; gap: 14px; }
-  .post { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; }
-  .post:hover { text-decoration: none; border-color: var(--brand-soft); }
-  .post .date { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-  .post h2 { font-size: 20px; margin: 6px 0 8px; }
-  .post .read { color: var(--accent); font-size: 14px; font-weight: 600; }
+  .bhero { position: relative; overflow: hidden; padding: 4rem 0 2.5rem; }
+  .glow { position: absolute; border-radius: 999px; pointer-events: none; }
+  .ga { top: -8rem; left: 20%; width: 460px; height: 460px; background: color-mix(in oklab, var(--primary) 14%, transparent); filter: blur(120px); }
+  .gb { top: -4rem; right: -6rem; width: 360px; height: 360px; background: rgba(253, 230, 138, .35); filter: blur(100px); }
+  .bhero-in { position: relative; max-width: 46rem; }
+  .bhero-h1 { margin-top: .75rem; font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; color: var(--navy); font-size: clamp(2.25rem, 6vw, 3.75rem); line-height: 1.08; }
+  .ul { position: relative; display: inline-block; }
+  .ul::after { content: ''; position: absolute; left: 0; right: 0; bottom: .2rem; height: .7rem; background: color-mix(in oklab, var(--primary) 30%, transparent); transform: skewX(-6deg); border-radius: 4px; z-index: -1; }
+  .bhero-sub { margin-top: 1.25rem; font-size: 1.125rem; color: color-mix(in oklab, var(--navy) 70%, transparent); }
+
+  .blist-wrap { padding: 1.5rem 1.5rem 1rem; }
+  .blist { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  @media (max-width: 980px) { .blist { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .blist { grid-template-columns: 1fr; } }
+  .pcard { display: flex; flex-direction: column; border-radius: 1.5rem; overflow: hidden; background: var(--background); border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.04); transition: transform .2s, box-shadow .2s; }
+  .pcard:hover { transform: translateY(-6px); box-shadow: var(--shadow-soft); }
+  .pcard-media { position: relative; aspect-ratio: 16/10; overflow: hidden; }
+  .pcard-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .7s; }
+  .pcard:hover .pcard-media img { transform: scale(1.08); }
+  .pcard-tag { position: absolute; top: .75rem; left: .75rem; background: rgba(255,255,255,.92); backdrop-filter: blur(4px); color: var(--primary); font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: .25rem .625rem; border-radius: 999px; }
+  .pcard-body { padding: 1.25rem 1.5rem 1.5rem; display: flex; flex-direction: column; flex: 1; }
+  .pcard-meta { font-size: .75rem; font-weight: 600; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: .04em; }
+  .pcard-title { margin-top: .5rem; font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.25rem; line-height: 1.25; }
+  .pcard-desc { margin-top: .625rem; color: color-mix(in oklab, var(--navy) 70%, transparent); font-size: .9375rem; flex: 1; }
+  .pcard-read { margin-top: 1rem; color: var(--primary); font-weight: 600; font-size: .9375rem; }
 </style>

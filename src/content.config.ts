@@ -9,6 +9,8 @@ const blog = defineCollection({
     pubDate: z.coerce.date(),
     author: z.string().default('InfoOnVisa'),
     tags: z.array(z.string()).default([]),
+    cover: z.string().optional(),
+    readMins: z.number().optional(),
   }),
 });
 

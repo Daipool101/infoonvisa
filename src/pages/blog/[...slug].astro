@@ -1,6 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
+import BrandNav from '../../components/BrandNav.astro';
+import BrandFooter from '../../components/BrandFooter.astro';
 import { getCollection, render } from 'astro:content';
+import '../../styles/brand.css';
 
 export const prerender = true;
 
@@ -12,36 +15,71 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content } = await render(post);
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const cover = post.data.cover ?? '/images/japan.jpg';
 
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: post.data.title,
   description: post.data.description,
+  image: `https://infoonvisa.com${cover}`,
   datePublished: post.data.pubDate.toISOString(),
   author: { '@type': 'Organization', name: post.data.author },
 };
 ---
 
-<Base title={`${post.data.title} — InfoOnVisa`} description={post.data.description} jsonLd={jsonLd}>
-  <article class="wrap post">
-    <a href="/blog" class="back muted">← All articles</a>
-    <span class="date">{fmt(post.data.pubDate)}</span>
-    <h1>{post.data.title}</h1>
-    <div class="body">
-      <Content />
-    </div>
-  </article>
+<Base title={`${post.data.title} — InfoOnVisa`} description={post.data.description} jsonLd={jsonLd} hideChrome={true}>
+  <div class="brand">
+    <BrandNav active="blog" />
+
+    <article>
+      <header class="phero reveal">
+        <div class="container">
+          <nav class="pcrumbs"><a href="/">Home</a><span>/</span><a href="/blog">Blog</a></nav>
+          <div class="ptags">{post.data.tags?.map((t) => <span class="ptag">{t}</span>)}</div>
+          <h1 class="ptitle">{post.data.title}</h1>
+          <div class="pmeta">By {post.data.author} · {fmt(post.data.pubDate)}{post.data.readMins && ` · ${post.data.readMins} min read`}</div>
+        </div>
+      </header>
+
+      <div class="container pcover reveal">
+        <img src={cover} alt={post.data.title} />
+      </div>
+
+      <div class="container pbody-wrap">
+        <div class="pbody reveal">
+          <Content />
+        </div>
+        <a href="/blog" class="pback">← Back to all articles</a>
+      </div>
+    </article>
+
+    <BrandFooter />
+  </div>
 </Base>
 
 <style>
-  .post { max-width: 720px; padding: 36px 20px; }
-  .back { display: inline-block; margin-bottom: 16px; }
-  .date { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-  .post h1 { font-size: 32px; margin: 6px 0 22px; line-height: 1.2; }
-  .body :global(h2) { font-size: 22px; margin: 28px 0 10px; }
-  .body :global(p) { margin-bottom: 14px; }
-  .body :global(ul), .body :global(ol) { margin: 0 0 14px 20px; }
-  .body :global(li) { margin-bottom: 6px; }
-  .body :global(hr) { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  .phero { padding: 2.5rem 0 1.5rem; }
+  .phero .container { max-width: 48rem; }
+  .pcrumbs { display: flex; gap: .5rem; font-size: .875rem; color: var(--muted-foreground); margin-bottom: 1.25rem; }
+  .pcrumbs a:hover { color: var(--primary); }
+  .ptags { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .ptag { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); padding: .25rem .625rem; border-radius: 999px; }
+  .ptitle { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; color: var(--navy); font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.1; text-wrap: balance; }
+  .pmeta { margin-top: 1rem; font-size: .9375rem; color: var(--muted-foreground); }
+
+  .pcover { max-width: 56rem; margin-bottom: 2.5rem; }
+  .pcover img { width: 100%; aspect-ratio: 16/8; object-fit: cover; border-radius: 1.5rem; box-shadow: var(--shadow-soft); }
+
+  .pbody-wrap { max-width: 44rem; padding-bottom: 1rem; }
+  .pbody { font-size: 1.0625rem; color: color-mix(in oklab, var(--navy) 88%, transparent); }
+  .pbody :global(h2) { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.5rem; margin: 2.25rem 0 .75rem; letter-spacing: -0.01em; }
+  .pbody :global(h3) { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.2rem; margin: 1.75rem 0 .5rem; }
+  .pbody :global(p) { margin-bottom: 1.15rem; line-height: 1.75; }
+  .pbody :global(ul), .pbody :global(ol) { margin: 0 0 1.15rem 1.25rem; }
+  .pbody :global(li) { margin-bottom: .5rem; line-height: 1.7; }
+  .pbody :global(strong) { color: var(--navy); font-weight: 700; }
+  .pbody :global(a) { color: var(--primary); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in oklab, var(--primary) 40%, transparent); }
+  .pbody :global(hr) { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  .pback { display: inline-block; margin-top: 2rem; color: var(--primary); font-weight: 600; }
 </style>

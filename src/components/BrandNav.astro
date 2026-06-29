@@ -1,0 +1,31 @@
+---
+interface Props { active?: string }
+const { active = '' } = Astro.props;
+const plane = '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>';
+const links = [
+  { href: '/', label: 'Home', key: 'home' },
+  { href: '/#routes', label: 'Countries', key: 'countries' },
+  { href: '/blog', label: 'Blog', key: 'blog' },
+  { href: '/about', label: 'About', key: 'about' },
+];
+---
+<header class="bnav">
+  <div class="container bnav-in">
+    <a href="/" class="blogo"><span class="blogo-badge"><svg viewBox="0 0 24 24" class="ic sm" set:html={plane}></svg></span><span class="blogo-text">infoon <span class="orange">visa</span></span></a>
+    <nav class="bnav-links">
+      {links.map((l) => <a href={l.href} class={active === l.key ? 'on' : ''}>{l.label}</a>)}
+    </nav>
+  </div>
+</header>
+
+<style>
+  .bnav { position: sticky; top: 0; z-index: 40; background: color-mix(in oklab, var(--background) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .bnav-in { height: 4rem; display: flex; align-items: center; justify-content: space-between; }
+  .blogo { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); font-size: 1.125rem; }
+  .blogo-badge { width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: var(--navy); color: var(--primary-foreground); display: grid; place-items: center; transition: transform .2s; }
+  .blogo:hover .blogo-badge { transform: rotate(-6deg); }
+  .bnav-links { display: flex; align-items: center; gap: 1.75rem; font-size: .875rem; font-weight: 500; }
+  .bnav-links a { color: color-mix(in oklab, var(--navy) 80%, transparent); transition: color .2s; }
+  .bnav-links a:hover, .bnav-links a.on { color: var(--primary); }
+  @media (max-width: 640px) { .bnav-links { gap: 1.1rem; font-size: .8rem; } }
+</style>

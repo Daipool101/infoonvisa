@@ -1,33 +1,158 @@
 ---
 import Base from '../layouts/Base.astro';
+import BrandNav from '../components/BrandNav.astro';
+import BrandFooter from '../components/BrandFooter.astro';
+import '../styles/brand.css';
+
+const I: Record<string, string> = {
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  calendar: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  link: '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>',
+  arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+};
+const STEPS = [
+  { icon: 'link', title: 'We start from official sources', desc: 'Every corridor page links the government or e-visa portal it draws from. The official source is always the authority — we just make it readable.' },
+  { icon: 'search', title: 'We structure it with AI assistance', desc: 'We use AI to organise sourced facts into one consistent, scannable format. It never invents visa rules — only arranges what the sources say.' },
+  { icon: 'calendar', title: 'We date everything', desc: 'Each page shows a clear "last verified" date, so you always know how current the information is.' },
+  { icon: 'shield', title: 'We review before indexing', desc: 'Auto-generated pages are held back from search until a human checks them. Accuracy comes before reach.' },
+];
+const DONT = [
+  { icon: 'ban', title: 'We don’t process visas', desc: 'We’re an information service. For routes that need help, we point you to the official portal and trusted partners.' },
+  { icon: 'eye', title: 'We don’t hide the source', desc: 'Every page shows where its facts come from and when they were last checked — so you can verify in one click.' },
+];
 ---
 
-<Base title="About & our method — InfoOnVisa" description="How InfoOnVisa researches, verifies and dates every visa corridor guide.">
-  <div class="wrap prose">
-    <h1>About InfoOnVisa</h1>
-    <p>Visa research is scattered across confusing government sites, outdated forums and blogs. Travelers waste hours and still aren’t sure. InfoOnVisa collapses it into one clean, trustworthy page per route — <b>From [country] → To [country]</b>.</p>
+<Base
+  title="About InfoOnVisa — how we research, verify and date every guide"
+  description="InfoOnVisa turns scattered visa research into one clean, sourced, dated page per route. Here's how we build them — and what we deliberately don't do."
+  hideChrome={true}
+>
+  <div class="brand">
+    <BrandNav active="about" />
 
-    <h2>How we build each page</h2>
-    <ol>
-      <li><b>We start from official sources.</b> Every corridor page links the government or e-visa portal it draws from.</li>
-      <li><b>We structure it with AI assistance.</b> We use AI to organise sourced facts into a consistent, readable format — it never invents visa rules.</li>
-      <li><b>We date everything.</b> Each page shows a “last verified” date so you know how current it is.</li>
-      <li><b>We review before indexing.</b> Auto-generated pages are held back from search until checked.</li>
-    </ol>
+    <section class="ahero">
+      <div class="glow ga" aria-hidden="true"></div>
+      <div class="container ahero-grid">
+        <div class="reveal">
+          <span class="kicker">About InfoOnVisa</span>
+          <h1 class="ahero-h1">Visa research, <span class="ul">collapsed</span> into one trustworthy page.</h1>
+          <p class="ahero-sub">Visa rules are scattered across confusing government sites, outdated forums and blogs. Travellers waste hours and still aren’t sure. We bring it together — <strong>From [country] → To [country]</strong> — verified, dated, and sourced.</p>
+          <a href="/" class="abtn">Search your route <svg viewBox="0 0 24 24" class="ic sm" set:html={I.arrowRight}></svg></a>
+        </div>
+        <div class="reveal acollage">
+          <img src="/images/japan.jpg" alt="Japan" loading="lazy" class="down" />
+          <img src="/images/singapore.jpg" alt="Singapore" loading="lazy" />
+          <img src="/images/france.jpg" alt="France" loading="lazy" />
+          <img src="/images/thailand.jpg" alt="Thailand" loading="lazy" class="down" />
+        </div>
+      </div>
+    </section>
 
-    <h2>What we don’t do</h2>
-    <p>We don’t process visa applications. For routes that need help, we point you to the official portal and may link trusted partners. Always confirm critical details on the official source before you travel.</p>
+    <section class="container asec">
+      <div class="reveal asec-head">
+        <span class="kicker">Our method</span>
+        <h2 class="ah2">How we build each page</h2>
+      </div>
+      <div class="steps">
+        {STEPS.map((s, i) => (
+          <div class="step reveal" style={`transition-delay:${i * 80}ms`}>
+            <span class="step-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I[s.icon]}></svg></span>
+            <div class="step-n">{i + 1}</div>
+            <h3>{s.title}</h3>
+            <p>{s.desc}</p>
+          </div>
+        ))}
+      </div>
+    </section>
 
-    <h2>Accuracy &amp; disclaimer</h2>
-    <p>Information here is AI-assisted and provided for general guidance only. It is not legal or immigration advice. Visa rules can change at any time — the official government source is always authoritative.</p>
+    <section class="container asec">
+      <div class="reveal asec-head"><span class="kicker">No surprises</span><h2 class="ah2">What we don’t do</h2></div>
+      <div class="dont">
+        {DONT.map((d, i) => (
+          <div class="dcard reveal" style={`transition-delay:${i * 80}ms`}>
+            <span class="dcard-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I[d.icon]}></svg></span>
+            <div><h3>{d.title}</h3><p>{d.desc}</p></div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="container asec">
+      <div class="reveal accy">
+        <svg viewBox="0 0 24 24" class="ic accy-ic" set:html={I.shield}></svg>
+        <div>
+          <h2 class="ah3">Accuracy &amp; disclaimer</h2>
+          <p>Information here is AI-assisted and provided for general guidance only. It is not legal or immigration advice. Visa rules can change at any time — the official government source linked on every page is always authoritative. Always confirm critical details there before you travel.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="container acta-wrap">
+      <div class="reveal acta">
+        <div class="glow cg" aria-hidden="true"></div>
+        <div class="acta-in">
+          <h2>Ready to check your route?</h2>
+          <p>Pick where you’re from and where you’re going — get one clean, verified page in seconds.</p>
+          <a href="/" class="abtn light">Search a route <svg viewBox="0 0 24 24" class="ic sm" set:html={I.arrowRight}></svg></a>
+        </div>
+      </div>
+    </section>
+
+    <BrandFooter />
   </div>
 </Base>
 
 <style>
-  .prose { max-width: 720px; padding: 40px 20px; }
-  .prose h1 { font-size: 32px; margin-bottom: 16px; }
-  .prose h2 { font-size: 20px; margin: 28px 0 10px; }
-  .prose p, .prose li { color: var(--ink); margin-bottom: 10px; }
-  .prose ol { padding-left: 20px; }
-  .prose li { margin-bottom: 8px; }
+  .ahero { position: relative; overflow: hidden; padding: 3.5rem 0 3rem; }
+  .glow { position: absolute; border-radius: 999px; pointer-events: none; }
+  .ahero .ga { top: -8rem; left: 30%; width: 480px; height: 480px; background: color-mix(in oklab, var(--primary) 13%, transparent); filter: blur(120px); }
+  .ahero-grid { position: relative; display: grid; grid-template-columns: 1.1fr .9fr; gap: 3rem; align-items: center; }
+  @media (max-width: 900px) { .ahero-grid { grid-template-columns: 1fr; gap: 2.5rem; } }
+  .ahero-h1 { margin-top: .75rem; font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; color: var(--navy); font-size: clamp(2.25rem, 5.5vw, 3.5rem); line-height: 1.1; }
+  .ul { position: relative; display: inline-block; }
+  .ul::after { content: ''; position: absolute; left: 0; right: 0; bottom: .2rem; height: .7rem; background: color-mix(in oklab, var(--primary) 30%, transparent); transform: skewX(-6deg); border-radius: 4px; z-index: -1; }
+  .ahero-sub { margin-top: 1.25rem; font-size: 1.0625rem; color: color-mix(in oklab, var(--navy) 72%, transparent); line-height: 1.7; }
+  .abtn { margin-top: 1.75rem; display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px; background: var(--primary); color: var(--primary-foreground); font-weight: 600; padding: .8rem 1.5rem; box-shadow: var(--shadow-glow); transition: transform .2s; }
+  .abtn:hover { transform: translateY(-2px); }
+  .abtn.light { background: #fff; color: var(--navy); }
+
+  .acollage { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .acollage img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 1.25rem; box-shadow: var(--shadow-soft); }
+  .acollage img.down { transform: translateY(1.5rem); }
+
+  .asec { padding: 2.5rem 1.5rem; }
+  .asec-head { margin-bottom: 1.75rem; }
+  .ah2 { margin-top: .4rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -0.02em; }
+  .ah3 { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.5rem; }
+
+  .steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+  .step { position: relative; border-radius: 1.25rem; background: var(--background); border: 1px solid var(--border); padding: 1.75rem; box-shadow: 0 1px 2px rgba(0,0,0,.04); transition: box-shadow .2s, transform .2s; }
+  .step:hover { box-shadow: var(--shadow-soft); transform: translateY(-3px); }
+  .step-ic { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: .85rem; background: color-mix(in oklab, var(--primary) 10%, transparent); color: var(--primary); }
+  .step-n { position: absolute; top: 1.5rem; right: 1.75rem; font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; color: color-mix(in oklab, var(--navy) 12%, transparent); }
+  .step h3 { margin-top: 1rem; font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.15rem; }
+  .step p { margin-top: .5rem; color: color-mix(in oklab, var(--navy) 70%, transparent); line-height: 1.6; }
+
+  .dont { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 760px) { .dont { grid-template-columns: 1fr; } }
+  .dcard { display: flex; gap: 1rem; border-radius: 1.25rem; background: var(--background); border: 1px solid var(--border); padding: 1.5rem; }
+  .dcard-ic { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: .75rem; background: color-mix(in oklab, var(--primary) 10%, transparent); color: var(--primary); flex: none; }
+  .dcard h3 { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.1rem; }
+  .dcard p { margin-top: .35rem; color: color-mix(in oklab, var(--navy) 70%, transparent); line-height: 1.6; font-size: .9375rem; }
+
+  .accy { display: flex; gap: 1.25rem; border-radius: 1.25rem; background: color-mix(in oklab, var(--primary) 5%, transparent); border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent); padding: 1.75rem; }
+  .accy-ic { color: var(--primary); width: 2rem; height: 2rem; flex: none; }
+  .accy p { margin-top: .5rem; color: color-mix(in oklab, var(--navy) 78%, transparent); line-height: 1.7; }
+
+  .acta-wrap { padding: 1.5rem 1.5rem 1rem; }
+  .acta { position: relative; overflow: hidden; border-radius: 2rem; background: var(--navy); color: #fff; padding: 3rem 2rem; text-align: center; }
+  .acta .cg { bottom: -7rem; right: -5rem; width: 22rem; height: 22rem; background: color-mix(in oklab, var(--primary) 40%, transparent); filter: blur(100px); }
+  .acta-in { position: relative; }
+  .acta h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.75rem, 4vw, 2.5rem); }
+  .acta p { margin: .75rem auto 0; color: rgba(255,255,255,.72); max-width: 32rem; }
+  .acta .abtn { margin-top: 1.5rem; }
 </style>

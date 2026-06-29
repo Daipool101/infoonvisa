@@ -4,6 +4,8 @@ description: "A simple, repeatable checklist to figure out the visa you actually
 pubDate: 2026-06-21
 author: "InfoOnVisa"
 tags: ["guides", "visa-basics"]
+cover: "/images/singapore.jpg"
+readMins: 4
 ---
 
 Planning a trip should be exciting — but the visa step turns it into a maze of government PDFs, contradictory forum posts and outdated blogs. Here’s a clean way to get a trustworthy answer fast.

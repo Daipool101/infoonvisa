@@ -1,0 +1,41 @@
+---
+const plane = '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>';
+---
+<footer class="bfoot">
+  <div class="container bfoot-grid">
+    <div>
+      <div class="bfoot-logo"><svg viewBox="0 0 24 24" class="ic sm orange" set:html={plane}></svg> infoonvisa</div>
+      <p class="bfoot-desc">We don't process visas. We point you to official sources and trusted partners, with a clear "last verified" date on every page.</p>
+    </div>
+    <div>
+      <div class="bfoot-h">Explore</div>
+      <ul><li><a href="/">Search a route</a></li><li><a href="/blog">Travel blog</a></li><li><a href="/#how">How it works</a></li><li><a href="/#faq">FAQ</a></li></ul>
+    </div>
+    <div>
+      <div class="bfoot-h">Legal</div>
+      <ul><li><a href="/about">About &amp; method</a></li><li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li></ul>
+    </div>
+  </div>
+  <div class="bfoot-base">© 2026 InfoOnVisa · Information is AI-assisted and for guidance only — always confirm on official government sources.</div>
+</footer>
+
+<style>
+  .bfoot { background: var(--background); border-top: 1px solid var(--border); margin-top: 4rem; }
+  .bfoot-grid { padding: 2.5rem 1.5rem; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2rem; font-size: .875rem; }
+  @media (max-width: 720px) { .bfoot-grid { grid-template-columns: 1fr; gap: 1.5rem; } }
+  .bfoot-logo { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); }
+  .bfoot-desc { margin-top: .75rem; color: color-mix(in oklab, var(--navy) 70%, transparent); line-height: 1.6; max-width: 24rem; }
+  .bfoot-h { font-family: var(--font-display); font-weight: 700; color: var(--navy); margin-bottom: .5rem; }
+  .bfoot ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+  .bfoot ul a { color: color-mix(in oklab, var(--navy) 70%, transparent); }
+  .bfoot ul a:hover { color: var(--primary); }
+  .bfoot-base { border-top: 1px solid var(--border); padding: 1.25rem 1.5rem; text-align: center; font-size: .75rem; color: color-mix(in oklab, var(--navy) 60%, transparent); }
+</style>
+
+<script>
+  const io = new IntersectionObserver(
+    (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }),
+    { rootMargin: '-50px' }
+  );
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+</script>
