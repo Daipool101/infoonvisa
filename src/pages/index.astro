@@ -4,16 +4,17 @@ import { COUNTRIES } from '../lib/countries';
 
 const options = [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
 
-// Popular routes → real corridor slugs.
+// Popular global routes → real corridor slugs. Destinations + images unchanged;
+// origins varied across popular passports. View-guide links follow the slug.
 const ROUTES = [
-  { slug: 'india-to-united-arab-emirates', img: '/images/uae.jpg', from: 'IN', to: 'AE', name: 'India to United Arab Emirates', tag: 'Visa on arrival' },
-  { slug: 'india-to-thailand', img: '/images/thailand.jpg', from: 'IN', to: 'TH', name: 'India to Thailand', tag: 'eVisa available' },
-  { slug: 'india-to-singapore', img: '/images/singapore.jpg', from: 'IN', to: 'SG', name: 'India to Singapore', tag: 'eVisa required' },
-  { slug: 'india-to-japan', img: '/images/japan.jpg', from: 'IN', to: 'JP', name: 'India to Japan', tag: 'eVisa required' },
-  { slug: 'india-to-united-kingdom', img: '/images/uk.jpg', from: 'IN', to: 'GB', name: 'India to United Kingdom', tag: 'Standard visitor' },
-  { slug: 'india-to-united-states', img: '/images/usa.jpg', from: 'IN', to: 'US', name: 'India to United States', tag: 'B1/B2 visa' },
-  { slug: 'india-to-france', img: '/images/france.jpg', from: 'IN', to: 'FR', name: 'India to France', tag: 'Schengen visa' },
-  { slug: 'india-to-australia', img: '/images/australia.jpg', from: 'IN', to: 'AU', name: 'India to Australia', tag: 'eVisitor / ETA' },
+  { slug: 'united-states-to-united-arab-emirates', img: '/images/uae.jpg', from: 'US', to: 'AE', name: 'United States to UAE', tag: 'Visa guide' },
+  { slug: 'united-kingdom-to-thailand', img: '/images/thailand.jpg', from: 'GB', to: 'TH', name: 'United Kingdom to Thailand', tag: 'Visa guide' },
+  { slug: 'australia-to-singapore', img: '/images/singapore.jpg', from: 'AU', to: 'SG', name: 'Australia to Singapore', tag: 'Visa guide' },
+  { slug: 'united-states-to-japan', img: '/images/japan.jpg', from: 'US', to: 'JP', name: 'United States to Japan', tag: 'Visa guide' },
+  { slug: 'canada-to-united-kingdom', img: '/images/uk.jpg', from: 'CA', to: 'GB', name: 'Canada to United Kingdom', tag: 'Visa guide' },
+  { slug: 'united-kingdom-to-united-states', img: '/images/usa.jpg', from: 'GB', to: 'US', name: 'United Kingdom to United States', tag: 'Visa guide' },
+  { slug: 'united-states-to-france', img: '/images/france.jpg', from: 'US', to: 'FR', name: 'United States to France', tag: 'Visa guide' },
+  { slug: 'united-kingdom-to-australia', img: '/images/australia.jpg', from: 'GB', to: 'AU', name: 'United Kingdom to Australia', tag: 'Visa guide' },
 ];
 
 const MARQUEE = ['🇮🇳 India', '🇯🇵 Japan', '🇦🇪 UAE', '🇹🇭 Thailand', '🇸🇬 Singapore', '🇬🇧 UK', '🇺🇸 USA', '🇫🇷 France', '🇦🇺 Australia', '🇨🇦 Canada', '🇩🇪 Germany', '🇮🇹 Italy'];
@@ -168,7 +169,7 @@ const jsonLd = {
         <div class="reveal section-head">
           <div>
             <div class="kicker">Popular routes</div>
-            <h2 class="h2">Where Indian travellers are headed</h2>
+            <h2 class="h2">Where travellers are headed</h2>
           </div>
           <a href="#" class="link-orange">View all 190+ countries →</a>
         </div>
