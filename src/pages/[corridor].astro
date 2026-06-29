@@ -57,6 +57,8 @@ const noindex = !row || row.status !== 'verified';
 const planeIcon = '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>';
 const swapIcon = '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>';
 const searchIcon = '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>';
+const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
+const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
 ---
 
 <Base title={title} description={description} noindex={noindex} jsonLd={jsonLd} showDisclaimer={!!row} hideChrome={true}>
@@ -65,12 +67,18 @@ const searchIcon = '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>';
     <header class="cnav">
       <div class="cnav-in">
         <a href="/" class="logo"><span class="logo-badge"><svg viewBox="0 0 24 24" class="ic sm" set:html={planeIcon}></svg></span><span class="logo-text">infoon <span class="orange">visa</span></span></a>
-        <nav class="cnav-links">
-          <a href="/">Home</a>
-          <a href="/#routes">Countries</a>
-          <a href="/blog">Blog</a>
-          <a href="/about">About</a>
-        </nav>
+        <div class="cnav-right">
+          <nav class="cnav-links">
+            <a href="/">Home</a>
+            <a href="/#routes">Countries</a>
+            <a href="/blog">Blog</a>
+            <a href="/about">About</a>
+          </nav>
+          <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+            <svg viewBox="0 0 24 24" class="ic sm t-moon" set:html={moonIcon}></svg>
+            <svg viewBox="0 0 24 24" class="ic sm t-sun" set:html={sunIcon}></svg>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -136,6 +144,28 @@ const searchIcon = '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>';
     min-height: 100vh;
   }
   .brand :global(a) { text-decoration: none; }
+
+  /* Dark mode — overrides the brand tokens; light is default */
+  :global(html[data-theme='dark']) .brand {
+    --background: oklch(0.25 0.035 280);
+    --cream: oklch(0.19 0.03 280);
+    --navy: oklch(0.96 0.02 90);
+    --primary: oklch(0.72 0.18 45);
+    --primary-foreground: oklch(0.16 0.02 280);
+    --muted-foreground: oklch(0.68 0.03 280);
+    --border: oklch(0.34 0.03 280);
+    --success: oklch(0.7 0.14 150);
+    --shadow-soft: 0 10px 40px -10px rgba(0, 0, 0, 0.55);
+  }
+
+  .cnav-right { display: flex; align-items: center; gap: 1.25rem; }
+  .theme-toggle { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--navy); cursor: pointer; transition: background .2s, color .2s; flex: none; }
+  .theme-toggle:hover { background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--primary); }
+  .theme-toggle .t-sun { display: none; }
+  .theme-toggle .t-moon { display: block; }
+  :global(html[data-theme='dark']) .theme-toggle .t-sun { display: block; }
+  :global(html[data-theme='dark']) .theme-toggle .t-moon { display: none; }
+
   .ic { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
   .ic.sm { width: 1rem; height: 1rem; }
   .orange { color: var(--primary); }
@@ -184,6 +214,15 @@ const searchIcon = '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>';
 </style>
 
 <script>
+  // Dark-mode toggle (light is default; choice persists)
+  const themeBtn = document.getElementById('theme-toggle');
+  themeBtn?.addEventListener('click', () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme === 'dark';
+    if (dark) { root.removeAttribute('data-theme'); localStorage.setItem('iov-theme', 'light'); }
+    else { root.dataset.theme = 'dark'; localStorage.setItem('iov-theme', 'dark'); }
+  });
+
   const form = document.getElementById('iov-search') as HTMLFormElement | null;
   if (form) {
     const fromSel = form.querySelector('select[name="from"]') as HTMLSelectElement;
