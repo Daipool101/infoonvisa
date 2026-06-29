@@ -220,7 +220,6 @@ const ESSENTIALS = [
         {data.processingTime && <div><dt>Processing</dt><dd>{data.processingTime}</dd></div>}
         {opt?.entries && <div class="last"><dt>Entries</dt><dd>{opt.entries}</dd></div>}
       </dl>
-      <a class="glance-btn" href={data.officialSource.url} target="_blank" rel="noopener noreferrer nofollow"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.checkCircle}></svg> Start application</a>
     </div>
 
     <div class="side-card">
@@ -365,8 +364,6 @@ const ESSENTIALS = [
   .glance dt { font-size: .875rem; color: var(--muted-foreground); }
   .glance dd { text-align: right; font-size: .875rem; font-weight: 600; color: var(--navy); }
   .glance dd.orange { color: var(--primary); font-weight: 700; }
-  .glance-btn { margin-top: 1.5rem; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: .75rem; background: var(--primary); color: var(--primary-foreground); font-weight: 600; padding: .75rem; }
-  .glance-btn:hover { filter: brightness(1.1); }
   .side-head { display: flex; align-items: center; gap: .5rem; }
   .src { margin-top: 1rem; list-style: none; display: flex; flex-direction: column; gap: .75rem; }
   .src li { font-size: .875rem; line-height: 1.4; }
