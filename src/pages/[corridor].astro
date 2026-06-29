@@ -1,10 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
-import SearchBar from '../components/SearchBar.astro';
 import CorridorContent from '../components/CorridorContent.astro';
 import LoadingScreen from '../components/LoadingScreen.astro';
-import { parseCorridorSlug, isFresh, VERDICT_LABEL } from '../lib/corridor';
+import { parseCorridorSlug } from '../lib/corridor';
 import { getEnv, getCorridor, bumpSearchCount } from '../lib/supabase';
+import { COUNTRIES } from '../lib/countries';
 
 const { corridor } = Astro.params;
 const parsed = corridor ? parseCorridorSlug(corridor) : null;
@@ -18,6 +18,7 @@ const env = getEnv();
 const row = await getCorridor(env, parsed.slug);
 
 const { from, to } = parsed;
+const options = [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
 const title = `${from.name} to ${to.name} visa guide — requirements, documents & how to apply | InfoOnVisa`;
 const description = row
   ? `${row.data.verdictHeadline} Documents, application steps and travel tips for ${from.name} citizens visiting ${to.name}.`
@@ -53,31 +54,154 @@ if (row) {
 
 // Index only human-verified pages (BUILD_PLAN principle #4).
 const noindex = !row || row.status !== 'verified';
+const planeIcon = '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>';
+const swapIcon = '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>';
+const searchIcon = '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>';
 ---
 
-<Base
-  title={title}
-  description={description}
-  noindex={noindex}
-  jsonLd={jsonLd}
-  showDisclaimer={!!row}
->
-  <div class="wrap page">
-    <SearchBar fromSlug={from.slug} toSlug={to.slug} />
-    {row ? (
-      <CorridorContent
-        data={row.data}
-        from={from}
-        to={to}
-        verifiedDate={verifiedDate}
-        status={row.status}
-      />
-    ) : (
-      <LoadingScreen from={from} to={to} slug={parsed.slug} />
-    )}
+<Base title={title} description={description} noindex={noindex} jsonLd={jsonLd} showDisclaimer={!!row} hideChrome={true}>
+  <div class="brand corridor">
+    <!-- Header -->
+    <header class="cnav">
+      <div class="cnav-in">
+        <a href="/" class="logo"><span class="logo-badge"><svg viewBox="0 0 24 24" class="ic sm" set:html={planeIcon}></svg></span><span class="logo-text">infoon <span class="orange">visa</span></span></a>
+        <nav class="cnav-links">
+          <a href="/">Home</a>
+          <a href="/#routes">Countries</a>
+          <a href="/blog">Blog</a>
+          <a href="/about">About</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Sticky search -->
+    <div class="ssearch">
+      <div class="ssearch-in">
+        <form class="sbar" id="iov-search">
+          <label class="spick"><span class="slabel">From</span>
+            <span class="sval"><span class="scode" data-code>{from.iso}</span>
+              <select name="from" aria-label="From country">{options.map((c) => <option value={c.slug} data-iso={c.iso} selected={c.slug === from.slug}>{c.name}</option>)}</select>
+            </span>
+          </label>
+          <button type="button" class="sswap" id="iov-swap" aria-label="Swap countries"><svg viewBox="0 0 24 24" class="ic sm" set:html={swapIcon}></svg></button>
+          <label class="spick"><span class="slabel">To</span>
+            <span class="sval"><span class="scode" data-code>{to.iso}</span>
+              <select name="to" aria-label="To country">{options.map((c) => <option value={c.slug} data-iso={c.iso} selected={c.slug === to.slug}>{c.name}</option>)}</select>
+            </span>
+          </label>
+          <button type="submit" class="sbtn"><svg viewBox="0 0 24 24" class="ic sm" set:html={searchIcon}></svg> Search</button>
+        </form>
+      </div>
+    </div>
+
+    <main class="cmain">
+      {row ? (
+        <CorridorContent data={row.data} from={from} to={to} verifiedDate={verifiedDate} status={row.status} />
+      ) : (
+        <LoadingScreen from={from} to={to} slug={parsed.slug} />
+      )}
+    </main>
+
+    <!-- Footer -->
+    <footer class="cfoot">
+      <div class="cfoot-grid">
+        <div>
+          <div class="cfoot-logo"><svg viewBox="0 0 24 24" class="ic sm orange" set:html={planeIcon}></svg> infoonvisa</div>
+          <p class="cfoot-desc">We don't process visas. We point you to official sources and trusted partners, with a clear "last verified" date on every page.</p>
+        </div>
+        <div><div class="cfoot-h">Explore</div><ul><li><a href="/">Search a route</a></li><li><a href="/blog">Travel blog</a></li><li><a href="/about">About &amp; method</a></li></ul></div>
+        <div><div class="cfoot-h">Legal</div><ul><li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li></ul></div>
+      </div>
+      <div class="cfoot-base">© 2026 InfoOnVisa · Information is AI-assisted and for guidance only — always confirm on official government sources.</div>
+    </footer>
   </div>
 </Base>
 
 <style>
-  .page { padding: 22px 20px 10px; }
+  .brand {
+    --background: oklch(1 0 0);
+    --navy: oklch(0.27 0.07 280);
+    --cream: oklch(0.97 0.04 90);
+    --primary: oklch(0.68 0.19 40);
+    --primary-foreground: oklch(0.99 0 0);
+    --muted-foreground: oklch(0.5 0.04 280);
+    --border: oklch(0.92 0.02 80);
+    --success: oklch(0.55 0.13 145);
+    --shadow-soft: 0 10px 40px -10px color-mix(in oklab, var(--navy) 18%, transparent);
+    --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+  .brand :global(a) { text-decoration: none; }
+  .ic { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .ic.sm { width: 1rem; height: 1rem; }
+  .orange { color: var(--primary); }
+
+  /* Nav */
+  .cnav { position: sticky; top: 0; z-index: 40; background: color-mix(in oklab, var(--background) 90%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .cnav-in { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; height: 4rem; display: flex; align-items: center; justify-content: space-between; }
+  .logo { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); }
+  .logo-badge { width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: var(--navy); color: var(--primary-foreground); display: grid; place-items: center; }
+  .cnav-links { display: flex; align-items: center; gap: 1.75rem; font-size: .875rem; font-weight: 500; }
+  .cnav-links a { color: color-mix(in oklab, var(--navy) 80%, transparent); }
+  .cnav-links a:hover { color: var(--primary); }
+  @media (max-width: 720px) { .cnav-links { display: none; } }
+
+  /* Sticky search */
+  .ssearch { background: var(--background); border-bottom: 1px solid var(--border); }
+  .ssearch-in { max-width: 72rem; margin: 0 auto; padding: 1rem 1.5rem; }
+  .sbar { border-radius: 1rem; background: var(--cream); border: 1px solid var(--border); padding: .5rem; display: flex; gap: .5rem; align-items: stretch; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .spick { flex: 1; border-radius: .75rem; background: var(--background); padding: .625rem 1.25rem; border: 1px solid transparent; cursor: pointer; transition: border-color .2s; }
+  .spick:hover { border-color: color-mix(in oklab, var(--primary) 30%, transparent); }
+  .slabel { font-size: .625rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted-foreground); font-weight: 700; }
+  .sval { margin-top: .15rem; display: flex; align-items: center; gap: .5rem; }
+  .scode { font-size: .7rem; font-weight: 700; color: var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); padding: .1rem .375rem; border-radius: 4px; }
+  .spick select { border: none; background: transparent; outline: none; font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1rem; cursor: pointer; max-width: 11rem; }
+  .sswap { align-self: center; width: 2.5rem; height: 2.5rem; border-radius: 999px; background: var(--background); border: 1px solid var(--border); color: var(--navy); display: grid; place-items: center; cursor: pointer; transition: all .5s; flex: none; }
+  .sswap:hover { background: var(--primary); color: var(--primary-foreground); transform: rotate(180deg); }
+  .sbtn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: .75rem; background: var(--primary); color: var(--primary-foreground); font-weight: 600; padding: .75rem 1.5rem; border: none; cursor: pointer; box-shadow: 0 4px 6px -2px rgba(0,0,0,.1); flex: none; }
+  .sbtn:hover { filter: brightness(1.1); }
+  @media (max-width: 720px) { .sbar { flex-direction: column; } .spick select { max-width: none; } }
+
+  /* Main */
+  .cmain { max-width: 72rem; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+  @media (min-width: 640px) { .cmain { padding: 3rem 1.5rem; } }
+
+  /* Footer */
+  .cfoot { background: var(--background); border-top: 1px solid var(--border); margin-top: 2rem; }
+  .cfoot-grid { max-width: 72rem; margin: 0 auto; padding: 2.5rem 1.5rem; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2rem; font-size: .875rem; }
+  @media (max-width: 720px) { .cfoot-grid { grid-template-columns: 1fr; gap: 1.5rem; } }
+  .cfoot-logo { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); }
+  .cfoot-desc { margin-top: .75rem; color: color-mix(in oklab, var(--navy) 70%, transparent); line-height: 1.6; }
+  .cfoot-h { font-family: var(--font-display); font-weight: 700; color: var(--navy); margin-bottom: .5rem; }
+  .cfoot ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+  .cfoot ul a { color: color-mix(in oklab, var(--navy) 70%, transparent); }
+  .cfoot ul a:hover { color: var(--primary); }
+  .cfoot-base { border-top: 1px solid var(--border); padding: 1.25rem 1.5rem; text-align: center; font-size: .75rem; color: color-mix(in oklab, var(--navy) 60%, transparent); }
 </style>
+
+<script>
+  const form = document.getElementById('iov-search') as HTMLFormElement | null;
+  if (form) {
+    const fromSel = form.querySelector('select[name="from"]') as HTMLSelectElement;
+    const toSel = form.querySelector('select[name="to"]') as HTMLSelectElement;
+    const codes = form.querySelectorAll<HTMLElement>('[data-code]');
+    const sync = () => {
+      codes[0].textContent = fromSel.selectedOptions[0].dataset.iso || '';
+      codes[1].textContent = toSel.selectedOptions[0].dataset.iso || '';
+    };
+    fromSel.addEventListener('change', sync);
+    toSel.addEventListener('change', sync);
+    document.getElementById('iov-swap')?.addEventListener('click', () => {
+      const t = fromSel.value; fromSel.value = toSel.value; toSel.value = t; sync();
+    });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (fromSel.value === toSel.value) { toSel.focus(); return; }
+      window.location.href = `/${fromSel.value}-to-${toSel.value}`;
+    });
+  }
+</script>

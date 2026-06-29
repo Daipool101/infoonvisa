@@ -2,276 +2,408 @@
 import type { CorridorData } from '../lib/corridor';
 import { VERDICT_LABEL, isGoodVerdict } from '../lib/corridor';
 import type { Country } from '../lib/countries';
-import AdSlot from './AdSlot.astro';
 
 interface Props {
   data: CorridorData;
   from: Country;
   to: Country;
-  verifiedDate: string; // human readable
+  verifiedDate: string;
   status: string;
 }
 const { data, from, to, verifiedDate, status } = Astro.props;
 const good = isGoodVerdict(data.verdict);
-const verdictClass = good ? 'good' : 'caution';
 const opt = data.visaOptions?.[0];
+
+const I: Record<string, string> = {
+  fileText: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+  fileCheck: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/>',
+  mapPin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  sparkles: '<path d="M9.94 14.06A2 2 0 0 0 8.5 12.6l-5.1-1.3a.5.5 0 0 1 0-.96l5.1-1.32A2 2 0 0 0 9.94 7.5l1.32-5.1a.5.5 0 0 1 .96 0l1.3 5.1a2 2 0 0 0 1.44 1.44l5.1 1.3a.5.5 0 0 1 0 .98l-5.1 1.3a2 2 0 0 0-1.44 1.44l-1.3 5.1a.5.5 0 0 1-.96 0z"/>',
+  bookOpen: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  calendar: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  shieldPlain: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  externalLink: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  chevron: '<path d="m6 9 6 6 6-6"/>',
+  wifi: '<path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.86a10 10 0 0 1 14 0"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/>',
+  plane: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  hotel: '<path d="M10 22v-6.57"/><path d="M12 11h.01"/><path d="M12 7h.01"/><path d="M14 15.43V22"/><path d="M15 16a5 5 0 0 0-6 0"/><path d="M16 11h.01"/><path d="M16 7h.01"/><path d="M8 11h.01"/><path d="M8 7h.01"/><rect x="4" y="2" width="16" height="20" rx="2"/>',
+};
+
+const ESSENTIALS = [
+  { icon: 'shieldPlain', title: 'Travel insurance', desc: 'Cover for medical emergencies & delays.', cta: 'Compare plans' },
+  { icon: 'wifi', title: 'eSIM & data', desc: 'Get online the moment you land.', cta: 'Get an eSIM' },
+  { icon: 'plane', title: 'Flights', desc: `Compare routes to ${to.name}.`, cta: 'Find flights' },
+  { icon: 'hotel', title: 'Stays', desc: 'Hotels & rentals at your destination.', cta: 'Browse stays' },
+];
 ---
 
-<div class="verdict" data-v={verdictClass}>
-  <span class="pill">● {VERDICT_LABEL[data.verdict]}</span>
-  <h1>{from.flag} {from.name} → {to.flag} {to.name}: {data.verdictHeadline}</h1>
-  <p class="muted">{data.summary}</p>
-  <div class="badges">
-    <span>🗓 Last verified: <b>{verifiedDate}</b></span>
-    <a href={data.officialSource.url} rel="nofollow noopener" target="_blank">🔗 Source: <b>{data.officialSource.label}</b></a>
-    {status !== 'verified' && <span class="warn">⚠ Awaiting human review</span>}
+<!-- Breadcrumbs -->
+<nav class="crumbs">
+  <a href="/">Home</a><span>/</span><span>Routes</span><span>/</span><span class="here">{from.name} → {to.name}</span>
+</nav>
+
+<!-- Verdict -->
+<section class={`verdict${good ? ' good' : ''}`}>
+  <div class="bar"></div>
+  <div class="verdict-in">
+    <div class="vpill">
+      <svg viewBox="0 0 24 24" class="ic xs" set:html={good ? I.checkCircle : I.alert}></svg>
+      {VERDICT_LABEL[data.verdict]}
+    </div>
+    <h1 class="vh1">{data.verdictHeadline}</h1>
+    <p class="vsum">{data.summary}</p>
+    <div class="vmeta">
+      <span class="vchip"><svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.calendar}></svg> Last verified: <strong>{verifiedDate}</strong></span>
+      <a class="ext" href={data.officialSource.url} target="_blank" rel="noopener noreferrer nofollow">Official source: {data.officialSource.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>
+      {status !== 'verified' && <span class="vchip warn">Awaiting human review</span>}
+    </div>
   </div>
-</div>
+</section>
 
-<div class="grid">
-  <div class="main">
-    <!-- B. Visa details -->
-    <section class="card" id="visa-types">
-      <h2><i>B</i>Visa types &amp; details</h2>
-      <p class="bsub muted">Choose a visa category to see its details — all options for travel from {from.name} to {to.name}:</p>
-
-      <div class="vpicker">
-        <label class="vlabel" for="iov-visa-select">Visa type</label>
+<div class="layout">
+  <div class="col-main">
+    <!-- Visa types -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.fileText}></svg></span>
+        <div><h2>Visa types &amp; details</h2><p class="sub">Choose a visa category to see its details — all options for {from.name} → {to.name}.</p></div>
+      </div>
+      <div class="card-body">
         <div class="vselect-wrap">
-          <select id="iov-visa-select" class="vselect" aria-controls="iov-visa-panels">
-            {data.visaOptions.map((o, i) => (
-              <option value={i}>{o.type}</option>
-            ))}
+          <select id="visa-select" class="vselect" aria-label="Select visa type">
+            {data.visaOptions.map((o, i) => <option value={i}>{o.type}</option>)}
           </select>
-          <span class="vchevron" aria-hidden="true">▾</span>
+          <svg viewBox="0 0 24 24" class="ic vchev" set:html={I.chevron}></svg>
         </div>
-      </div>
-
-      <div id="iov-visa-panels">
-        {data.visaOptions.map((o, i) => (
-          <article class="vpanel" data-i={i} hidden={i !== 0}>
-            <h3 class="opttype">{o.type}</h3>
-            <div class="optgrid">
-              {o.validity && <div class="kv"><span>Validity</span><strong>{o.validity}</strong></div>}
-              {o.maxStay && <div class="kv"><span>Max stay</span><strong>{o.maxStay}</strong></div>}
-              {o.entries && <div class="kv"><span>Entries</span><strong>{o.entries}</strong></div>}
-              {o.eligibility && <div class="kv full"><span>Best for</span><strong>{o.eligibility}</strong></div>}
+        <div id="visa-panels">
+          {data.visaOptions.map((o, i) => (
+            <div class="vpanel" data-i={i} hidden={i !== 0}>
+              <div class="vpanel-type"><span class="dot"></span>{o.type}</div>
+              <div class="vfields">
+                {o.validity && <div class="field"><div class="flabel">Validity</div><div class="fval">{o.validity}</div></div>}
+                {o.maxStay && <div class="field"><div class="flabel">Max stay</div><div class="fval">{o.maxStay}</div></div>}
+                {o.entries && <div class="field"><div class="flabel">Entries</div><div class="fval">{o.entries}</div></div>}
+                {data.processingTime && <div class="field"><div class="flabel">Processing time</div><div class="fval">{data.processingTime}</div></div>}
+              </div>
+              {o.eligibility && <div class="bestfor"><div class="flabel">Best for</div><p>{o.eligibility}</p></div>}
+              <div class="feerow">
+                <span class="muted">Government fee: fees vary by visa type and nationality and change often.</span>
+                <a class="ext" href={data.officialSource.url} target="_blank" rel="noopener noreferrer nofollow">Check the official fee portal <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>
+              </div>
             </div>
-          </article>
-        ))}
-      </div>
-
-      {data.processingTime && <div class="row"><span>Typical processing time</span><strong>{data.processingTime}</strong></div>}
-      <p class="feenote">Government fee: <a href={data.officialSource.url} rel="nofollow noopener" target="_blank">check the official portal →</a> (fees vary by visa type and nationality, and change often).</p>
-    </section>
-
-    <script>
-      const sel = document.getElementById('iov-visa-select') as HTMLSelectElement | null;
-      const panels = Array.from(document.querySelectorAll<HTMLElement>('#iov-visa-panels .vpanel'));
-      if (sel && panels.length) {
-        sel.addEventListener('change', () => {
-          const i = sel.value;
-          panels.forEach((p) => (p.hidden = p.dataset.i !== i));
-        });
-      }
-    </script>
-
-    <!-- C. Documents -->
-    <section class="card">
-      <h2><i>C</i>Documents checklist</h2>
-      {data.documents.map((d) => (
-        <label class="check">
-          <input type="checkbox" />
-          <span>{d.label}{d.note && <small>{d.note}</small>}</span>
-        </label>
-      ))}
-    </section>
-
-    <!-- D. How & where to apply -->
-    <section class="card">
-      <h2><i>D</i>How &amp; where to apply</h2>
-      {data.applySteps.map((s, i) => (
-        <div class="step">
-          <div class="n">{i + 1}</div>
-          <div>{s.text} {s.link && <a href={s.link.url} rel="nofollow noopener" target="_blank">{s.link.label} ↗</a>}</div>
+          ))}
         </div>
-      ))}
-    </section>
-
-    <!-- E. Trip essentials (monetization) -->
-    <section class="card">
-      <h2><i>E</i>Trip essentials</h2>
-      <div class="ess">
-        <div class="e"><div class="t">🛡 Travel insurance</div><small>Cover for medical emergencies &amp; delays.</small><span class="aff">Compare plans ↗ <em class="tag">soon</em></span></div>
-        <div class="e"><div class="t">📶 eSIM &amp; data</div><small>Get online the moment you land.</small><span class="aff">Get an eSIM ↗ <em class="tag">soon</em></span></div>
-        <div class="e"><div class="t">✈ Flights</div><small>Compare routes to {to.name}.</small><span class="aff">Find flights ↗ <em class="tag">soon</em></span></div>
-        <div class="e"><div class="t">🏨 Stays</div><small>Hotels &amp; rentals at your destination.</small><span class="aff">Browse stays ↗ <em class="tag">soon</em></span></div>
       </div>
     </section>
 
-    <AdSlot label="Advertisement" minHeight={120} />
-
-    <!-- F. Things to know + places -->
-    <section class="card">
-      <h2><i>F</i>Things to know &amp; places to visit</h2>
-      {data.tips.map((t) => (
-        <div class="check static"><span class="bang">!</span><span>{t}</span></div>
-      ))}
-      {data.bestTimeToVisit && <div class="row"><span>Best time to visit</span><strong>{data.bestTimeToVisit}</strong></div>}
-      {data.topPlaces?.length && <div class="row"><span>Top places</span><strong>{data.topPlaces.join(' · ')}</strong></div>}
+    <!-- Documents checklist -->
+    <section class="card" id="iov-docs">
+      <div class="card-head">
+        <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.fileCheck}></svg></span>
+        <div><h2>Documents checklist</h2><p class="sub" id="doc-sub">Tick items as you collect them — 0 of {data.documents.length} ready.</p></div>
+      </div>
+      <div class="card-body">
+        <div class="progress"><div class="progress-fill" id="doc-fill" style="width:0%"></div></div>
+        <ul class="docs">
+          {data.documents.map((d) => (
+            <li>
+              <label class="doc">
+                <input type="checkbox" class="doc-check" />
+                <span class="doc-text"><span class="doc-name">{d.label}</span>{d.note && <span class="doc-desc">{d.note}</span>}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
 
-    <!-- G. FAQ -->
+    <!-- How to apply -->
     <section class="card">
-      <h2><i>G</i>Frequently asked questions</h2>
-      {data.faq.map((f) => (
-        <details class="faq">
-          <summary>{f.q}</summary>
-          <p>{f.a}</p>
-        </details>
-      ))}
+      <div class="card-head">
+        <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.mapPin}></svg></span>
+        <div><h2>How &amp; where to apply</h2><p class="sub">Follow these steps in order.</p></div>
+      </div>
+      <div class="card-body">
+        <ol class="steps">
+          {data.applySteps.map((s: any, i: number) => (
+            <li class="step">
+              <div class="step-n">{i + 1}</div>
+              <div class="step-body">
+                <div class="step-title">{s.title ?? s.text}</div>
+                {s.desc && <p class="step-desc">{s.desc}</p>}
+                {s.link && <a class="ext" href={s.link.url} target="_blank" rel="noopener noreferrer nofollow">{s.link.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
 
-    <div class="disc">⚠ <div>This page is AI-assisted and last verified on {verifiedDate}. Visa rules change — always confirm on the official source linked above before you travel.</div></div>
+    <!-- Trip essentials -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.sparkles}></svg></span>
+        <div><h2>Trip essentials</h2><p class="sub">Hand-picked tools for your {to.name} trip.</p></div>
+      </div>
+      <div class="card-body">
+        <div class="ess-grid">
+          {ESSENTIALS.map((e) => (
+            <div class="ess">
+              <div class="ess-t"><svg viewBox="0 0 24 24" class="ic sm orange" set:html={I[e.icon]}></svg> {e.title}</div>
+              <p class="ess-d">{e.desc}</p>
+              <div class="ess-cta"><a href="#">{e.cta} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.arrowRight}></svg></a><span class="soon">Soon</span></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Things to know -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.bookOpen}></svg></span>
+        <div><h2>Things to know &amp; places to visit</h2><p class="sub">Practical tips and top destinations.</p></div>
+      </div>
+      <div class="card-body">
+        <ul class="tips">
+          {data.tips.map((t) => (
+            <li><svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.info}></svg><span>{t}</span></li>
+          ))}
+        </ul>
+        <div class="know-grid">
+          {data.bestTimeToVisit && (
+            <div class="know-best"><div class="flabel orange-l">Best time to visit</div><p>{data.bestTimeToVisit}</p></div>
+          )}
+          {data.topPlaces?.length && (
+            <div class="know-places"><div class="flabel">Top places</div><ul>{data.topPlaces.map((p) => <li>📍 <strong>{p}</strong></li>)}</ul></div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.info}></svg></span>
+        <div><h2>Frequently asked questions</h2></div>
+      </div>
+      <div class="card-body">
+        <ul class="faqs">
+          {data.faq.map((f, i) => (
+            <li class={`faq-item${i === 0 ? ' open' : ''}`}>
+              <button type="button" class="faq-q"><span>{f.q}</span><svg viewBox="0 0 24 24" class="ic chev" set:html={I.chevron}></svg></button>
+              <div class="faq-a"><div class="faq-a-in"><p>{f.a}</p></div></div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <div class="disc">
+      <svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.alert}></svg>
+      <p>This page is AI-assisted and last verified on <strong>{verifiedDate}</strong>. Visa rules change — always confirm on the <a class="ext" href={data.officialSource.url} target="_blank" rel="noopener noreferrer nofollow">official source <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a> before you travel.</p>
+    </div>
   </div>
 
-  <aside>
-    <AdSlot label="Advertisement" minHeight={250} />
-    <div class="sidecard">
-      <h3>At a glance</h3>
-      <div class="li"><span>Verdict</span><strong class={good ? 'g' : 'a'}>{VERDICT_LABEL[data.verdict]}</strong></div>
-      {opt?.maxStay && <div class="li"><span>Max stay</span><strong>{opt.maxStay}</strong></div>}
-      {data.processingTime && <div class="li"><span>Processing</span><strong>{data.processingTime}</strong></div>}
+  <!-- Sidebar -->
+  <aside class="col-side">
+    <div class="side-card">
+      <div class="flabel">At a glance</div>
+      <dl class="glance">
+        <div><dt>Verdict</dt><dd class="orange">{VERDICT_LABEL[data.verdict]}</dd></div>
+        {opt?.maxStay && <div><dt>Max stay</dt><dd>{opt.maxStay}</dd></div>}
+        {data.processingTime && <div><dt>Processing</dt><dd>{data.processingTime}</dd></div>}
+        {opt?.entries && <div class="last"><dt>Entries</dt><dd>{opt.entries}</dd></div>}
+      </dl>
+      <a class="glance-btn" href={data.officialSource.url} target="_blank" rel="noopener noreferrer nofollow"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.checkCircle}></svg> Start application</a>
     </div>
-    <div class="sidecard sources">
-      <h3>Sources</h3>
-      {data.sources.map((s) => (
-        <a class="li" href={s.url} rel="nofollow noopener" target="_blank">{s.label} ↗</a>
-      ))}
+
+    <div class="side-card">
+      <div class="side-head"><svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.shield}></svg><div class="flabel">Official sources</div></div>
+      <ul class="src">
+        {data.sources.map((s) => (
+          <li><a class="ext" href={s.url} target="_blank" rel="noopener noreferrer nofollow">{s.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a></li>
+        ))}
+      </ul>
     </div>
+
+    <div class="ad-slot"><div class="flabel">Advertisement</div><p class="muted">Ad slot reserved</p></div>
   </aside>
 </div>
 
 <style>
-  .verdict {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-left: 6px solid var(--success);
-    border-radius: var(--radius);
-    padding: 22px 24px;
-    margin-bottom: 18px;
-    box-shadow: var(--shadow);
-  }
-  .verdict[data-v='caution'] { border-left-color: var(--accent); }
-  .pill {
-    display: inline-flex;
-    gap: 7px;
-    background: var(--success-soft);
-    color: var(--success-ink);
-    font-weight: 600;
-    font-size: 13px;
-    padding: 5px 13px;
-    border-radius: 999px;
-  }
-  .verdict[data-v='caution'] .pill { background: var(--accent-soft); color: #9a4a16; }
-  .verdict h1 { font-size: 24px; margin: 12px 0 6px; }
-  .badges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; font-size: 13px; }
-  .badges span, .badges a {
-    background: var(--bg);
-    border: 1px solid var(--line);
-    padding: 5px 11px;
-    border-radius: 8px;
-    color: var(--muted);
-  }
-  .badges b { color: var(--brand); }
-  .badges .warn { background: var(--accent-soft); color: #9a4a16; border-color: #f0cf8a; }
+  .crumbs { display: flex; align-items: center; gap: .5rem; font-size: .875rem; color: var(--muted-foreground); margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .crumbs a { color: inherit; } .crumbs a:hover { color: var(--primary); }
+  .crumbs .here { color: var(--navy); font-weight: 600; }
 
-  .grid { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
-  .card h2 { font-size: 18px; display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
-  .card h2 i {
-    width: 30px; height: 30px; border-radius: 9px;
-    background: var(--brand-soft); color: var(--brand);
-    display: grid; place-items: center; font-size: 14px; font-style: normal; font-weight: 700;
-  }
-  .row { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px dashed var(--line); font-size: 15px; }
-  .row span { color: var(--muted); }
-  .row strong { text-align: right; }
-  .feenote { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .ic { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .ic.sm { width: 1rem; height: 1rem; } .ic.xs { width: .85rem; height: .85rem; }
+  .orange { color: var(--primary); }
+  .muted { color: var(--muted-foreground); }
+  .flabel { font-size: .625rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted-foreground); font-weight: 700; }
+  .flabel.orange-l { color: var(--primary); }
 
-  .bsub { font-size: 14px; margin-bottom: 14px; }
+  .ext { display: inline-flex; align-items: center; gap: .25rem; color: var(--primary); font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--primary) 40%, transparent); text-underline-offset: 4px; text-decoration-thickness: 2px; }
+  .ext:hover { text-decoration-color: var(--primary); }
 
-  .vpicker { margin-bottom: 14px; }
-  .vlabel { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+  /* Verdict */
+  .verdict { position: relative; overflow: hidden; border-radius: 1.5rem; background: var(--background); border: 1px solid var(--border); box-shadow: var(--shadow-soft); }
+  .verdict .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--primary); }
+  .verdict.good .bar { background: var(--success); }
+  .verdict-in { padding: 1.5rem; }
+  @media (min-width: 640px) { .verdict-in { padding: 2.5rem; } }
+  .vpill { display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px; background: color-mix(in oklab, var(--primary) 10%, transparent); color: var(--primary); padding: .375rem .75rem; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .verdict.good .vpill { background: color-mix(in oklab, var(--success) 12%, transparent); color: var(--success); }
+  .vh1 { margin-top: 1.25rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); line-height: 1.15; text-wrap: balance; font-size: clamp(1.75rem, 4vw, 3rem); }
+  .vsum { margin-top: 1.25rem; color: color-mix(in oklab, var(--navy) 75%, transparent); font-size: 1.0625rem; line-height: 1.6; max-width: 48rem; }
+  .vmeta { margin-top: 1.75rem; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+  .vchip { display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px; background: var(--cream); border: 1px solid var(--border); padding: .5rem 1rem; font-size: .875rem; color: color-mix(in oklab, var(--navy) 80%, transparent); }
+  .vchip strong { color: var(--navy); }
+  .vchip.warn { background: color-mix(in oklab, var(--primary) 8%, transparent); color: var(--primary); border-color: color-mix(in oklab, var(--primary) 30%, transparent); font-weight: 700; }
+
+  /* Layout */
+  .layout { margin-top: 2.5rem; display: grid; grid-template-columns: 1fr 320px; gap: 2rem; align-items: start; }
+  @media (max-width: 1024px) { .layout { grid-template-columns: 1fr; } }
+  .col-main { display: flex; flex-direction: column; gap: 2.5rem; min-width: 0; }
+  .col-side { display: flex; flex-direction: column; gap: 1.5rem; position: sticky; top: 7rem; }
+  @media (max-width: 1024px) { .col-side { position: static; } }
+
+  /* Card */
+  .card { border-radius: 1.5rem; background: var(--background); border: 1px solid var(--border); box-shadow: var(--shadow-soft); padding: 1.5rem; }
+  @media (min-width: 640px) { .card { padding: 2rem; } }
+  .card-head { display: flex; align-items: flex-start; gap: 1rem; }
+  .card-ic { width: 2.75rem; height: 2.75rem; border-radius: .75rem; background: color-mix(in oklab, var(--primary) 10%, transparent); color: var(--primary); display: grid; place-items: center; flex: none; }
+  .card-head h2 { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: clamp(1.25rem, 2.5vw, 1.5rem); }
+  .card-head .sub { margin-top: .375rem; font-size: .875rem; color: var(--muted-foreground); }
+  .card-body { margin-top: 1.5rem; }
+
+  /* Visa dropdown */
   .vselect-wrap { position: relative; }
-  .vselect {
-    width: 100%;
-    appearance: none;
-    -webkit-appearance: none;
-    background: var(--bg);
-    border: 1px solid var(--brand-soft);
-    border-radius: 12px;
-    padding: 13px 40px 13px 16px;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--brand);
-    cursor: pointer;
-  }
-  .vselect:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(241, 100, 46, 0.12); }
-  .vchevron { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--accent); pointer-events: none; font-size: 14px; }
-
-  .vpanel { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; background: var(--bg); }
+  .vselect { width: 100%; appearance: none; -webkit-appearance: none; border: 2px solid var(--primary); background: color-mix(in oklab, var(--primary) 5%, transparent); border-radius: .75rem; padding: 1rem 3rem 1rem 1.25rem; font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1rem; cursor: pointer; }
+  .vselect:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent); }
+  .vchev { position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--primary); pointer-events: none; }
+  .vpanel { margin-top: 1rem; border-radius: .75rem; background: var(--cream); border: 1px solid var(--border); padding: 1.5rem; }
   .vpanel[hidden] { display: none; }
-  .opttype {
-    font-size: 15px; font-weight: 600; color: var(--brand);
-    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
-  }
-  .opttype::before {
-    content: ''; width: 8px; height: 8px; border-radius: 50%;
-    background: var(--accent); flex: none;
-  }
-  .optgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
-  .kv { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
-  .kv.full { grid-column: 1 / -1; }
-  .kv span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .kv strong { color: var(--ink); font-weight: 600; }
+  .vpanel-type { display: inline-flex; align-items: center; gap: .5rem; font-size: .875rem; font-weight: 700; color: var(--primary); }
+  .vpanel-type .dot { width: .5rem; height: .5rem; border-radius: 999px; background: var(--primary); }
+  .vfields { margin-top: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 540px) { .vfields { grid-template-columns: 1fr; } }
+  .fval { margin-top: .25rem; color: var(--navy); font-weight: 600; line-height: 1.4; }
+  .bestfor { margin-top: 1.25rem; } .bestfor p { margin-top: .25rem; color: color-mix(in oklab, var(--navy) 85%, transparent); }
+  .feerow { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; font-size: .875rem; }
 
-  .check { display: flex; gap: 11px; padding: 9px 0; font-size: 15px; align-items: flex-start; cursor: pointer; }
-  .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--success); flex: none; }
-  .check small { display: block; color: var(--muted); font-size: 13px; }
-  .check.static { cursor: default; }
-  .check .bang {
-    width: 20px; height: 20px; border: 2px solid var(--accent); color: var(--accent);
-    border-radius: 6px; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; margin-top: 2px;
-  }
+  /* Documents */
+  .progress { height: .5rem; width: 100%; border-radius: 999px; background: var(--cream); overflow: hidden; margin-bottom: 1.25rem; }
+  .progress-fill { height: 100%; background: var(--primary); transition: width .3s; }
+  .docs { list-style: none; }
+  .docs li { border-top: 1px solid var(--border); }
+  .docs li:first-child { border-top: none; }
+  .doc { display: flex; gap: 1rem; padding: 1rem 0; cursor: pointer; }
+  .doc input { margin-top: .15rem; width: 1.25rem; height: 1.25rem; accent-color: var(--primary); cursor: pointer; flex: none; }
+  .doc-name { display: block; font-family: var(--font-display); font-weight: 700; color: var(--navy); }
+  .doc.checked .doc-name { text-decoration: line-through; opacity: .5; }
+  .doc-desc { display: block; margin-top: .25rem; font-size: .875rem; color: color-mix(in oklab, var(--navy) 70%, transparent); line-height: 1.5; }
 
-  .step { display: flex; gap: 13px; padding: 10px 0; font-size: 15px; }
-  .step .n { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; }
+  /* Steps */
+  .steps { list-style: none; display: flex; flex-direction: column; gap: 1.25rem; }
+  .step { display: flex; gap: 1rem; }
+  .step-n { width: 2.25rem; height: 2.25rem; border-radius: 999px; background: var(--primary); color: var(--primary-foreground); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; flex: none; }
+  .step-title { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.125rem; }
+  .step-desc { margin-top: .25rem; color: color-mix(in oklab, var(--navy) 75%, transparent); line-height: 1.6; }
+  .step-body .ext { margin-top: .5rem; }
 
-  .ess { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .ess .e { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--bg); }
-  .ess .e .t { font-weight: 600; color: var(--brand); margin-bottom: 4px; }
-  .ess .e small { color: var(--muted); font-size: 13px; }
-  .ess .e .aff { display: block; margin-top: 9px; font-size: 13px; font-weight: 600; color: var(--accent); }
-  .tag { font-size: 10px; background: var(--accent-soft); color: #9a4a16; padding: 1px 6px; border-radius: 6px; font-style: normal; font-weight: 700; }
+  /* Essentials */
+  .ess-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 540px) { .ess-grid { grid-template-columns: 1fr; } }
+  .ess { border-radius: 1rem; background: var(--cream); border: 1px solid var(--border); padding: 1.25rem; transition: border-color .2s, box-shadow .2s; }
+  .ess:hover { border-color: color-mix(in oklab, var(--primary) 40%, transparent); box-shadow: 0 4px 10px rgba(0,0,0,.05); }
+  .ess-t { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 700; color: var(--navy); }
+  .ess-d { margin-top: .5rem; font-size: .875rem; color: color-mix(in oklab, var(--navy) 70%, transparent); }
+  .ess-cta { margin-top: .75rem; display: flex; align-items: center; gap: .5rem; }
+  .ess-cta a { display: inline-flex; align-items: center; gap: .25rem; font-size: .875rem; font-weight: 600; color: var(--primary); text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--primary) 40%, transparent); text-underline-offset: 4px; }
+  .soon { font-size: .625rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; background: color-mix(in oklab, var(--primary) 10%, transparent); color: var(--primary); padding: .1rem .5rem; border-radius: 999px; }
 
-  .faq { border-bottom: 1px solid var(--line); padding: 13px 0; }
-  .faq summary { font-weight: 600; color: var(--brand); cursor: pointer; }
-  .faq p { color: var(--muted); font-size: 14px; margin-top: 7px; }
+  /* Tips */
+  .tips { list-style: none; display: flex; flex-direction: column; gap: .75rem; }
+  .tips li { display: flex; gap: .75rem; border-radius: .75rem; background: var(--cream); border: 1px solid var(--border); padding: 1rem; }
+  .tips li span { color: color-mix(in oklab, var(--navy) 85%, transparent); line-height: 1.6; }
+  .tips .ic { margin-top: .15rem; }
+  .know-grid { margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 540px) { .know-grid { grid-template-columns: 1fr; } }
+  .know-best { border-radius: .75rem; background: color-mix(in oklab, var(--primary) 5%, transparent); border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent); padding: 1.25rem; }
+  .know-best p { margin-top: .5rem; color: var(--navy); font-weight: 600; line-height: 1.5; }
+  .know-places { border-radius: .75rem; background: var(--cream); border: 1px solid var(--border); padding: 1.25rem; }
+  .know-places ul { margin-top: .5rem; list-style: none; display: flex; flex-direction: column; gap: .375rem; font-size: .875rem; color: color-mix(in oklab, var(--navy) 85%, transparent); }
 
-  .disc { background: var(--accent-soft); border: 1px solid #f0cf8a; border-radius: 12px; padding: 13px 18px; font-size: 13px; color: #8a4513; display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+  /* FAQ */
+  .faqs { list-style: none; }
+  .faqs .faq-item { border-top: 1px solid var(--border); }
+  .faqs .faq-item:first-child { border-top: none; }
+  .faq-q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; text-align: left; background: none; border: none; cursor: pointer; font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1rem; }
+  .faq-q .chev { color: var(--primary); transition: transform .3s; }
+  .faq-item.open .faq-q .chev { transform: rotate(180deg); }
+  .faq-a { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s; }
+  .faq-item.open .faq-a { grid-template-rows: 1fr; }
+  .faq-a-in { overflow: hidden; }
+  .faq-a-in p { padding-bottom: 1rem; color: color-mix(in oklab, var(--navy) 75%, transparent); line-height: 1.6; }
 
-  aside .sidecard { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 18px 0; }
-  .sidecard h3 { font-size: 14px; margin-bottom: 10px; }
-  .sidecard .li { font-size: 14px; padding: 7px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; }
-  .sidecard .li:last-child { border: none; }
-  .sidecard .g { color: var(--success-ink); }
-  .sidecard .a { color: var(--accent); }
-  .sources .li { color: var(--accent); }
+  /* Disclaimer */
+  .disc { display: flex; gap: .75rem; border-radius: 1rem; background: color-mix(in oklab, var(--primary) 5%, transparent); border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent); padding: 1.25rem; }
+  .disc .ic { margin-top: .15rem; }
+  .disc p { font-size: .875rem; color: color-mix(in oklab, var(--navy) 80%, transparent); line-height: 1.6; }
 
-  @media (max-width: 760px) {
-    .grid { grid-template-columns: 1fr; }
-    .ess { grid-template-columns: 1fr; }
-    .optgrid { grid-template-columns: 1fr; }
-    aside { order: 2; }
-  }
+  /* Sidebar */
+  .side-card { border-radius: 1rem; background: var(--background); border: 1px solid var(--border); box-shadow: var(--shadow-soft); padding: 1.5rem; }
+  .glance { margin-top: 1rem; display: flex; flex-direction: column; }
+  .glance > div { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+  .glance > div.last { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .glance dt { font-size: .875rem; color: var(--muted-foreground); }
+  .glance dd { text-align: right; font-size: .875rem; font-weight: 600; color: var(--navy); }
+  .glance dd.orange { color: var(--primary); font-weight: 700; }
+  .glance-btn { margin-top: 1.5rem; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: .75rem; background: var(--primary); color: var(--primary-foreground); font-weight: 600; padding: .75rem; }
+  .glance-btn:hover { filter: brightness(1.1); }
+  .side-head { display: flex; align-items: center; gap: .5rem; }
+  .src { margin-top: 1rem; list-style: none; display: flex; flex-direction: column; gap: .75rem; }
+  .src li { font-size: .875rem; line-height: 1.4; }
+  .ad-slot { border-radius: 1rem; border: 2px dashed var(--border); background: color-mix(in oklab, var(--background) 50%, transparent); padding: 2rem; text-align: center; }
+  .ad-slot .muted { margin-top: .5rem; font-size: .875rem; }
 </style>
+
+<script>
+  // Visa type dropdown → show selected panel
+  const sel = document.getElementById('visa-select') as HTMLSelectElement | null;
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('#visa-panels .vpanel'));
+  sel?.addEventListener('change', () => panels.forEach((p) => (p.hidden = p.dataset.i !== sel.value)));
+
+  // Documents checklist progress
+  const docRoot = document.getElementById('iov-docs');
+  if (docRoot) {
+    const checks = Array.from(docRoot.querySelectorAll<HTMLInputElement>('.doc-check'));
+    const fill = document.getElementById('doc-fill');
+    const sub = document.getElementById('doc-sub');
+    const update = () => {
+      const done = checks.filter((c) => c.checked).length;
+      if (fill) fill.style.width = `${(done / checks.length) * 100}%`;
+      if (sub) sub.textContent = `Tick items as you collect them — ${done} of ${checks.length} ready.`;
+    };
+    checks.forEach((c) => c.addEventListener('change', () => {
+      c.closest('.doc')?.classList.toggle('checked', c.checked);
+      update();
+    }));
+  }
+
+  // FAQ accordion
+  document.querySelectorAll('.faqs .faq-q').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const wasOpen = item?.classList.contains('open');
+      document.querySelectorAll('.faqs .faq-item').forEach((i) => i.classList.remove('open'));
+      if (!wasOpen) item?.classList.add('open');
+    });
+  });
+</script>
