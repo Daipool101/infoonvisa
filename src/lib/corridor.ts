@@ -99,6 +99,19 @@ export function parseCorridorSlug(slug: string): ParsedCorridor | null {
 export const corridorSlug = (from: Country, to: Country) => `${from.slug}-to-${to.slug}`;
 export const corridorId = (from: Country, to: Country) => `${from.iso}-${to.iso}`;
 
+// Only allow http/https URLs from generated content (blocks javascript:, data:, etc.).
+// Returns a safe href string, or null if the URL is unusable/unsafe.
+export function safeUrl(u?: string | null): string | null {
+  if (!u) return null;
+  try {
+    const p = new URL(u.trim());
+    if (p.protocol === 'http:' || p.protocol === 'https:') return p.href;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // Freshness window (BUILD_PLAN §12): 30 days.
 export const REFRESH_DAYS = 30;
 export const isFresh = (generatedAt: string) =>

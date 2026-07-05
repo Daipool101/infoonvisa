@@ -1,6 +1,6 @@
 ---
 import type { CorridorData } from '../lib/corridor';
-import { VERDICT_LABEL, isGoodVerdict } from '../lib/corridor';
+import { VERDICT_LABEL, isGoodVerdict, safeUrl } from '../lib/corridor';
 import type { Country } from '../lib/countries';
 
 interface Props {
@@ -59,7 +59,7 @@ const ESSENTIALS = [
     <p class="vsum">{data.summary}</p>
     <div class="vmeta">
       <span class="vchip"><svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.calendar}></svg> Last verified: <strong>{verifiedDate}</strong></span>
-      <a class="ext" href={data.officialSource.url} target="_blank" rel="noopener noreferrer nofollow">Official source: {data.officialSource.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>
+      <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">Official source: {data.officialSource.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>
       {status !== 'verified' && <span class="vchip warn">Awaiting human review</span>}
     </div>
   </div>
@@ -93,7 +93,7 @@ const ESSENTIALS = [
               {o.eligibility && <div class="bestfor"><div class="flabel">Best for</div><p>{o.eligibility}</p></div>}
               <div class="feerow">
                 <span class="muted">Government fee: fees vary by visa type and nationality and change often.</span>
-                <a class="ext" href={data.officialSource.url} target="_blank" rel="noopener noreferrer nofollow">Check the official fee portal <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>
+                <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">Check the official fee portal <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>
               </div>
             </div>
           ))}
@@ -136,7 +136,7 @@ const ESSENTIALS = [
               <div class="step-body">
                 <div class="step-title">{s.title ?? s.text}</div>
                 {s.desc && <p class="step-desc">{s.desc}</p>}
-                {s.link && <a class="ext" href={s.link.url} target="_blank" rel="noopener noreferrer nofollow">{s.link.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>}
+                {s.link && <a class="ext" href={safeUrl(s.link.url)} target="_blank" rel="noopener noreferrer nofollow">{s.link.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>}
               </div>
             </li>
           ))}
@@ -206,7 +206,7 @@ const ESSENTIALS = [
 
     <div class="disc">
       <svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.alert}></svg>
-      <p>This page is AI-assisted and last verified on <strong>{verifiedDate}</strong>. Visa rules change — always confirm on the <a class="ext" href={data.officialSource.url} target="_blank" rel="noopener noreferrer nofollow">official source <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a> before you travel.</p>
+      <p>This page is AI-assisted and last verified on <strong>{verifiedDate}</strong>. Visa rules change — always confirm on the <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">official source <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a> before you travel.</p>
     </div>
   </div>
 
@@ -226,7 +226,7 @@ const ESSENTIALS = [
       <div class="side-head"><svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.shield}></svg><div class="flabel">Official sources</div></div>
       <ul class="src">
         {data.sources.map((s) => (
-          <li><a class="ext" href={s.url} target="_blank" rel="noopener noreferrer nofollow">{s.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a></li>
+          <li><a class="ext" href={safeUrl(s.url)} target="_blank" rel="noopener noreferrer nofollow">{s.label} <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a></li>
         ))}
       </ul>
     </div>

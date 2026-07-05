@@ -12,6 +12,18 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { 'content-type': 'application/json' },
     });
 
+  // Same-origin guard: only accept generation requests that originate from our
+  // own pages (blocks trivial cross-site / scripted enumeration of the paid
+  // Gemini endpoint). A Cloudflare Rate-Limiting rule on /api/generate should
+  // be added as well for defence-in-depth.
+  const self = new URL(request.url).origin;
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer') || '';
+  const sameOrigin = origin === self || referer.startsWith(self + '/');
+  if (!sameOrigin) {
+    return json({ ok: false, error: 'forbidden' }, 403);
+  }
+
   let slug = '';
   try {
     const body = (await request.json()) as { slug?: string };
@@ -31,7 +43,9 @@ export const POST: APIRoute = async ({ request }) => {
 
   const result = await generateCorridor(env, parsed.from, parsed.to);
   if (!result.data) {
-    return json({ ok: false, error: 'generation_failed', reason: result.error }, 502);
+    // Log detail server-side only; don't leak backend error text to clients.
+    console.error('generation_failed for', parsed.slug, '-', result.error);
+    return json({ ok: false, error: 'generation_failed' }, 502);
   }
 
   const saved = await saveCorridor(env, {

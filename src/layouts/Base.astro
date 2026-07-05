@@ -30,6 +30,9 @@ const adsenseClient = env.PUBLIC_ADSENSE_CLIENT;
 const GA_ID = 'G-CE9NDE5Q6Y'; // Google Analytics 4 measurement ID
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
 const ldArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+// Escape so AI/user content can't break out of the <script> block (e.g. "</script>").
+const jsonLdSafe = (o: object) =>
+  JSON.stringify(o).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 ---
 
 <!doctype html>
@@ -60,7 +63,7 @@ const ldArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
 
     {ldArray.map((ld) => (
-      <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+      <script type="application/ld+json" set:html={jsonLdSafe(ld)} />
     ))}
 
     {adsenseClient && (
