@@ -66,7 +66,7 @@ const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 
     <!-- Header -->
     <header class="cnav">
       <div class="cnav-in">
-        <a href="/" class="logo"><span class="logo-badge"><svg viewBox="0 0 24 24" class="ic sm" set:html={planeIcon}></svg></span><span class="logo-text">infoon <span class="orange">visa</span></span></a>
+        <a href="/" class="logo"><span class="logo-badge"><img src="/logo-icon.png" alt="" width="36" height="36" /></span><span class="logo-text"><span class="navy">InfoOn</span><span class="orange">Visa</span></span></a>
         <div class="cnav-right">
           <nav class="cnav-links">
             <a href="/">Home</a>
@@ -174,7 +174,8 @@ const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 
   .cnav { position: sticky; top: 0; z-index: 40; background: color-mix(in oklab, var(--background) 90%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
   .cnav-in { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; height: 4rem; display: flex; align-items: center; justify-content: space-between; }
   .logo { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); }
-  .logo-badge { width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: var(--navy); color: var(--primary-foreground); display: grid; place-items: center; }
+  .logo-badge { width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: #fff; border: 1px solid var(--border); overflow: hidden; display: grid; place-items: center; }
+  .logo-badge img { width: 100%; height: 100%; object-fit: contain; }
   .cnav-links { display: flex; align-items: center; gap: 1.75rem; font-size: .875rem; font-weight: 500; }
   .cnav-links a { color: color-mix(in oklab, var(--navy) 80%, transparent); }
   .cnav-links a:hover { color: var(--primary); }

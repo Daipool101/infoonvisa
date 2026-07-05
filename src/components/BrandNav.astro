@@ -11,7 +11,7 @@ const links = [
 ---
 <header class="bnav">
   <div class="container bnav-in">
-    <a href="/" class="blogo"><span class="blogo-badge"><svg viewBox="0 0 24 24" class="ic sm" set:html={plane}></svg></span><span class="blogo-text">infoon <span class="orange">visa</span></span></a>
+    <a href="/" class="blogo"><span class="blogo-badge"><img src="/logo-icon.png" alt="" width="36" height="36" /></span><span class="blogo-text"><span class="navy">InfoOn</span><span class="orange">Visa</span></span></a>
     <nav class="bnav-links">
       {links.map((l) => <a href={l.href} class={active === l.key ? 'on' : ''}>{l.label}</a>)}
     </nav>
@@ -22,7 +22,8 @@ const links = [
   .bnav { position: sticky; top: 0; z-index: 40; background: color-mix(in oklab, var(--background) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
   .bnav-in { height: 4rem; display: flex; align-items: center; justify-content: space-between; }
   .blogo { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); font-size: 1.125rem; }
-  .blogo-badge { width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: var(--navy); color: var(--primary-foreground); display: grid; place-items: center; transition: transform .2s; }
+  .blogo-badge { width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: #fff; border: 1px solid var(--border); overflow: hidden; display: grid; place-items: center; transition: transform .2s; }
+  .blogo-badge img { width: 100%; height: 100%; object-fit: contain; }
   .blogo:hover .blogo-badge { transform: rotate(-6deg); }
   .bnav-links { display: flex; align-items: center; gap: 1.75rem; font-size: .875rem; font-weight: 500; }
   .bnav-links a { color: color-mix(in oklab, var(--navy) 80%, transparent); transition: color .2s; }
