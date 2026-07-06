@@ -11,6 +11,12 @@ node_modules/
 .dev.vars
 .wrangler/
 
+# google cloud / vertex service-account keys — NEVER commit
+vertex-key.json
+*-service-account*.json
+*.sa.json
+gcp-*.json
+
 # logs
 npm-debug.log*
 *.log
