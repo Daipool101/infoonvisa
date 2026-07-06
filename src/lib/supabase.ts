@@ -100,6 +100,39 @@ function seedRow(slug: string): CorridorRow | null {
   };
 }
 
+// Is this URL an official government / immigration authority source?
+// Auto-publish gate: pages grounded in a .gov (or equivalent) source are safe
+// to go live without manual review; anything else is held as pending_review.
+function isOfficialSourceUrl(url?: string): boolean {
+  if (!url) return false;
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return (
+    /(^|\.)gov(\.[a-z]{2,3})*$/.test(host) || // gov.uk, .gov.sg, .gov.eg, .gov
+    /\.go\.[a-z]{2}$/.test(host) || // .go.th, .go.kr
+    /(^|\.)gob\.[a-z]{2}$/.test(host) || // .gob.mx (Spanish-speaking gov)
+    /(^|\.)gouv\.[a-z]{2}$/.test(host) || // .gouv.fr
+    host === 'u.ae' ||
+    host.endsWith('.u.ae') ||
+    host.endsWith('.admin.ch') ||
+    host.endsWith('.govt.nz') ||
+    host.endsWith('.gc.ca') // Government of Canada
+  );
+}
+
+// Decide whether a freshly generated page can auto-publish. It must cite at
+// least one official government source (in officialSource or sources[]).
+function autoStatus(data: CorridorData): CorridorStatus {
+  const official =
+    isOfficialSourceUrl(data.officialSource?.url) ||
+    (data.sources || []).some((s) => isOfficialSourceUrl(s.url));
+  return official ? 'verified' : 'pending_review';
+}
+
 export async function saveCorridor(
   env: AppEnv,
   row: {
@@ -120,7 +153,7 @@ export async function saveCorridor(
       sources: row.data.sources,
       verdict: row.data.verdict,
       max_stay_days: row.data.maxStayDays ?? null,
-      status: 'pending_review',
+      status: autoStatus(row.data),
       generated_at: now.toISOString(),
       next_refresh_at: next.toISOString(),
     },
