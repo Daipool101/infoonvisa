@@ -13,6 +13,10 @@ export interface AppEnv {
   GEMINI_API_KEY: string;
   GEMINI_MODEL: string;
   PUBLIC_ADSENSE_CLIENT: string;
+  // Google Cloud / Vertex AI (for on-demand generation from Cloudflare).
+  GCP_PROJECT_ID: string;
+  GCP_LOCATION: string;
+  GCP_SA_KEY: string; // service-account JSON (raw or base64)
 }
 
 // Accessing the cloudflare env proxy can throw during prerender/build — guard it.
@@ -34,6 +38,9 @@ export function getEnv(): AppEnv {
     GEMINI_API_KEY: pick('GEMINI_API_KEY'),
     GEMINI_MODEL: pick('GEMINI_MODEL') || 'gemini-2.5-flash',
     PUBLIC_ADSENSE_CLIENT: pick('PUBLIC_ADSENSE_CLIENT'),
+    GCP_PROJECT_ID: pick('GCP_PROJECT_ID'),
+    GCP_LOCATION: pick('GCP_LOCATION') || 'us-central1',
+    GCP_SA_KEY: pick('GCP_SA_KEY'),
   };
 }
 

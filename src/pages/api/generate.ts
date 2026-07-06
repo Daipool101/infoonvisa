@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { parseCorridorSlug } from '../../lib/corridor';
 import { getEnv, getCorridor, saveCorridor } from '../../lib/supabase';
 import { generateCorridor } from '../../lib/gemini';
+import { generateCorridorVertex } from '../../lib/vertex';
 
 export const prerender = false;
 
@@ -41,7 +42,12 @@ export const POST: APIRoute = async ({ request }) => {
   const existing = await getCorridor(env, parsed.slug);
   if (existing) return json({ ok: true, cached: true });
 
-  const result = await generateCorridor(env, parsed.from, parsed.to);
+  // Prefer Vertex AI when configured (works from Cloudflare's edge);
+  // otherwise fall back to the AI Studio API.
+  const useVertex = !!env.GCP_SA_KEY && !!env.GCP_PROJECT_ID;
+  const result = useVertex
+    ? await generateCorridorVertex(env, parsed.from, parsed.to)
+    : await generateCorridor(env, parsed.from, parsed.to);
   if (!result.data) {
     // Log detail server-side only; don't leak backend error text to clients.
     console.error('generation_failed for', parsed.slug, '-', result.error);

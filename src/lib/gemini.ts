@@ -4,7 +4,8 @@ import type { CorridorData } from './corridor';
 import type { Country } from './countries';
 
 // Strict response schema mirroring blocks A–G. Forces structured JSON output.
-const RESPONSE_SCHEMA = {
+// Exported so the Vertex REST path can reuse the exact same schema.
+export const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     verdict: { type: Type.STRING, enum: ['visa_free', 'voa', 'evisa', 'eta', 'embassy'] },
@@ -76,7 +77,7 @@ const RESPONSE_SCHEMA = {
   required: ['verdict', 'verdictHeadline', 'summary', 'officialSource', 'visaOptions', 'documents', 'applySteps', 'faq', 'sources'],
 };
 
-function buildPrompt(from: Country, to: Country): string {
+export function buildPrompt(from: Country, to: Country): string {
   return `You are a meticulous visa-information researcher. Produce a structured guide for a
 citizen of ${from.name} (passport: ${from.name}) travelling to ${to.name} for TOURISM.
 
