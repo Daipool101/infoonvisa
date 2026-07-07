@@ -120,7 +120,11 @@ function isOfficialSourceUrl(url?: string): boolean {
     host.endsWith('.u.ae') ||
     host.endsWith('.admin.ch') ||
     host.endsWith('.govt.nz') ||
-    host.endsWith('.gc.ca') // Government of Canada
+    host.endsWith('.gc.ca') || // Government of Canada
+    host === 'canada.ca' ||
+    host.endsWith('.canada.ca') || // Government of Canada (canada.ca)
+    host === 'europa.eu' ||
+    host.endsWith('.europa.eu') // Official EU (Schengen, ec.europa.eu, etc.)
   );
 }
 
