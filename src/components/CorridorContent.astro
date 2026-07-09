@@ -247,8 +247,13 @@ const ESSENTIALS = [
   .flabel { font-size: .625rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted-foreground); font-weight: 700; }
   .flabel.orange-l { color: var(--primary); }
 
-  .ext { display: inline-flex; align-items: center; gap: .25rem; color: var(--primary); font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--primary) 40%, transparent); text-underline-offset: 4px; text-decoration-thickness: 2px; }
-  .ext:hover { text-decoration-color: var(--primary); }
+  /* In-content links: clear blue + underline so they read as clickable (light + dark).
+     inline-block (not inline-flex) so the underline actually renders. */
+  .ext { display: inline-block; color: #1d5fd6; font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in oklab, #1d5fd6 45%, transparent); text-underline-offset: 3px; text-decoration-thickness: 2px; }
+  .ext .ic { vertical-align: -0.15em; margin-left: .25rem; }
+  .ext:hover { color: #1746a8; text-decoration-color: #1d5fd6; }
+  :global(html[data-theme='dark']) .ext { color: #7fb3ff; text-decoration-color: color-mix(in oklab, #7fb3ff 45%, transparent); }
+  :global(html[data-theme='dark']) .ext:hover { color: #a9ccff; text-decoration-color: #7fb3ff; }
 
   /* Verdict */
   .verdict { position: relative; overflow: hidden; border-radius: 1.5rem; background: var(--background); border: 1px solid var(--border); box-shadow: var(--shadow-soft); }
@@ -312,7 +317,7 @@ const ESSENTIALS = [
   .steps { list-style: none; display: flex; flex-direction: column; gap: 1.25rem; }
   .step { display: flex; gap: 1rem; }
   .step-n { width: 2.25rem; height: 2.25rem; border-radius: 999px; background: var(--primary); color: var(--primary-foreground); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; flex: none; }
-  .step-title { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.125rem; }
+  .step-title { color: color-mix(in oklab, var(--navy) 85%, transparent); font-weight: 400; font-size: 1rem; line-height: 1.6; }
   .step-desc { margin-top: .25rem; color: color-mix(in oklab, var(--navy) 75%, transparent); line-height: 1.6; }
   .step-body .ext { margin-top: .5rem; }
 

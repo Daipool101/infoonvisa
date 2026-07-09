@@ -45,6 +45,9 @@ const FAQS = [
   { q: 'Do I need to sign up?', a: 'Nope. Search any route and read the full guide — no account, no paywall, no popups.' },
 ];
 
+// Fallback date for the "last verified" demo chip (updated to today on the client).
+const buildDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
 // Inline lucide icon path data (24x24, stroke).
 const I: Record<string, string> = {
   plane: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
@@ -240,7 +243,7 @@ const jsonLd = {
             <span class="verified-ic"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.shield}></svg></span>
             <div>
               <div class="verified-t">Last verified</div>
-              <div class="verified-d">June 24, 2026</div>
+              <div class="verified-d" id="home-verified-date">{buildDate}</div>
             </div>
           </div>
         </div>
@@ -558,6 +561,10 @@ const jsonLd = {
 </style>
 
 <script>
+  // Keep the "last verified" demo chip showing the current date.
+  const vd = document.getElementById('home-verified-date');
+  if (vd) vd.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
   // Reveal-on-scroll
   const io = new IntersectionObserver(
     (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }),

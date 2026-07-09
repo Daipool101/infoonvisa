@@ -143,7 +143,8 @@ const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 
     font-family: var(--font-body);
     min-height: 100vh;
   }
-  .brand :global(a) { text-decoration: none; }
+  /* Reset default underlines for nav/chrome links, but NOT in-content links (.ext). */
+  .brand :global(a:not(.ext)) { text-decoration: none; }
 
   /* Dark mode — overrides the brand tokens; light is default */
   :global(html[data-theme='dark']) .brand {
