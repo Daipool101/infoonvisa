@@ -97,6 +97,9 @@ export async function generateCorridorVertex(
           responseMimeType: 'application/json',
           responseSchema: RESPONSE_SCHEMA,
           temperature: 0.2,
+          // Safety cap: normal output ~4k tokens; 8192 gives 2x headroom while
+          // bounding any runaway response so a single call can't balloon the bill.
+          maxOutputTokens: 8192,
         },
       }),
     });

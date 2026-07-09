@@ -112,7 +112,8 @@ export function safeUrl(u?: string | null): string | null {
   }
 }
 
-// Freshness window (BUILD_PLAN §12): 30 days.
-export const REFRESH_DAYS = 30;
+// Freshness window: 90 days. Visa rules change slowly, so a 90-day cache cuts
+// regeneration cost ~66% vs 30 days while keeping pages acceptably current.
+export const REFRESH_DAYS = 90;
 export const isFresh = (generatedAt: string) =>
   Date.now() - new Date(generatedAt).getTime() < REFRESH_DAYS * 24 * 60 * 60 * 1000;
