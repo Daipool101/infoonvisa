@@ -2,5 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "infoonvisa",
   "compatibility_date": "2026-04-15",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+  // SEO: don't expose the *.workers.dev preview URL or per-version preview URLs.
+  // Google should only crawl/rank the custom domain (infoonvisa.com). This keeps
+  // the preview URLs disabled across every deploy (dashboard toggles get reverted).
+  "workers_dev": false,
+  "preview_urls": false
 }
