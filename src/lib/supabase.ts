@@ -17,6 +17,8 @@ export interface AppEnv {
   GCP_PROJECT_ID: string;
   GCP_LOCATION: string;
   GCP_SA_KEY: string; // service-account JSON (raw or base64)
+  // Secret that gates forced regeneration via /api/generate (admin backfills).
+  REGEN_KEY: string;
 }
 
 // Accessing the cloudflare env proxy can throw during prerender/build — guard it.
@@ -41,6 +43,7 @@ export function getEnv(): AppEnv {
     GCP_PROJECT_ID: pick('GCP_PROJECT_ID'),
     GCP_LOCATION: pick('GCP_LOCATION') || 'us-central1',
     GCP_SA_KEY: pick('GCP_SA_KEY'),
+    REGEN_KEY: pick('REGEN_KEY'),
   };
 }
 
@@ -151,13 +154,22 @@ export async function saveCorridor(
   if (!db) return false;
   const now = new Date();
   const next = new Date(now.getTime() + REFRESH_DAYS * 24 * 60 * 60 * 1000);
+  // Preserve a human-decided status on regeneration/refresh: a page already
+  // reviewed (verified) or rejected (low_quality) keeps that status, so a
+  // refresh never silently drops a verified page out of the sitemap. Only
+  // brand-new pages get the auto-publish gate.
+  const { data: prev } = await db.from('corridors').select('status').eq('id', row.id).maybeSingle();
+  const status =
+    prev?.status === 'verified' || prev?.status === 'low_quality'
+      ? prev.status
+      : autoStatus(row.data);
   const { error } = await db.from('corridors').upsert(
     {
       ...row,
       sources: row.data.sources,
       verdict: row.data.verdict,
       max_stay_days: row.data.maxStayDays ?? null,
-      status: autoStatus(row.data),
+      status,
       generated_at: now.toISOString(),
       next_refresh_at: next.toISOString(),
     },

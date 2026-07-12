@@ -27,6 +27,8 @@ const I: Record<string, string> = {
   externalLink: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
   alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  xCircle: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+  shieldCheck: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
   arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
   chevron: '<path d="m6 9 6 6 6-6"/>',
   wifi: '<path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.86a10 10 0 0 1 14 0"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/>',
@@ -143,6 +145,28 @@ const ESSENTIALS = [
         </ol>
       </div>
     </section>
+
+    <!-- Common reasons for rejection -->
+    {data.rejectionReasons?.length ? (
+      <section class="card">
+        <div class="card-head">
+          <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.xCircle}></svg></span>
+          <div><h2>Common reasons for rejection</h2><p class="sub">Why {from.name} → {to.name} applications get refused — and how to avoid it.</p></div>
+        </div>
+        <div class="card-body">
+          <ul class="rejects">
+            {data.rejectionReasons.map((r) => (
+              <li class="reject">
+                <div class="reject-reason"><svg viewBox="0 0 24 24" class="ic sm rej-x" set:html={I.xCircle}></svg><span>{r.reason}</span></div>
+                {r.avoid && (
+                  <p class="reject-avoid"><svg viewBox="0 0 24 24" class="ic xs rej-ok" set:html={I.shieldCheck}></svg><span><strong>How to avoid:</strong> {r.avoid}</span></p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    ) : null}
 
     <!-- Trip essentials -->
     <section class="card">
@@ -320,6 +344,15 @@ const ESSENTIALS = [
   .step-title { color: color-mix(in oklab, var(--navy) 85%, transparent); font-weight: 400; font-size: 1rem; line-height: 1.6; }
   .step-desc { margin-top: .25rem; color: color-mix(in oklab, var(--navy) 75%, transparent); line-height: 1.6; }
   .step-body .ext { margin-top: .5rem; }
+
+  /* Rejection reasons */
+  .rejects { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
+  .reject { border-radius: .75rem; background: var(--cream); border: 1px solid var(--border); padding: 1.1rem 1.25rem; }
+  .reject-reason { display: flex; align-items: flex-start; gap: .6rem; font-family: var(--font-display); font-weight: 700; color: var(--navy); line-height: 1.4; }
+  .reject-reason .rej-x { color: #d64545; margin-top: .15rem; flex: none; }
+  .reject-avoid { display: flex; align-items: flex-start; gap: .5rem; margin-top: .6rem; padding-left: 1.6rem; color: color-mix(in oklab, var(--navy) 78%, transparent); line-height: 1.55; font-size: .925rem; }
+  .reject-avoid .rej-ok { color: var(--success, #2e9e5b); margin-top: .2rem; flex: none; }
+  .reject-avoid strong { color: var(--navy); }
 
   /* Essentials */
   .ess-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }

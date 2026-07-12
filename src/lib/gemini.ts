@@ -65,6 +65,14 @@ export const RESPONSE_SCHEMA = {
         required: ['q', 'a'],
       },
     },
+    rejectionReasons: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: { reason: { type: Type.STRING }, avoid: { type: Type.STRING } },
+        required: ['reason', 'avoid'],
+      },
+    },
     sources: {
       type: Type.ARRAY,
       items: {
@@ -74,7 +82,7 @@ export const RESPONSE_SCHEMA = {
       },
     },
   },
-  required: ['verdict', 'verdictHeadline', 'summary', 'officialSource', 'visaOptions', 'documents', 'applySteps', 'faq', 'sources'],
+  required: ['verdict', 'verdictHeadline', 'summary', 'officialSource', 'visaOptions', 'documents', 'applySteps', 'faq', 'rejectionReasons', 'sources'],
 };
 
 export function buildPrompt(from: Country, to: Country): string {
@@ -96,7 +104,12 @@ HARD RULES — accuracy over completeness:
   return ticket, accommodation, etc.).
 - "applySteps" are concrete numbered actions; include the official application URL where relevant.
 - "faq" = 4-6 genuinely useful corridor-specific questions (extensions, transit, working, etc.).
-- "tips" = 3-6 short practical entry/safety/customs tips for ${to.name}.
+- "tips" = 3-4 short practical entry/safety/customs tips for ${to.name}.
+- "rejectionReasons" = 4-6 of the most common reasons a ${from.name} citizen's ${to.name} tourist
+  visa application gets REFUSED (e.g. weak proof of funds, unclear travel purpose, incomplete or
+  inconsistent documents, weak ties to home country, previous overstays/refusals, invalid passport
+  validity). For each, give a short concrete "avoid" tip on how the applicant can prevent it.
+  Keep it general guidance — never guarantee approval.
 - Be concise and factual. No marketing language.`;
 }
 

@@ -45,6 +45,11 @@ export interface FaqItem {
   a: string;
 }
 
+export interface RejectionReason {
+  reason: string; // e.g. "Insufficient proof of funds"
+  avoid?: string; // short "how to avoid it" tip
+}
+
 export interface CorridorData {
   // A. Verdict
   verdict: Verdict;
@@ -71,6 +76,9 @@ export interface CorridorData {
 
   // G. FAQ
   faq: FaqItem[];
+
+  // Common reasons applications get rejected, with how to avoid them.
+  rejectionReasons?: RejectionReason[];
 
   // sources used for grounding
   sources: Source[];

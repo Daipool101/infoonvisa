@@ -26,9 +26,11 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   let slug = '';
+  let force = false;
   try {
-    const body = (await request.json()) as { slug?: string };
+    const body = (await request.json()) as { slug?: string; force?: boolean };
     slug = body.slug ?? '';
+    force = body.force === true;
   } catch {
     return json({ ok: false, error: 'bad_request' }, 400);
   }
@@ -38,9 +40,18 @@ export const POST: APIRoute = async ({ request }) => {
 
   const env = getEnv();
 
-  // Already cached (another visitor may have generated it) → done.
-  const existing = await getCorridor(env, parsed.slug);
-  if (existing) return json({ ok: true, cached: true });
+  // Forced regeneration (admin backfills) is gated behind a secret key so it
+  // can't be abused to run up generation cost. Only honoured when REGEN_KEY is
+  // configured and the request carries the matching header.
+  const regenKey = request.headers.get('x-regen-key') || '';
+  const forceAllowed = force && !!env.REGEN_KEY && regenKey === env.REGEN_KEY;
+
+  // Already cached (another visitor may have generated it) → done, unless a
+  // valid forced regeneration was requested.
+  if (!forceAllowed) {
+    const existing = await getCorridor(env, parsed.slug);
+    if (existing) return json({ ok: true, cached: true });
+  }
 
   // Prefer Vertex AI when configured (works from Cloudflare's edge);
   // otherwise fall back to the AI Studio API.

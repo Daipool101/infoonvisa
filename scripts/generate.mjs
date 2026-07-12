@@ -76,9 +76,10 @@ const RESPONSE_SCHEMA = {
     bestTimeToVisit: { type: Type.STRING },
     topPlaces: { type: Type.ARRAY, items: { type: Type.STRING } },
     faq: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { q: { type: Type.STRING }, a: { type: Type.STRING } }, required: ['q', 'a'] } },
+    rejectionReasons: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { reason: { type: Type.STRING }, avoid: { type: Type.STRING } }, required: ['reason', 'avoid'] } },
     sources: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { label: { type: Type.STRING }, url: { type: Type.STRING } }, required: ['label', 'url'] } },
   },
-  required: ['verdict', 'verdictHeadline', 'summary', 'officialSource', 'visaOptions', 'documents', 'applySteps', 'faq', 'sources'],
+  required: ['verdict', 'verdictHeadline', 'summary', 'officialSource', 'visaOptions', 'documents', 'applySteps', 'faq', 'rejectionReasons', 'sources'],
 };
 
 const prompt = (from, to) => `You are a meticulous visa-information researcher. Produce a structured guide for a
@@ -93,7 +94,10 @@ HARD RULES — accuracy over completeness:
   entry, e-Visa/VOA where applicable, transit, business, visiting-relatives), each with type,
   validity, maxStay, entries and "eligibility" (a short "best for…").
 - "documents" lists only what applies. "applySteps" are concrete numbered actions with official links.
-- "faq" = 4-6 useful corridor-specific Q&A. "tips" = 3-6 short entry/safety/customs tips.
+- "faq" = 4-6 useful corridor-specific Q&A. "tips" = 3-4 short entry/safety/customs tips.
+- "rejectionReasons" = 4-6 common reasons a ${from.name} tourist visa for ${to.name} gets REFUSED
+  (weak proof of funds, unclear purpose, incomplete/inconsistent docs, weak home-country ties,
+  past overstays/refusals, passport validity), each with a short "avoid" tip. General guidance only.
 - Be concise and factual. No marketing language.`;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -126,7 +130,7 @@ async function main() {
       const data = JSON.parse(res.text);
       if (!data.sources?.length || !data.officialSource?.url) throw new Error('no official source');
       const now = new Date();
-      const next = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const next = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
       const { error } = await db.from('corridors').upsert({
         id: c.id, from_country: c.from.iso, to_country: c.to.iso, slug: c.slug,
         data, sources: data.sources, verdict: data.verdict,
