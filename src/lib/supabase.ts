@@ -178,19 +178,26 @@ export async function saveCorridor(
   return !error;
 }
 
-// Verified corridors only — used to build the dynamic SEO sitemap so Google
-// discovers our quality-checked pages. Pending/noindex pages are excluded.
-export async function listVerifiedCorridors(
-  env: AppEnv
-): Promise<Array<{ slug: string; generated_at: string }>> {
+// Verified corridors only — used for the dynamic SEO sitemap, the related-routes
+// module and the /from/[country] hub pages. Pending/noindex pages are excluded.
+export interface CorridorSummary {
+  slug: string;
+  generated_at: string;
+  from_country: string; // ISO
+  to_country: string; // ISO
+  verdict: Verdict;
+  max_stay_days: number | null;
+}
+
+export async function listVerifiedCorridors(env: AppEnv): Promise<CorridorSummary[]> {
   const db = client(env, true);
   if (!db) return [];
   const { data, error } = await db
     .from('corridors')
-    .select('slug, generated_at')
+    .select('slug, generated_at, from_country, to_country, verdict, max_stay_days')
     .eq('status', 'verified');
   if (error || !data) return [];
-  return data as Array<{ slug: string; generated_at: string }>;
+  return data as CorridorSummary[];
 }
 
 export async function bumpSearchCount(env: AppEnv, corridorId: string): Promise<void> {

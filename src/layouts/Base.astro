@@ -29,7 +29,24 @@ const env = getEnv();
 const adsenseClient = env.PUBLIC_ADSENSE_CLIENT;
 const GA_ID = 'G-CE9NDE5Q6Y'; // Google Analytics 4 measurement ID
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
-const ldArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+const ogImage = new URL('/og-default.png', Astro.site).toString();
+
+// Site-wide Organization entity: connects the brand to its logo and social
+// profiles (sameAs) for Google's knowledge graph + AI search engines.
+const orgLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'InfoOnVisa',
+  url: 'https://infoonvisa.com/',
+  logo: 'https://infoonvisa.com/logo-icon.png',
+  email: 'contact@infoonvisa.com',
+  sameAs: [
+    'https://www.linkedin.com/company/infoonvisa1/',
+    'https://www.instagram.com/infoonvisa',
+  ],
+};
+
+const ldArray = [...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []), orgLd];
 // Escape so AI/user content can't break out of the <script> block (e.g. "</script>").
 const jsonLdSafe = (o: object) =>
   JSON.stringify(o).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
@@ -52,7 +69,12 @@ const jsonLdSafe = (o: object) =>
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="InfoOnVisa" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />

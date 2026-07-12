@@ -28,7 +28,18 @@ const HEADERS: Record<string, string> = {
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(), browsing-topics=()',
 };
 
-export const onRequest = defineMiddleware(async (_context, next) => {
+export const onRequest = defineMiddleware(async (context, next) => {
+  // SEO: exactly one canonical host. 301 www -> apex so Google never indexes
+  // a duplicate copy of the site on www.infoonvisa.com.
+  const url = new URL(context.request.url);
+  if (url.hostname === 'www.infoonvisa.com') {
+    url.hostname = 'infoonvisa.com';
+    return new Response(null, {
+      status: 301,
+      headers: { Location: url.toString(), ...HEADERS },
+    });
+  }
+
   const res = await next();
   for (const [k, v] of Object.entries(HEADERS)) res.headers.set(k, v);
   return res;

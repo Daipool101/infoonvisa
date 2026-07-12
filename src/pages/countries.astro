@@ -1,0 +1,105 @@
+---
+import Base from '../layouts/Base.astro';
+import BrandNav from '../components/BrandNav.astro';
+import BrandFooter from '../components/BrandFooter.astro';
+import '../styles/brand.css';
+import { countryByIso } from '../lib/countries';
+import { getEnv, listVerifiedCorridors } from '../lib/supabase';
+
+export const prerender = false;
+
+const env = getEnv();
+const all = await listVerifiedCorridors(env);
+
+// Origins that actually have verified guides, with route counts.
+const counts = new Map<string, number>();
+for (const r of all) counts.set(r.from_country, (counts.get(r.from_country) || 0) + 1);
+const origins = [...counts.entries()]
+  .map(([iso, n]) => {
+    const c = countryByIso(iso);
+    return c ? { ...c, n } : null;
+  })
+  .filter((c): c is NonNullable<typeof c> => !!c)
+  .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+
+const title = 'Browse visa guides by country — where can your passport take you? | InfoOnVisa';
+const description = `Pick your passport country and see every destination we've verified — ${all.length} route guides covering visa-free travel, e-Visas and embassy visas, with documents and official sources.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://infoonvisa.com/' },
+      { '@type': 'ListItem', position: 2, name: 'Countries', item: 'https://infoonvisa.com/countries' },
+    ],
+  },
+];
+---
+
+<Base title={title} description={description} jsonLd={jsonLd} hideChrome={true}>
+  <div class="brand">
+    <BrandNav active="countries" />
+
+    <section class="chero2">
+      <div class="glow" aria-hidden="true"></div>
+      <div class="container chero2-in reveal">
+        <span class="kicker">Browse by passport</span>
+        <h1 class="ch1">Where can <span class="ul">your passport</span> take you?</h1>
+        <p class="csub">Pick your country to see every destination we've verified — grouped by visa-free, e-Visa and embassy routes. {all.length} guides and growing.</p>
+      </div>
+    </section>
+
+    <section class="container cgrid2 reveal">
+      {origins.map((c) => (
+        <a href={`/from/${c.slug}`} class="ccard2">
+          <span class="cflag">{c.flag}</span>
+          <span>
+            <span class="cname">{c.name}</span>
+            <span class="ccount">{c.n} route {c.n === 1 ? 'guide' : 'guides'}</span>
+          </span>
+          <span class="carrow">→</span>
+        </a>
+      ))}
+    </section>
+
+    <section class="container ccta reveal">
+      <div class="ccta-in">
+        <div>
+          <h2 class="cg-h2">Your country not listed yet?</h2>
+          <p class="cg-desc">Search any route on the home page — we generate verified guides on demand.</p>
+        </div>
+        <a href="/" class="cbtn2">Search a route →</a>
+      </div>
+    </section>
+
+    <BrandFooter />
+  </div>
+</Base>
+
+<style>
+  .chero2 { position: relative; overflow: hidden; padding: 3.5rem 0 1.5rem; }
+  .glow { position: absolute; top: -40%; left: 50%; transform: translateX(-50%); width: 44rem; height: 28rem; background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 20%, transparent), transparent); filter: blur(20px); z-index: 0; }
+  .chero2-in { position: relative; z-index: 1; max-width: 44rem; text-align: center; margin-inline: auto; }
+  .kicker { display: inline-block; font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--primary); }
+  .ch1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.9rem, 4.5vw, 3rem); line-height: 1.08; color: var(--navy); margin: .5rem 0 1rem; }
+  .ul { position: relative; white-space: nowrap; }
+  .ul::after { content: ''; position: absolute; left: 0; right: 0; bottom: .08em; height: .32em; background: color-mix(in oklab, var(--primary) 35%, transparent); border-radius: 1em; z-index: -1; }
+  .csub { color: color-mix(in oklab, var(--navy) 72%, transparent); line-height: 1.65; }
+
+  .cgrid2 { padding: 1.5rem 1.5rem 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .9rem; }
+  .ccard2 { display: flex; align-items: center; gap: .9rem; background: #fff; border: 1px solid var(--border); border-radius: 1rem; padding: 1rem 1.1rem; box-shadow: var(--shadow-sm); transition: border-color .15s, transform .15s; color: var(--navy); }
+  .ccard2:hover { border-color: var(--primary); transform: translateY(-2px); }
+  .cflag { font-size: 1.7rem; flex: none; }
+  .cname { display: block; font-family: var(--font-display); font-weight: 700; }
+  .ccount { display: block; margin-top: .15rem; font-size: .78rem; color: color-mix(in oklab, var(--navy) 60%, transparent); font-weight: 600; }
+  .carrow { margin-left: auto; color: var(--primary); font-weight: 700; opacity: 0; transition: opacity .15s; }
+  .ccard2:hover .carrow { opacity: 1; }
+
+  .ccta { padding: 2rem 1.5rem 3rem; }
+  .ccta-in { background: color-mix(in oklab, var(--navy) 5%, #fff); border: 1px solid var(--border); border-radius: 1.25rem; padding: 1.75rem 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+  .cg-h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; color: var(--navy); }
+  .cg-desc { margin-top: .3rem; color: color-mix(in oklab, var(--navy) 65%, transparent); font-size: .95rem; }
+  .cbtn2 { display: inline-flex; align-items: center; gap: .5rem; background: var(--primary); color: #fff; font-weight: 700; padding: .8rem 1.4rem; border-radius: 999px; box-shadow: var(--shadow); transition: transform .15s; flex: none; }
+  .cbtn2:hover { transform: translateY(-2px); }
+</style>

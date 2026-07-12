@@ -3,14 +3,21 @@ import type { CorridorData } from '../lib/corridor';
 import { VERDICT_LABEL, isGoodVerdict, safeUrl } from '../lib/corridor';
 import type { Country } from '../lib/countries';
 
+interface RelatedLink {
+  slug: string;
+  label: string;
+  flag: string;
+}
 interface Props {
   data: CorridorData;
   from: Country;
   to: Country;
   verifiedDate: string;
   status: string;
+  relatedFrom?: RelatedLink[];
+  relatedTo?: RelatedLink[];
 }
-const { data, from, to, verifiedDate, status } = Astro.props;
+const { data, from, to, verifiedDate, status, relatedFrom = [], relatedTo = [] } = Astro.props;
 const good = isGoodVerdict(data.verdict);
 const opt = data.visaOptions?.[0];
 
@@ -46,7 +53,7 @@ const ESSENTIALS = [
 
 <!-- Breadcrumbs -->
 <nav class="crumbs">
-  <a href="/">Home</a><span>/</span><span>Routes</span><span>/</span><span class="here">{from.name} → {to.name}</span>
+  <a href="/">Home</a><span>/</span><a href={`/from/${from.slug}`}>Routes from {from.name}</a><span>/</span><span class="here">{from.name} → {to.name}</span>
 </nav>
 
 <!-- Verdict -->
@@ -107,7 +114,7 @@ const ESSENTIALS = [
     <section class="card" id="iov-docs">
       <div class="card-head">
         <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.fileCheck}></svg></span>
-        <div><h2>Documents checklist</h2><p class="sub" id="doc-sub">Tick items as you collect them — 0 of {data.documents.length} ready.</p></div>
+        <div><h2>Documents required for {from.name} citizens</h2><p class="sub" id="doc-sub">Tick items as you collect them — 0 of {data.documents.length} ready.</p></div>
       </div>
       <div class="card-body">
         <div class="progress"><div class="progress-fill" id="doc-fill" style="width:0%"></div></div>
@@ -128,7 +135,7 @@ const ESSENTIALS = [
     <section class="card">
       <div class="card-head">
         <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.mapPin}></svg></span>
-        <div><h2>How &amp; where to apply</h2><p class="sub">Follow these steps in order.</p></div>
+        <div><h2>How to apply for a {to.name} visa from {from.name}</h2><p class="sub">Follow these steps in order.</p></div>
       </div>
       <div class="card-body">
         <ol class="steps">
@@ -151,7 +158,7 @@ const ESSENTIALS = [
       <section class="card">
         <div class="card-head">
           <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.xCircle}></svg></span>
-          <div><h2>Common reasons for rejection</h2><p class="sub">Why {from.name} → {to.name} applications get refused — and how to avoid it.</p></div>
+          <div><h2>Common {to.name} visa rejection reasons</h2><p class="sub">Why {from.name} → {to.name} applications get refused — and how to avoid it.</p></div>
         </div>
         <div class="card-body">
           <ul class="rejects">
@@ -232,6 +239,39 @@ const ESSENTIALS = [
       <svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.alert}></svg>
       <p>This page is AI-assisted and last verified on <strong>{verifiedDate}</strong>. Visa rules change — always confirm on the <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">official source <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a> before you travel.</p>
     </div>
+
+    <!-- Related routes (internal linking) -->
+    {(relatedFrom.length || relatedTo.length) ? (
+      <section class="card related">
+        <div class="card-head">
+          <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.plane}></svg></span>
+          <div><h2>Related visa guides</h2><p class="sub">Explore more routes we've verified.</p></div>
+        </div>
+        <div class="card-body rel-grid">
+          {relatedFrom.length ? (
+            <div>
+              <div class="flabel">More routes from {from.name}</div>
+              <ul class="rel-list">
+                {relatedFrom.map((r) => (
+                  <li><a href={`/${r.slug}`}>{r.flag} {from.name} to {r.label} visa</a></li>
+                ))}
+              </ul>
+              <a class="rel-all" href={`/from/${from.slug}`}>See every destination for {from.name} citizens →</a>
+            </div>
+          ) : null}
+          {relatedTo.length ? (
+            <div>
+              <div class="flabel">Travelling to {to.name} from elsewhere</div>
+              <ul class="rel-list">
+                {relatedTo.map((r) => (
+                  <li><a href={`/${r.slug}`}>{r.flag} {r.label} to {to.name} visa</a></li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      </section>
+    ) : null}
   </div>
 
   <!-- Sidebar -->
@@ -344,6 +384,14 @@ const ESSENTIALS = [
   .step-title { color: color-mix(in oklab, var(--navy) 85%, transparent); font-weight: 400; font-size: 1rem; line-height: 1.6; }
   .step-desc { margin-top: .25rem; color: color-mix(in oklab, var(--navy) 75%, transparent); line-height: 1.6; }
   .step-body .ext { margin-top: .5rem; }
+
+  /* Related routes */
+  .rel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 620px) { .rel-grid { grid-template-columns: 1fr; } }
+  .rel-list { list-style: none; margin-top: .75rem; display: flex; flex-direction: column; gap: .5rem; }
+  .rel-list a { color: color-mix(in oklab, var(--navy) 82%, transparent); font-weight: 600; font-size: .925rem; }
+  .rel-list a:hover { color: var(--primary); }
+  .rel-all { display: inline-block; margin-top: .9rem; font-size: .875rem; font-weight: 700; color: var(--primary); }
 
   /* Rejection reasons */
   .rejects { list-style: none; display: flex; flex-direction: column; gap: 1rem; }

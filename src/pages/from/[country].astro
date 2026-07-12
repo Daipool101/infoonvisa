@@ -1,0 +1,168 @@
+---
+import Base from '../../layouts/Base.astro';
+import BrandNav from '../../components/BrandNav.astro';
+import BrandFooter from '../../components/BrandFooter.astro';
+import '../../styles/brand.css';
+import { countryBySlug, countryByIso } from '../../lib/countries';
+import { VERDICT_LABEL, type Verdict } from '../../lib/corridor';
+import { getEnv, listVerifiedCorridors, type CorridorSummary } from '../../lib/supabase';
+
+export const prerender = false;
+
+const { country } = Astro.params;
+const origin = country ? countryBySlug(country) : undefined;
+if (!origin) return Astro.rewrite('/404');
+
+const env = getEnv();
+const all = await listVerifiedCorridors(env);
+const mine = all.filter((r) => r.from_country === origin.iso);
+if (!mine.length) return Astro.rewrite('/404');
+
+interface Dest {
+  slug: string;
+  name: string;
+  flag: string;
+  verdict: Verdict;
+  maxStay: number | null;
+}
+const dests: Dest[] = mine
+  .map((r: CorridorSummary) => {
+    const c = countryByIso(r.to_country);
+    return c ? { slug: r.slug, name: c.name, flag: c.flag, verdict: r.verdict, maxStay: r.max_stay_days } : null;
+  })
+  .filter((d): d is Dest => !!d)
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+// Grouped by how easy entry is — mirrors how travellers think about "where can I go".
+const GROUPS: { key: string; title: string; desc: string; verdicts: Verdict[] }[] = [
+  { key: 'easy', title: 'Visa-free & visa on arrival', desc: `Just book and go — no application before you fly.`, verdicts: ['visa_free', 'voa'] },
+  { key: 'online', title: 'e-Visa & travel authorization', desc: `Apply online before travelling — usually quick.`, verdicts: ['evisa', 'eta'] },
+  { key: 'embassy', title: 'Embassy visa required', desc: `Apply in advance through an embassy or visa centre.`, verdicts: ['embassy'] },
+];
+const grouped = GROUPS.map((g) => ({ ...g, items: dests.filter((d) => g.verdicts.includes(d.verdict)) })).filter(
+  (g) => g.items.length
+);
+
+const year = new Date().getFullYear();
+const title = `Visa requirements for ${origin.name} citizens (${year}) — visa-free, e-Visa & embassy list | InfoOnVisa`;
+const description = `Where can ${origin.name} passport holders travel? ${dests.length} verified destination guides for ${origin.name} citizens — visa-free countries, e-Visa options and embassy visas, each with documents and application steps.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://infoonvisa.com/' },
+      { '@type': 'ListItem', position: 2, name: 'Countries', item: 'https://infoonvisa.com/countries' },
+      { '@type': 'ListItem', position: 3, name: `Routes from ${origin.name}`, item: `https://infoonvisa.com/from/${origin.slug}` },
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `Visa requirements for ${origin.name} citizens`,
+    numberOfItems: dests.length,
+    itemListElement: dests.map((d, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: `${origin.name} to ${d.name} visa`,
+      url: `https://infoonvisa.com/${d.slug}`,
+    })),
+  },
+];
+
+const VCLASS: Record<Verdict, string> = {
+  visa_free: 'good', voa: 'good', evisa: 'mid', eta: 'mid', embassy: 'hard',
+};
+---
+
+<Base title={title} description={description} jsonLd={jsonLd} hideChrome={true}>
+  <div class="brand">
+    <BrandNav active="countries" />
+
+    <section class="fhero">
+      <div class="glow" aria-hidden="true"></div>
+      <div class="container fhero-in reveal">
+        <nav class="fcrumbs"><a href="/">Home</a><span>/</span><a href="/countries">Countries</a><span>/</span><span class="here">{origin.name}</span></nav>
+        <span class="kicker">{origin.flag} {origin.name} passport</span>
+        <h1 class="fh1">Visa requirements for <span class="ul">{origin.name} citizens</span></h1>
+        <p class="fsub">
+          Every destination we've verified for {origin.name} passport holders — {dests.length} route
+          {dests.length === 1 ? 'guide' : 'guides'} with documents, application steps and official sources.
+          More routes are added as travellers search them.
+        </p>
+      </div>
+    </section>
+
+    <section class="container fgroups">
+      {grouped.map((g) => (
+        <div class="fgroup reveal">
+          <div class="fgroup-head">
+            <h2 class="fg-h2">{g.title}</h2>
+            <p class="fg-desc">{g.desc}</p>
+          </div>
+          <div class="fgrid">
+            {g.items.map((d) => (
+              <a href={`/${d.slug}`} class="fcard">
+                <span class="fflag">{d.flag}</span>
+                <span class="fbody">
+                  <span class="fname">{origin.name} to {d.name}</span>
+                  <span class={`fverdict ${VCLASS[d.verdict]}`}>{VERDICT_LABEL[d.verdict]}{d.maxStay ? ` · up to ${d.maxStay} days` : ''}</span>
+                </span>
+                <span class="farrow">→</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+
+    <section class="container fcta reveal">
+      <div class="fcta-in">
+        <div>
+          <h2 class="fg-h2">Don't see your destination?</h2>
+          <p class="fg-desc">Search any route — we'll generate a verified guide for {origin.name} citizens on the spot.</p>
+        </div>
+        <a href="/" class="fbtn">Search a route →</a>
+      </div>
+    </section>
+
+    <BrandFooter />
+  </div>
+</Base>
+
+<style>
+  .fhero { position: relative; overflow: hidden; padding: 3.5rem 0 1.5rem; }
+  .glow { position: absolute; top: -40%; left: 50%; transform: translateX(-50%); width: 44rem; height: 28rem; background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 20%, transparent), transparent); filter: blur(20px); z-index: 0; }
+  .fhero-in { position: relative; z-index: 1; max-width: 46rem; }
+  .fcrumbs { display: flex; gap: .5rem; font-size: .8rem; color: color-mix(in oklab, var(--navy) 55%, transparent); margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .fcrumbs a:hover { color: var(--primary); }
+  .fcrumbs .here { color: var(--navy); font-weight: 600; }
+  .kicker { display: inline-block; font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--primary); }
+  .fh1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.9rem, 4.5vw, 3rem); line-height: 1.08; color: var(--navy); margin: .5rem 0 1rem; }
+  .ul { position: relative; white-space: nowrap; }
+  .ul::after { content: ''; position: absolute; left: 0; right: 0; bottom: .08em; height: .32em; background: color-mix(in oklab, var(--primary) 35%, transparent); border-radius: 1em; z-index: -1; }
+  .fsub { color: color-mix(in oklab, var(--navy) 72%, transparent); line-height: 1.65; font-size: 1.02rem; }
+
+  .fgroups { padding: 1.5rem 1.5rem 1rem; display: flex; flex-direction: column; gap: 2.5rem; }
+  .fgroup-head { margin-bottom: 1rem; }
+  .fg-h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.25rem, 2.5vw, 1.6rem); color: var(--navy); }
+  .fg-desc { margin-top: .3rem; color: color-mix(in oklab, var(--navy) 65%, transparent); font-size: .95rem; }
+  .fgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .9rem; }
+  .fcard { display: flex; align-items: center; gap: .9rem; background: #fff; border: 1px solid var(--border); border-radius: 1rem; padding: 1rem 1.1rem; box-shadow: var(--shadow-sm); transition: border-color .15s, transform .15s, box-shadow .15s; color: var(--navy); }
+  .fcard:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow); }
+  .fflag { font-size: 1.6rem; flex: none; }
+  .fbody { min-width: 0; }
+  .fname { display: block; font-family: var(--font-display); font-weight: 700; font-size: .95rem; }
+  .fverdict { display: block; margin-top: .2rem; font-size: .78rem; font-weight: 600; }
+  .fverdict.good { color: #2e9e5b; }
+  .fverdict.mid { color: var(--primary); }
+  .fverdict.hard { color: color-mix(in oklab, var(--navy) 65%, transparent); }
+  .farrow { margin-left: auto; color: var(--primary); font-weight: 700; opacity: 0; transition: opacity .15s; }
+  .fcard:hover .farrow { opacity: 1; }
+
+  .fcta { padding: 2rem 1.5rem 3rem; }
+  .fcta-in { background: color-mix(in oklab, var(--navy) 5%, #fff); border: 1px solid var(--border); border-radius: 1.25rem; padding: 1.75rem 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+  .fbtn { display: inline-flex; align-items: center; gap: .5rem; background: var(--primary); color: #fff; font-weight: 700; padding: .8rem 1.4rem; border-radius: 999px; box-shadow: var(--shadow); transition: transform .15s; flex: none; }
+  .fbtn:hover { transform: translateY(-2px); }
+</style>
