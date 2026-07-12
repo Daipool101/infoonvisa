@@ -44,8 +44,8 @@ const grouped = GROUPS.map((g) => ({ ...g, items: dests.filter((d) => g.verdicts
 );
 
 const year = new Date().getFullYear();
-const title = `Visa requirements for ${origin.name} citizens (${year}) — visa-free, e-Visa & embassy list | InfoOnVisa`;
-const description = `Where can ${origin.name} passport holders travel? ${dests.length} verified destination guides for ${origin.name} citizens — visa-free countries, e-Visa options and embassy visas, each with documents and application steps.`;
+const title = `Visa requirements for ${origin.demonym} citizens (${year}) — visa-free, e-Visa & embassy list | InfoOnVisa`;
+const description = `Where can ${origin.demonym} passport holders travel? ${dests.length} verified destination guides for ${origin.demonym} citizens — visa-free countries, e-Visa options and embassy visas, each with documents and application steps.`;
 
 const jsonLd = [
   {
@@ -60,7 +60,7 @@ const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: `Visa requirements for ${origin.name} citizens`,
+    name: `Visa requirements for ${origin.demonym} citizens`,
     numberOfItems: dests.length,
     itemListElement: dests.map((d, i) => ({
       '@type': 'ListItem',
@@ -85,9 +85,9 @@ const VCLASS: Record<Verdict, string> = {
       <div class="container fhero-in reveal">
         <nav class="fcrumbs"><a href="/">Home</a><span>/</span><a href="/countries">Countries</a><span>/</span><span class="here">{origin.name}</span></nav>
         <span class="kicker">{origin.flag} {origin.name} passport</span>
-        <h1 class="fh1">Visa requirements for <span class="ul">{origin.name} citizens</span></h1>
+        <h1 class="fh1">Visa requirements for <span class="ul">{origin.demonym} citizens</span></h1>
         <p class="fsub">
-          Every destination we've verified for {origin.name} passport holders — {dests.length} route
+          Every destination we've verified for {origin.demonym} passport holders — {dests.length} route
           {dests.length === 1 ? 'guide' : 'guides'} with documents, application steps and official sources.
           More routes are added as travellers search them.
         </p>
@@ -121,7 +121,7 @@ const VCLASS: Record<Verdict, string> = {
       <div class="fcta-in">
         <div>
           <h2 class="fg-h2">Don't see your destination?</h2>
-          <p class="fg-desc">Search any route — we'll generate a verified guide for {origin.name} citizens on the spot.</p>
+          <p class="fg-desc">Search any route — we'll generate a verified guide for {origin.demonym} citizens on the spot.</p>
         </div>
         <a href="/" class="fbtn">Search a route →</a>
       </div>

@@ -21,8 +21,8 @@ const { from, to } = parsed;
 const options = [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
 const title = `${from.name} to ${to.name} visa guide — requirements, documents & how to apply | InfoOnVisa`;
 const description = row
-  ? `${row.data.verdictHeadline} Documents, application steps and travel tips for ${from.name} citizens visiting ${to.name}.`
-  : `Visa requirements for ${from.name} citizens travelling to ${to.name} — generating your verified guide now.`;
+  ? `${row.data.verdictHeadline} Documents, application steps and travel tips for ${from.demonym} citizens visiting ${to.name}.`
+  : `Visa requirements for ${from.demonym} citizens travelling to ${to.name} — generating your verified guide now.`;
 
 let verifiedDate = '';
 let jsonLd: object[] = [];
