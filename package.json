@@ -9,7 +9,7 @@
     "build": "astro build",
     "preview": "astro build && wrangler dev --config dist/server/wrangler.json",
     "astro": "astro",
-    "generate": "node scripts/generate.mjs",
+    "generate": "node --experimental-strip-types scripts/generate.mjs",
     "deploy": "astro build && wrangler deploy --config dist/server/wrangler.json"
   },
   "dependencies": {

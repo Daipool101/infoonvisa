@@ -274,11 +274,6 @@ const ESSENTIALS = [
       </div>
     </section>
 
-    <div class="disc">
-      <svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.alert}></svg>
-      <p>This page is AI-assisted and last verified on <strong>{verifiedDate}</strong>. Visa rules change — always confirm on the <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">official source <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a> before you travel.</p>
-    </div>
-
     <!-- Related routes (internal linking) -->
     {(relatedFrom.length || relatedTo.length) ? (
       <section class="card related">
@@ -311,6 +306,11 @@ const ESSENTIALS = [
         </div>
       </section>
     ) : null}
+
+    <div class="disc">
+      <svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.alert}></svg>
+      <p>This page is AI-assisted and last verified on <strong>{verifiedDate}</strong>. Visa rules change — always confirm on the <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">official source <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a> before you travel.</p>
+    </div>
   </div>
 
   <!-- Sidebar -->
