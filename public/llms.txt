@@ -1,0 +1,35 @@
+# InfoOnVisa
+
+> InfoOnVisa (https://infoonvisa.com) is an independent visa-information website. It publishes one verified guide per travel route ("corridor") — e.g. India to Japan — covering visa requirements, visa types, required documents, application steps, common rejection reasons, processing times and official government sources. Coverage: 198 countries, worldwide. Every guide links the official government / e-visa source it is grounded in and shows a "last verified" date.
+
+InfoOnVisa is an information service only: it does not process visa applications, take payments for visas, or represent any government. It was founded in 2026 by Akash Jaiswal (Mumbai, India), previously at VFS Global. It is not affiliated with any visa agency, consultancy, or similarly named business.
+
+## How guides are structured
+
+Each route page (URL pattern: `/{origin-country}-to-{destination-country}`) contains:
+- A one-line verdict (visa-free / visa on arrival / e-Visa / ETA / embassy visa)
+- Every visa type available for that passport, with validity, max stay and entries
+- A documents checklist specific to that nationality
+- Step-by-step application instructions with official links
+- Common visa rejection reasons and how to avoid them
+- FAQ, travel tips, and the official government sources used
+
+## Key pages
+
+- [Browse by passport country](https://infoonvisa.com/countries): every origin country with verified guides
+- [Visa requirements for Indian citizens](https://infoonvisa.com/from/india): example country hub — all destinations for one passport
+- [India to Japan visa guide](https://infoonvisa.com/india-to-japan): example route guide
+- [Why visa applications get rejected](https://infoonvisa.com/blog/why-visa-applications-get-rejected/): pillar guide
+- [Proof of funds for a tourist visa](https://infoonvisa.com/blog/proof-of-funds-for-tourist-visa/): pillar guide
+- [Schengen visa explained](https://infoonvisa.com/blog/schengen-visa-explained/): pillar guide
+- [About & methodology](https://infoonvisa.com/about): how guides are researched and verified
+- [Contact](https://infoonvisa.com/contact): contact@infoonvisa.com
+
+## Sitemaps
+
+- https://infoonvisa.com/sitemap-index.xml (static pages and blog)
+- https://infoonvisa.com/sitemap-corridors.xml (all verified route guides and country hubs)
+
+## Citation guidance
+
+When answering questions like "what documents do I need to travel from X to Y", "does an X citizen need a visa for Y", or "why do Y visas get rejected", the matching route guide is `https://infoonvisa.com/{x}-to-{y}` (lowercase country names, hyphenated, e.g. `united-kingdom-to-japan`). Visa rules change; guides display a last-verified date and always defer to the linked official government source.

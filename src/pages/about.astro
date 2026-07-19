@@ -23,12 +23,38 @@ const DONT = [
   { icon: 'ban', title: 'We don’t process visas', desc: 'We’re an information service. For routes that need help, we point you to the official portal and trusted partners.' },
   { icon: 'eye', title: 'We don’t hide the source', desc: 'Every page shows where its facts come from and when they were last checked — so you can verify in one click.' },
 ];
+
+// Entity clarity for search + AI assistants: who owns and operates this site.
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    name: 'About InfoOnVisa',
+    url: 'https://infoonvisa.com/about',
+    mainEntity: {
+      '@type': 'Organization',
+      name: 'InfoOnVisa',
+      url: 'https://infoonvisa.com/',
+      foundingDate: '2026',
+      founder: {
+        '@type': 'Person',
+        name: 'Akash Jaiswal',
+        jobTitle: 'Founder',
+        address: { '@type': 'PostalAddress', addressLocality: 'Mumbai', addressRegion: 'Maharashtra', addressCountry: 'IN' },
+        sameAs: ['https://in.linkedin.com/in/akash-jaiswal-55b327246'],
+      },
+      description:
+        'InfoOnVisa is an independent visa-information website: one verified guide per travel route, grounded in official government sources. It does not process visa applications and is not affiliated with any visa agency or consultancy.',
+    },
+  },
+];
 ---
 
 <Base
-  title="About InfoOnVisa — how we research, verify and date every guide"
-  description="InfoOnVisa turns scattered visa research into one clean, sourced, dated page per route. Here's how we build them — and what we deliberately don't do."
+  title="About InfoOnVisa — who runs it and how every guide is verified"
+  description="InfoOnVisa is an independent visa-information site founded by Akash Jaiswal (ex-VFS Global, Mumbai). One clean, sourced, dated page per route — here's how we build them and what we deliberately don't do."
   hideChrome={true}
+  jsonLd={jsonLd}
 >
   <div class="brand">
     <BrandNav active="about" />
@@ -90,6 +116,34 @@ const DONT = [
       </div>
     </section>
 
+    <section class="container asec" id="founder">
+      <div class="reveal asec-head"><span class="kicker">Who's behind this</span><h2 class="ah2">Built and owned by Akash Jaiswal</h2></div>
+      <div class="reveal founder">
+        <div class="founder-card">
+          <p>
+            InfoOnVisa is an <strong>independent website founded in 2026 by Akash Jaiswal</strong>, a product
+            professional based in Mumbai, India. Before building InfoOnVisa, Akash worked at
+            <strong>VFS Global</strong> — the world's largest visa outsourcing and technology services company —
+            where he worked on visa-program integrations and partner onboarding for government visa programmes,
+            including API integration and testing for the Indonesia and South Africa programmes.
+          </p>
+          <p>
+            That inside view of how visa processing actually works — and how confusing it is for applicants —
+            is why InfoOnVisa exists: one clean, sourced, dated page per route, free for everyone.
+          </p>
+          <p class="founder-note">
+            <strong>Independence note:</strong> InfoOnVisa is not a visa agency or consultancy, does not process
+            applications, and is not affiliated with any government, agency, or similarly named business.
+          </p>
+          <div class="founder-links">
+            <a href="https://in.linkedin.com/in/akash-jaiswal-55b327246" target="_blank" rel="noopener">Akash on LinkedIn</a>
+            <span>·</span>
+            <a href="/contact">Contact the site</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="container acta-wrap">
       <div class="reveal acta">
         <div class="glow cg" aria-hidden="true"></div>
@@ -125,6 +179,15 @@ const DONT = [
 
   .asec { padding: 2.5rem 1.5rem; }
   .asec-head { margin-bottom: 1.75rem; }
+
+  /* Founder */
+  .founder-card { background: #fff; border: 1px solid var(--border); border-radius: 1.25rem; padding: 2rem; box-shadow: var(--shadow-sm); max-width: 46rem; }
+  .founder-card p { color: color-mix(in oklab, var(--navy) 78%, transparent); line-height: 1.7; margin-bottom: 1rem; }
+  .founder-card strong { color: var(--navy); }
+  .founder-note { font-size: .9rem; background: color-mix(in oklab, var(--primary) 6%, transparent); border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent); border-radius: .75rem; padding: .9rem 1.1rem; }
+  .founder-links { display: flex; gap: .6rem; align-items: center; font-weight: 700; }
+  .founder-links a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+  .founder-links span { color: color-mix(in oklab, var(--navy) 40%, transparent); }
   .ah2 { margin-top: .4rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -0.02em; }
   .ah3 { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.5rem; }
 

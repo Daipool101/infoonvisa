@@ -1,0 +1,46 @@
+# InfoOnVisa — robots.txt
+# We WANT search engines and AI assistants to read and cite this site.
+# Content is verified against official government sources; see /about.
+
+User-agent: *
+Allow: /
+
+# --- AI / LLM crawlers: explicitly welcome ---
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+Sitemap: https://infoonvisa.com/sitemap-index.xml
+Sitemap: https://infoonvisa.com/sitemap-corridors.xml
