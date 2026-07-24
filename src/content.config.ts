@@ -11,6 +11,9 @@ const blog = defineCollection({
     tags: z.array(z.string()).default([]),
     cover: z.string().optional(),
     readMins: z.number().optional(),
+    // When true, the post is a preview: viewable at its URL (noindex) but hidden
+    // from the blog list. Flip to false in the CMS to publish publicly.
+    draft: z.boolean().default(false),
   }),
 });
 

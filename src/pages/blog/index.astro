@@ -5,9 +5,9 @@ import BrandFooter from '../../components/BrandFooter.astro';
 import { getCollection } from 'astro:content';
 import '../../styles/brand.css';
 
-const posts = (await getCollection('blog')).sort(
-  (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()
-);
+const posts = (await getCollection('blog'))
+  .filter((p) => !p.data.draft) // drafts are previewable by URL but never listed
+  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const COVERS = ['/images/japan.jpg', '/images/thailand.jpg', '/images/singapore.jpg', '/images/france.jpg', '/images/uae.jpg', '/images/uk.jpg'];
 

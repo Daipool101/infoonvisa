@@ -9,13 +9,22 @@ export const prerender = true;
 
 export async function getStaticPaths() {
   const posts = await getCollection('blog');
-  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post, posts } }));
 }
 
-const { post } = Astro.props;
+const { post, posts } = Astro.props;
 const { Content } = await render(post);
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const cover = post.data.cover ?? '/images/japan.jpg';
+
+// Related articles: other PUBLISHED posts, preferring shared tags, newest first.
+const myTags = new Set(post.data.tags ?? []);
+const related = posts
+  .filter((p) => p.id !== post.id && !p.data.draft)
+  .map((p) => ({ p, score: (p.data.tags ?? []).filter((t) => myTags.has(t)).length }))
+  .sort((a, b) => b.score - a.score || b.p.data.pubDate.getTime() - a.p.data.pubDate.getTime())
+  .slice(0, 3)
+  .map((x) => x.p);
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -28,9 +37,15 @@ const jsonLd = {
 };
 ---
 
-<Base title={`${post.data.title} — InfoOnVisa`} description={post.data.description} jsonLd={jsonLd} hideChrome={true}>
+<Base title={`${post.data.title} — InfoOnVisa`} description={post.data.description} jsonLd={jsonLd} hideChrome={true} noindex={post.data.draft}>
   <div class="brand">
     <BrandNav active="blog" />
+
+    {post.data.draft && (
+      <div class="draftbar">
+        👀 <strong>Preview — this is a draft.</strong> Only people with this link can see it. It's hidden from your blog and Google. To publish, open the post in <code>/admin</code> and turn the <strong>Draft</strong> switch off.
+      </div>
+    )}
 
     <article>
       <header class="phero reveal">
@@ -52,6 +67,24 @@ const jsonLd = {
         </div>
         <a href="/blog" class="pback">← Back to all articles</a>
       </div>
+
+      {related.length > 0 && (
+        <section class="container prelated reveal">
+          <h2 class="prelated-h">Keep reading</h2>
+          <div class="prelated-grid">
+            {related.map((r) => (
+              <a href={`/blog/${r.id}`} class="prcard">
+                <img src={r.data.cover ?? '/images/japan.jpg'} alt={r.data.title} loading="lazy" />
+                <div class="prcard-body">
+                  {r.data.tags?.[0] && <span class="prcard-tag">{r.data.tags[0]}</span>}
+                  <h3>{r.data.title}</h3>
+                  <span class="prcard-read">Read →</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
     </article>
 
     <BrandFooter />
@@ -82,4 +115,21 @@ const jsonLd = {
   .pbody :global(a) { color: var(--primary); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in oklab, var(--primary) 40%, transparent); }
   .pbody :global(hr) { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
   .pback { display: inline-block; margin-top: 2rem; color: var(--primary); font-weight: 600; }
+
+  /* Draft preview banner */
+  .draftbar { max-width: 48rem; margin: 1rem auto 0; padding: .85rem 1.1rem; border-radius: .75rem; background: color-mix(in oklab, var(--primary) 10%, #fff); border: 1px solid color-mix(in oklab, var(--primary) 35%, transparent); color: var(--navy); font-size: .9rem; line-height: 1.5; }
+  .draftbar code { background: color-mix(in oklab, var(--navy) 10%, transparent); padding: .05rem .35rem; border-radius: .3rem; font-size: .85em; }
+
+  /* Related articles */
+  .prelated { max-width: 56rem; padding: 2.5rem 1.5rem 1rem; }
+  .prelated-h { font-family: var(--font-display); font-weight: 800; color: var(--navy); font-size: 1.5rem; margin-bottom: 1.25rem; }
+  .prelated-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+  @media (max-width: 720px) { .prelated-grid { grid-template-columns: 1fr; } }
+  .prcard { display: flex; flex-direction: column; border-radius: 1.1rem; overflow: hidden; background: var(--background); border: 1px solid var(--border); transition: transform .2s, box-shadow .2s; }
+  .prcard:hover { transform: translateY(-4px); box-shadow: var(--shadow-soft); }
+  .prcard img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  .prcard-body { padding: 1rem 1.1rem 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
+  .prcard-tag { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--primary); }
+  .prcard-body h3 { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1.02rem; line-height: 1.3; }
+  .prcard-read { color: var(--primary); font-weight: 600; font-size: .875rem; margin-top: auto; }
 </style>

@@ -1,0 +1,58 @@
+# Pages CMS config (pagescms.org) — the visual editor for the InfoOnVisa blog.
+# Sign in at https://app.pagescms.org with GitHub, open this repo, and write posts.
+# Posts are saved as Markdown into src/content/blog and render in the existing blog style.
+
+media:
+  - name: images
+    label: Images
+    input: public/images
+    output: /images
+
+content:
+  - name: blog
+    label: Blog posts
+    type: collection
+    path: src/content/blog
+    filename: "{fields.title}.md"
+    view:
+      fields: [title, pubDate, draft]
+      sort: [pubDate]
+      default:
+        sort: pubDate
+        order: desc
+    fields:
+      - name: title
+        label: Title
+        type: string
+        required: true
+      - name: description
+        label: Meta description (shown in Google — 1 sentence)
+        type: text
+        required: true
+      - name: pubDate
+        label: Publish date
+        type: date
+        options:
+          format: yyyy-MM-dd
+        required: true
+      - name: author
+        label: Author
+        type: string
+        default: InfoOnVisa
+      - name: tags
+        label: Tags
+        type: string
+        list: true
+      - name: cover
+        label: Cover image
+        type: image
+      - name: readMins
+        label: Read time (minutes)
+        type: number
+      - name: draft
+        label: "Draft — keep ON to preview privately, turn OFF to publish"
+        type: boolean
+        default: true
+      - name: body
+        label: Content
+        type: rich-text
