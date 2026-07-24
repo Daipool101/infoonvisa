@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["visa-documents", "application-tips", "guides"]
 cover: "/images/uk.jpg"
 readMins: 6
+draft: false
 ---
 
 Two documents confuse applicants more than any others: the **invitation letter** and the **sponsorship letter**. They sound similar, they sometimes overlap, but they answer different questions — and getting them wrong is a common [refusal](/blog/why-visa-applications-get-rejected) trigger.

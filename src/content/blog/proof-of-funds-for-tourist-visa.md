@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["proof-of-funds", "visa-documents", "application-tips"]
 cover: "/images/singapore.jpg"
 readMins: 7
+draft: false
 ---
 
 "Proof of funds" is the most misunderstood requirement in visa applications — and the [most common reason applications get refused](/blog/why-visa-applications-get-rejected). Applicants obsess over hitting a magic number; consular officers are looking at something completely different.

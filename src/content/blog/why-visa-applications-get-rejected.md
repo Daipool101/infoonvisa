@@ -13,7 +13,7 @@ tags:
   - application-tips
 cover: /images/uk.jpg
 readMins: 7
-draft: true
+draft: false
 ---
 A visa refusal stings twice: you lose the fee, and the refusal itself becomes part of your travel history that future applications may ask about. The good news? **The overwhelming majority of tourist-visa rejections come down to the same handful of preventable issues.**
 

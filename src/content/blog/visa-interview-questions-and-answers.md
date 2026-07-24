@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["visa-interview", "application-tips", "guides"]
 cover: "/images/usa.jpg"
 readMins: 8
+draft: false
 ---
 
 Not every country interviews tourist applicants — many decide purely on your paperwork. But where an interview *is* required (the US is the most famous example), it's often short, and a handful of questions decide the outcome. The good news: interviewers ask the same things, and once you understand **what they're really checking**, the answers become obvious.

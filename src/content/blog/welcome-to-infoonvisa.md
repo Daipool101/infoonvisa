@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["guides", "visa-basics"]
 cover: "/images/singapore.jpg"
 readMins: 4
+draft: false
 ---
 
 Planning a trip should be exciting — but the visa step turns it into a maze of government PDFs, contradictory forum posts and outdated blogs. Here’s a clean way to get a trustworthy answer fast.

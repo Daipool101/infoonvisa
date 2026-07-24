@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["travel-insurance", "visa-documents", "guides"]
 cover: "/images/france.jpg"
 readMins: 6
+draft: false
 ---
 
 Travel insurance is the requirement people treat as optional — right up until it gets their otherwise-perfect application refused. For some destinations it's genuinely mandatory, with **specific minimum coverage**, and a policy that falls short is an instant rejection ground.

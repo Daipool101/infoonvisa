@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["processing-time", "travel-planning", "guides"]
 cover: "/images/thailand.jpg"
 readMins: 6
+draft: false
 ---
 
 The most avoidable travel disaster is a visa that arrives *after* your flight. It happens constantly — not because the visa was refused, but because the applicant left it too late. Here's how visa timing actually works, and a safe schedule to follow.

@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["passport", "visa-basics", "travel-planning"]
 cover: "/images/australia.jpg"
 readMins: 5
+draft: false
 ---
 
 It's the simplest requirement to meet and one of the most common reasons people get turned away — at the visa stage *or* at the airport check-in desk. Your passport itself has to qualify before your visa can. Here's the whole thing in plain terms.

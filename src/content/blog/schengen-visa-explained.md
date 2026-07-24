@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["schengen", "europe", "visa-basics", "guides"]
 cover: "/images/france.jpg"
 readMins: 8
+draft: false
 ---
 
 If Europe is on your list, one word dominates your planning: **Schengen**. Understand it once, and trip planning for most of the continent becomes dramatically simpler — because **one visa application can unlock 29 countries**.

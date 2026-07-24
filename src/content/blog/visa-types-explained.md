@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["visa-basics", "guides", "travel-planning"]
 cover: "/images/japan.jpg"
 readMins: 6
+draft: false
 ---
 
 Before you book a single flight, one question decides how much lead time your trip needs: **what kind of visa (if any) do you need?** Almost every country–to–country route falls into one of four buckets. Once you can tell them apart, the whole planning process gets simpler.

@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["visa-documents", "travel-planning", "application-tips"]
 cover: "/images/japan.jpg"
 readMins: 6
+draft: false
 ---
 
 Here's the catch-22 every applicant hits: the embassy wants to see your flights and hotels — but you don't want to buy non-refundable travel for a visa that hasn't been approved yet. Buy too early and a refusal costs you real money; skip it and your application looks incomplete. Here's how to handle it sensibly.

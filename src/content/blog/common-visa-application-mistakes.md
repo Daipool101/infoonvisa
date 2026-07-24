@@ -6,6 +6,7 @@ author: "InfoOnVisa"
 tags: ["application-tips", "guides", "checklist"]
 cover: "/images/singapore.jpg"
 readMins: 7
+draft: false
 ---
 
 There's a difference between being *refused* and being *rejected on a technicality*. [Refusals](/blog/why-visa-applications-get-rejected) are about substance — funds, purpose, ties. But a huge number of applications never even get that far: they're bounced for **avoidable process mistakes**. Here are the 11 that come up most, and how to dodge each.
