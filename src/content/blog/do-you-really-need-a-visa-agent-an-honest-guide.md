@@ -11,7 +11,7 @@ tags:
   - guides
 cover: /images/global-residence-index-addEU6TScGI-unsplash.jpg
 readMins: 0
-draft: false
+draft: true
 ---
 Search "visa help" and you'll find hundreds of agents promising to "get your visa approved." Some are genuinely useful. Many charge a hefty fee for something you could do yourself in an afternoon. Here's an honest breakdown so you can decide — not a sales pitch.
 
