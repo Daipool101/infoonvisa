@@ -91,6 +91,25 @@ export function originOf(raw: string): string | null {
 
 export type LinkVerdict = 'alive' | 'dead-path' | 'dead-host';
 
+/** Hosts sitting behind bot protection that answers with misleading status
+ *  codes — visa.vfsglobal.com returns 403 from one network and 404 from
+ *  another for the very same page, and consulmex.sre.gob.mx serves a Radware
+ *  challenge as a 404. Their HTTP status carries no information about whether
+ *  the page exists, so we never judge them broken on the strength of it. */
+const UNVERIFIABLE_HOSTS = [
+  'visa.vfsglobal.com',
+  'vfsglobal.com',
+  'consulmex.sre.gob.mx',
+];
+const isUnverifiable = (url: string): boolean => {
+  try {
+    const h = new URL(url).hostname.toLowerCase();
+    return UNVERIFIABLE_HOSTS.some((d) => h === d || h.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+};
+
 const UA = 'Mozilla/5.0 (compatible; InfoOnVisaLinkCheck/1.0; +https://infoonvisa.com)';
 
 /**
@@ -100,6 +119,7 @@ const UA = 'Mozilla/5.0 (compatible; InfoOnVisaLinkCheck/1.0; +https://infoonvis
  * definitive 404/410, or a domain that does not resolve, counts as broken.
  */
 export async function checkUrl(url: string, timeoutMs = 8000): Promise<LinkVerdict> {
+  if (isUnverifiable(url)) return 'alive'; // status code proves nothing here
   const headers = { 'user-agent': UA };
   const run = (method: string, ms: number) =>
     fetch(url, { method, redirect: 'follow', headers, signal: AbortSignal.timeout(ms) });

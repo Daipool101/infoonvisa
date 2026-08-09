@@ -54,7 +54,17 @@ const normalizeUrl = (raw) => {
 };
 const originOf = (raw) => { const s = safeUrl(raw); if (!s) return null; return new URL(s).origin + '/'; };
 
+const UNVERIFIABLE_HOSTS = ['visa.vfsglobal.com', 'vfsglobal.com', 'consulmex.sre.gob.mx'];
+// Bot protection on these hosts answers with misleading status codes (403 from
+// one network, 404 from another for the same page), so their HTTP status says
+// nothing about whether the page exists. Never judge them on it.
+const isUnverifiable = (url) => {
+  try { const h = new URL(url).hostname.toLowerCase();
+    return UNVERIFIABLE_HOSTS.some((d) => h === d || h.endsWith(`.${d}`)); } catch { return false; }
+};
+
 async function checkUrl(url, ms = 12000) {
+  if (isUnverifiable(url)) return 'alive';
   const headers = { 'user-agent': UA };
   const run = (method, t) => fetch(url, { method, redirect: 'follow', headers, signal: AbortSignal.timeout(t) });
   try {

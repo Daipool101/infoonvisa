@@ -35,7 +35,17 @@ const safeUrl = (u) => {
 // Same conservative policy as the generator: only a definitive 404/410 or a
 // domain that does not resolve counts as broken. 403/5xx/timeouts are gov
 // sites blocking bots, not real breakage.
+const UNVERIFIABLE_HOSTS = ['visa.vfsglobal.com', 'vfsglobal.com', 'consulmex.sre.gob.mx'];
+// Bot protection on these hosts answers with misleading status codes (403 from
+// one network, 404 from another for the same page), so their HTTP status says
+// nothing about whether the page exists. Never judge them on it.
+const isUnverifiable = (url) => {
+  try { const h = new URL(url).hostname.toLowerCase();
+    return UNVERIFIABLE_HOSTS.some((d) => h === d || h.endsWith(`.${d}`)); } catch { return false; }
+};
+
 async function check(url, ms = 15000) {
+  if (isUnverifiable(url)) return null;
   const headers = { 'user-agent': UA };
   const run = (method, t) => fetch(url, { method, redirect: 'follow', headers, signal: AbortSignal.timeout(t) });
   try {
