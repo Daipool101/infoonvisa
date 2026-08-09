@@ -40,7 +40,11 @@ jobs:
         with:
           script: |
             const count = '${{ steps.check.outputs.count }}';
-            const body = process.env.REPORT;
+            const owner = context.repo.owner;
+            // Assign + @mention the owner: watching a repo does not reliably
+            // email you about issues a bot opens, but being assigned or
+            // mentioned does, under GitHub's default notification settings.
+            const body = `@${owner}\n\n${process.env.REPORT}`;
             const title = `${count} broken source link${count === '1' ? '' : 's'} on live pages`;
             // Reuse the open issue if there is one, so a persistent problem
             // does not create a new issue (and a new email) every week.
@@ -57,7 +61,7 @@ jobs:
             } else {
               await github.rest.issues.create({
                 owner: context.repo.owner, repo: context.repo.repo,
-                title, body, labels: ['link-check'],
+                title, body, labels: ['link-check'], assignees: [owner],
               });
             }
         env:
