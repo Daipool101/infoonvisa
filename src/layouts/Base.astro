@@ -28,7 +28,11 @@ const {
 const env = getEnv();
 const adsenseClient = env.PUBLIC_ADSENSE_CLIENT;
 const GA_ID = 'G-CE9NDE5Q6Y'; // Google Analytics 4 measurement ID
-const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
+// Normalise the path so the canonical never echoes back whatever form the
+// visitor requested — a self-referencing /countries/ and /countries told Google
+// they were two different pages.
+const canonicalPath = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const canonicalUrl = canonical ?? new URL(canonicalPath, Astro.site).toString();
 const ogImage = new URL('/og-default.png', Astro.site).toString();
 
 // Site-wide Organization entity: connects the brand to its logo and social

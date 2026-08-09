@@ -40,6 +40,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
     });
   }
 
+  // SEO: exactly one URL form. /countries/ and /countries both returned 200
+  // and self-canonicalised, so Google indexed them as duplicate pages. 301 the
+  // trailing-slash form onto the canonical one (the site root keeps its slash).
+  if (url.pathname.length > 1 && url.pathname.endsWith('/')) {
+    url.pathname = url.pathname.replace(/\/+$/, '');
+    return new Response(null, {
+      status: 301,
+      headers: { Location: url.toString(), ...HEADERS },
+    });
+  }
+
   const res = await next();
   for (const [k, v] of Object.entries(HEADERS)) res.headers.set(k, v);
   return res;
