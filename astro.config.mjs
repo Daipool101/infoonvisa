@@ -10,6 +10,12 @@ export default defineConfig({
   // NOTE: deliberately NOT `trailingSlash: 'never'` — that makes Astro reject
   // /countries/ with a 404 before middleware runs, and Google already has those
   // URLs indexed. The middleware 301s them instead, which preserves their value.
+  //
+  // Prerendered pages are emitted as /blog/post.html rather than
+  // /blog/post/index.html. As folders they were served with a 307 that ADDED a
+  // trailing slash, which fought the middleware's 301 that removes one — an
+  // endless redirect loop for anyone whose browser cached the 301.
+  build: { format: 'file' },
   adapter: cloudflare({
     platformProxy: { enabled: true },
   }),
