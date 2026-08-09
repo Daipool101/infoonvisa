@@ -228,8 +228,13 @@ export async function sanitizeCorridorLinks(
       ? { ...curated }
       : sources[0];
 
+  // Dropping every dead source can empty the list while officialSource still
+  // stands (it may come from the curated map). Never leave a page citing nothing.
+  const finalSources =
+    sources.length || !officialSource?.url ? sources : [{ ...officialSource } as Source];
+
   return {
-    data: { ...data, officialSource: officialSource as Source, sources, applySteps },
+    data: { ...data, officialSource: officialSource as Source, sources: finalSources, applySteps },
     report,
   };
 }

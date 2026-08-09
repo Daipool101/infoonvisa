@@ -124,12 +124,12 @@ const ESSENTIALS = [
       <div class="card-body">
         <div class="vselect-wrap">
           <select id="visa-select" class="vselect" aria-label="Select visa type">
-            {data.visaOptions.map((o, i) => <option value={i}>{o.type}</option>)}
+            {(data.visaOptions ?? []).map((o, i) => <option value={i}>{o.type}</option>)}
           </select>
           <svg viewBox="0 0 24 24" class="ic vchev" set:html={I.chevron}></svg>
         </div>
         <div id="visa-panels">
-          {data.visaOptions.map((o, i) => (
+          {(data.visaOptions ?? []).map((o, i) => (
             <div class="vpanel" data-i={i} hidden={i !== 0}>
               <div class="vpanel-type"><span class="dot"></span>{o.type}</div>
               <div class="vfields">
@@ -153,12 +153,12 @@ const ESSENTIALS = [
     <section class="card" id="iov-docs">
       <div class="card-head">
         <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.fileCheck}></svg></span>
-        <div><h2>Documents required for {from.demonym} citizens</h2><p class="sub" id="doc-sub">Tick items as you collect them — 0 of {data.documents.length} ready.</p></div>
+        <div><h2>Documents required for {from.demonym} citizens</h2><p class="sub" id="doc-sub">Tick items as you collect them — 0 of {(data.documents ?? []).length} ready.</p></div>
       </div>
       <div class="card-body">
         <div class="progress"><div class="progress-fill" id="doc-fill" style="width:0%"></div></div>
         <ul class="docs">
-          {data.documents.map((d) => (
+          {(data.documents ?? []).map((d) => (
             <li>
               <label class="doc">
                 <input type="checkbox" class="doc-check" />
@@ -178,7 +178,7 @@ const ESSENTIALS = [
       </div>
       <div class="card-body">
         <ol class="steps">
-          {data.applySteps.map((s: any, i: number) => (
+          {(data.applySteps ?? []).map((s: any, i: number) => (
             <li class="step">
               <div class="step-n">{i + 1}</div>
               <div class="step-body">
@@ -233,7 +233,8 @@ const ESSENTIALS = [
       </div>
     </section>
 
-    <!-- Things to know -->
+    <!-- Things to know (skipped entirely when the page carries none of it) -->
+    {(data.tips?.length || data.bestTimeToVisit || data.topPlaces?.length) ? (
     <section class="card">
       <div class="card-head">
         <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.bookOpen}></svg></span>
@@ -241,7 +242,9 @@ const ESSENTIALS = [
       </div>
       <div class="card-body">
         <ul class="tips">
-          {data.tips.map((t) => (
+          {/* `tips` is optional in the response schema, so a page can arrive
+              without it — mapping it unguarded took the whole page down. */}
+          {(data.tips ?? []).map((t) => (
             <li><svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.info}></svg><span>{t}</span></li>
           ))}
         </ul>
@@ -249,12 +252,13 @@ const ESSENTIALS = [
           {data.bestTimeToVisit && (
             <div class="know-best"><div class="flabel orange-l">Best time to visit</div><p>{data.bestTimeToVisit}</p></div>
           )}
-          {data.topPlaces?.length && (
+          {!!data.topPlaces?.length && (
             <div class="know-places"><div class="flabel">Top places</div><ul>{data.topPlaces.map((p) => <li>📍 <strong>{p}</strong></li>)}</ul></div>
           )}
         </div>
       </div>
     </section>
+    ) : null}
 
     <!-- FAQ -->
     <section class="card">
@@ -264,7 +268,7 @@ const ESSENTIALS = [
       </div>
       <div class="card-body">
         <ul class="faqs">
-          {data.faq.map((f, i) => (
+          {(data.faq ?? []).map((f, i) => (
             <li class={`faq-item${i === 0 ? ' open' : ''}`}>
               <button type="button" class="faq-q"><span>{f.q}</span><svg viewBox="0 0 24 24" class="ic chev" set:html={I.chevron}></svg></button>
               <div class="faq-a"><div class="faq-a-in"><p>{f.a}</p></div></div>

@@ -83,7 +83,7 @@ export const RESPONSE_SCHEMA = {
       },
     },
   },
-  required: ['verdict', 'verdictHeadline', 'summary', 'officialSource', 'visaOptions', 'documents', 'applySteps', 'faq', 'rejectionReasons', 'sources'],
+  required: ['verdict', 'verdictHeadline', 'summary', 'officialSource', 'visaOptions', 'documents', 'applySteps', 'tips', 'faq', 'rejectionReasons', 'sources'],
 };
 
 export function buildPrompt(from: Country, to: Country): string {
@@ -111,7 +111,14 @@ HARD RULES — accuracy over completeness:
 - "documents" lists only what actually applies (passport validity rule, photo, proof of funds,
   return ticket, accommodation, etc.).
 - "applySteps" are concrete numbered actions; include the official application URL where relevant.
-- "faq" = 4-6 genuinely useful corridor-specific questions (extensions, transit, working, etc.).
+- "faq" = 8-10 corridor-specific questions. Cover the general ones (extensions, transit,
+  working) AND the real situations people describe when they ask: passport expiring soon,
+  a previous refusal, how much money to show, applying at short notice, being self-employed
+  or a student, travelling with children, multiple entries. Phrase each question the way a
+  traveller would actually type it ("My passport expires in 5 months — can I still apply?"),
+  not as a formal heading. Answer in 2-4 plain sentences. NEVER invent a specific figure,
+  balance or fee; if the exact number is not certain, say what the requirement is and tell
+  the reader to confirm it on the official source.
 - "tips" = 3-4 short practical entry/safety/customs tips for ${to.name}.
 - "rejectionReasons" = 4-6 of the most common reasons a ${from.demonym} citizen's ${to.name} tourist
   visa application gets REFUSED (e.g. weak proof of funds, unclear travel purpose, incomplete or

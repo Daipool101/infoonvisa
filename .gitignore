@@ -30,3 +30,4 @@ Thumbs.db
 
 # security report (keep private, not in public repo)
 SECURITY_AUDIT.md
+.faq-backups/

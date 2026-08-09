@@ -148,7 +148,10 @@ for (const r of rows) {
     continue;
   }
 
-  const next = { ...d, officialSource, sources, applySteps };
+  // Dropping every dead source can empty the list while officialSource still
+  // stands (it may come from the curated map). Never leave a page citing nothing.
+  const finalSources = sources.length ? sources : [{ ...officialSource }];
+  const next = { ...d, officialSource, sources: finalSources, applySteps };
   const after = JSON.stringify([next.officialSource, next.sources, (next.applySteps || []).map((s) => s.link)]);
   if (before === after) continue;
 
