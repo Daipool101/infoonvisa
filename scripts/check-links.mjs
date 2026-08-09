@@ -93,6 +93,13 @@ await Promise.all(Array.from({ length: 8 }, async () => {
   }
 }));
 
+// Manual "test alert" run: fake a finding so the notification path (issue ->
+// email) can be proven end to end without waiting for a site to actually break.
+const SIMULATED = process.env.SIMULATE_BROKEN === 'true';
+if (SIMULATED) {
+  broken.push({ url: 'https://example.invalid/not-a-real-link', why: 'TEST — nothing is actually broken', pages: ['(test run)'] });
+}
+
 if (!broken.length) {
   console.log('All source links healthy.');
   process.exit(0);
@@ -100,6 +107,9 @@ if (!broken.length) {
 
 broken.sort((a, b) => b.pages.length - a.pages.length);
 const lines = [
+  ...(SIMULATED
+    ? ['> 🧪 **This is a TEST alert**, triggered manually to confirm email delivery.', '> Nothing on the site is broken. Close this issue.', '']
+    : []),
   `**${broken.length} broken source link${broken.length > 1 ? 's' : ''}** found across ${new Set(broken.flatMap((b) => b.pages)).size} page(s).`,
   '',
   'Run `node scripts/fix-links.mjs` for a dry run, then `--write` to repair.',

@@ -7,7 +7,12 @@ name: Weekly source-link check
 on:
   schedule:
     - cron: '0 4 * * 1' # Mondays, 04:00 UTC (~09:30 IST)
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_alert:
+        description: 'Send a TEST alert (proves email delivery; nothing is really broken)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -33,6 +38,7 @@ jobs:
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SIMULATE_BROKEN: ${{ inputs.test_alert }}
 
       - name: Open an issue when links are broken
         if: steps.check.outcome == 'failure' && steps.check.outputs.count != ''
