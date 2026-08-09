@@ -1,0 +1,84 @@
+name: Weekly source-link check
+
+# Government sites move and get decommissioned, which silently breaks the
+# "official source" links on live corridor pages. This checks them every week
+# and opens an issue (which GitHub emails to the repo owner) ONLY when
+# something is actually broken — a healthy week is completely silent.
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Mondays, 04:00 UTC (~09:30 IST)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check source links
+        id: check
+        continue-on-error: true
+        run: node scripts/check-links.mjs
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Open an issue when links are broken
+        if: steps.check.outcome == 'failure' && steps.check.outputs.count != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const count = '${{ steps.check.outputs.count }}';
+            const body = process.env.REPORT;
+            const title = `${count} broken source link${count === '1' ? '' : 's'} on live pages`;
+            // Reuse the open issue if there is one, so a persistent problem
+            // does not create a new issue (and a new email) every week.
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'link-check',
+            });
+            if (open.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: open[0].number,
+                body: `Re-checked on ${new Date().toISOString().slice(0, 10)}:\n\n${body}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['link-check'],
+              });
+            }
+        env:
+          REPORT: ${{ steps.check.outputs.body }}
+
+      - name: Close the issue when everything is healthy
+        if: steps.check.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'link-check',
+            });
+            for (const issue of open) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, body: 'All source links are healthy again — closing.',
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, state: 'closed',
+              });
+            }

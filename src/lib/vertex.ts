@@ -2,6 +2,7 @@ import type { AppEnv, } from './supabase';
 import type { CorridorData } from './corridor';
 import type { Country } from './countries';
 import { buildPrompt, RESPONSE_SCHEMA, type GenerationResult } from './gemini';
+import { sanitizeCorridorLinks } from './links';
 
 // Vertex AI generation for Cloudflare Workers.
 // Unlike the AI Studio API, Vertex is NOT caller-location restricted, so it works
@@ -113,7 +114,13 @@ export async function generateCorridorVertex(
     if (!parsed.sources?.length || !parsed.officialSource?.url) {
       return { data: null, error: 'no official source in response' };
     }
-    return { data: parsed };
+    // Model-written URLs rot; verify and repair them before the page is saved.
+    const { data: clean, report } = await sanitizeCorridorLinks(parsed, to.slug);
+    if (report.rewritten || report.dropped) {
+      console.log(`links ${from.slug}->${to.slug}: ${report.rewritten} fixed, ${report.dropped} dropped`);
+    }
+    if (!clean.officialSource?.url) return { data: null, error: 'no working official source' };
+    return { data: clean };
   } catch (err: any) {
     const msg = (err?.message || String(err)).slice(0, 300);
     console.error('Vertex generation failed:', msg);

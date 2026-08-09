@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import type { AppEnv } from './supabase';
 import type { CorridorData } from './corridor';
 import type { Country } from './countries';
+import { sanitizeCorridorLinks } from './links';
 
 // Strict response schema mirroring blocks A–G. Forces structured JSON output.
 // Exported so the Vertex REST path can reuse the exact same schema.
@@ -93,6 +94,11 @@ HARD RULES — accuracy over completeness:
 - Only state visa facts you can attribute to an official government / e-visa source. Put those
   official URLs in "sources" and the single most authoritative one in "officialSource".
 - DO NOT invent or guess fees. Omit fee numbers entirely.
+- URLs: give the stable, canonical official portal — prefer the site's main entry
+  point (e.g. https://www.visaforchina.cn/) over a deep link you are unsure of.
+  NEVER append visa-centre, city or locale path codes (e.g. "/DEL2_EN/", "/SHA_CN/")
+  and never invent a path to make a URL look specific. A shorter URL you are certain
+  about is always better than a precise-looking one you are guessing at.
 - If a fact is uncertain, prefer a conservative statement and advise verifying on the official site.
 - "verdict" must reflect the MAIN requirement for an ORDINARY ${from.name} tourist passport.
 - "verdictHeadline" is one clear sentence, e.g. "${from.name} citizens need an e-Visa before travelling to ${to.name}."
@@ -145,7 +151,9 @@ export async function generateCorridor(
     if (!parsed.sources?.length || !parsed.officialSource?.url) {
       return { data: null, error: 'no official source in response' };
     }
-    return { data: parsed };
+    const { data: clean } = await sanitizeCorridorLinks(parsed, to.slug);
+    if (!clean.officialSource?.url) return { data: null, error: 'no working official source' };
+    return { data: clean };
   } catch (err: any) {
     const msg = (err?.message || String(err)).slice(0, 300);
     console.error('Gemini generation failed:', msg);
