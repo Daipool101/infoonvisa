@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import CountrySearch from '../components/CountrySearch.astro';
 import { COUNTRIES } from '../lib/countries';
 
 const options = [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
@@ -122,28 +123,7 @@ const jsonLd = {
         </p>
 
         <div class="anim" style="animation-delay:.24s" id="search">
-          <form class="searchbar" id="iov-search" role="search" aria-label="Find visa requirements">
-            <label class="picker">
-              <span class="picker-label">From</span>
-              <span class="picker-val">
-                <span class="code" data-code>IN</span>
-                <select name="from" aria-label="From country">
-                  {options.map((c) => <option value={c.slug} data-iso={c.iso} selected={c.slug === 'india'}>{c.name}</option>)}
-                </select>
-              </span>
-            </label>
-            <button type="button" class="swap" id="iov-swap" aria-label="Swap countries"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.swap}></svg></button>
-            <label class="picker">
-              <span class="picker-label">To</span>
-              <span class="picker-val">
-                <span class="code" data-code>JP</span>
-                <select name="to" aria-label="To country">
-                  {options.map((c) => <option value={c.slug} data-iso={c.iso} selected={c.slug === 'japan'}>{c.name}</option>)}
-                </select>
-              </span>
-            </label>
-            <button type="submit" class="search-btn"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.search}></svg> Search</button>
-          </form>
+          <CountrySearch fromSlug="india" toSlug="japan" />
         </div>
 
         <div class="anim trust" style="animation-delay:.32s">
@@ -384,7 +364,7 @@ const jsonLd = {
   @media (max-width: 860px) { .nav-links { display: none; } }
 
   /* HERO */
-  .hero { position: relative; padding: 5rem 0 7rem; overflow: hidden; }
+  .hero { position: relative; z-index: 20; padding: 5rem 0 7rem; overflow-x: clip; }
   .hero-inner { position: relative; max-width: 56rem; margin: 0 auto; padding: 0 1.5rem; text-align: center; }
   .glow { position: absolute; border-radius: 999px; pointer-events: none; }
   .glow-a { top: -8rem; left: 33%; width: 500px; height: 500px; background: color-mix(in oklab, var(--primary) 15%, transparent); filter: blur(120px); }
@@ -421,7 +401,8 @@ const jsonLd = {
   .search-btn:hover { filter: brightness(1.1); }
   @media (max-width: 760px) { .searchbar { flex-direction: column; } .picker select { max-width: none; } }
 
-  .trust { margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .75rem 2rem; font-size: .875rem; font-weight: 500; color: var(--success); }
+  #search { position: relative; z-index: 50; }
+  .trust { position: relative; z-index: 1; margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .75rem 2rem; font-size: .875rem; font-weight: 500; color: var(--success); }
   .trust span { display: inline-flex; align-items: center; gap: .375rem; }
   .scroll-cue { margin-top: 4rem; display: inline-flex; flex-direction: column; align-items: center; gap: .5rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; color: color-mix(in oklab, var(--navy) 50%, transparent); transition: color .2s; }
   .scroll-cue:hover { color: var(--primary); }

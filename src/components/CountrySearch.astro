@@ -1,0 +1,207 @@
+---
+// Reusable From → To country search (button → searchable popover), matching the
+// Lovable design. Used on the home page and inside corridor pages.
+import { COUNTRIES, countryBySlug } from '../lib/countries';
+
+interface Props {
+  fromSlug?: string;
+  toSlug?: string;
+  compact?: boolean; // corridor sticky-bar variant
+}
+const { fromSlug = 'india', toSlug = 'japan', compact = false } = Astro.props;
+
+const options = [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
+const POPULAR = ['india', 'japan', 'united-arab-emirates', 'thailand', 'singapore', 'united-kingdom', 'united-states', 'france', 'australia', 'canada', 'germany', 'italy'];
+
+const from = countryBySlug(fromSlug) ?? countryBySlug('india')!;
+const to = countryBySlug(toSlug) ?? countryBySlug('japan')!;
+
+const I = {
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  chevrons: '<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>',
+};
+
+const uid = Math.random().toString(36).slice(2, 8);
+---
+
+<form class={`iov-search${compact ? ' compact' : ''}`} role="search" aria-label="Find visa requirements" data-uid={uid}>
+  <div class="iov-field" data-role="from">
+    <span class="iov-label">From</span>
+    <button type="button" class="iov-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose from country">
+      <span class="iov-code" data-code>{from.iso}</span>
+      <span class="iov-name" data-name>{from.name}</span>
+      <svg viewBox="0 0 24 24" class="iov-chev" set:html={I.chevrons}></svg>
+    </button>
+    <input type="hidden" class="iov-value" value={from.slug} />
+    <div class="iov-pop" hidden>
+      <div class="iov-pop-search">
+        <svg viewBox="0 0 24 24" class="iov-pop-ic" set:html={I.search}></svg>
+        <input type="text" class="iov-pop-input" placeholder="Search from country…" aria-label="Search from country" autocomplete="off" spellcheck="false" />
+      </div>
+      <ul class="iov-list" role="listbox" aria-label="From country"></ul>
+    </div>
+  </div>
+
+  <button type="button" class="iov-swap" aria-label="Swap countries"><svg viewBox="0 0 24 24" set:html={I.swap}></svg></button>
+
+  <div class="iov-field" data-role="to">
+    <span class="iov-label">To</span>
+    <button type="button" class="iov-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose to country">
+      <span class="iov-code" data-code>{to.iso}</span>
+      <span class="iov-name" data-name>{to.name}</span>
+      <svg viewBox="0 0 24 24" class="iov-chev" set:html={I.chevrons}></svg>
+    </button>
+    <input type="hidden" class="iov-value" value={to.slug} />
+    <div class="iov-pop" hidden>
+      <div class="iov-pop-search">
+        <svg viewBox="0 0 24 24" class="iov-pop-ic" set:html={I.search}></svg>
+        <input type="text" class="iov-pop-input" placeholder="Search to country…" aria-label="Search to country" autocomplete="off" spellcheck="false" />
+      </div>
+      <ul class="iov-list" role="listbox" aria-label="To country"></ul>
+    </div>
+  </div>
+
+  <button type="submit" class="iov-btn"><svg viewBox="0 0 24 24" set:html={I.search}></svg> Search</button>
+  <p class="iov-err" hidden>Please choose both countries.</p>
+</form>
+
+<script type="application/json" class="iov-countries" set:html={JSON.stringify(options.map((c) => ({ slug: c.slug, name: c.name, iso: c.iso })))}></script>
+<script type="application/json" class="iov-popular" set:html={JSON.stringify(POPULAR)}></script>
+
+<style>
+  .iov-search { position: relative; z-index: 50; display: flex; gap: .5rem; align-items: stretch; margin: 2.5rem auto 0; max-width: 48rem; border-radius: 28px; background: var(--card, var(--background)); border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent); padding: .5rem; box-shadow: 0 20px 50px -20px color-mix(in oklab, var(--navy) 40%, transparent); }
+  .iov-search.compact { margin: 0; max-width: none; border-radius: 1rem; padding: .4rem; box-shadow: none; background: var(--cream, var(--background)); }
+
+  .iov-field { position: relative; flex: 1; border-radius: 1rem; background: var(--card, var(--background)); padding: .75rem 1.25rem; transition: background .2s; min-width: 0; }
+  .iov-search.compact .iov-field { padding: .55rem 1rem; }
+  .iov-field:hover { background: color-mix(in oklab, var(--primary) 6%, transparent); }
+  .iov-label { font-size: .625rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted-foreground); font-weight: 700; }
+
+  .iov-trigger { margin-top: .25rem; width: 100%; display: flex; align-items: center; gap: .5rem; border: none; background: transparent; padding: 0; cursor: pointer; }
+  .iov-code { flex: none; min-width: 1.9rem; text-align: center; font-size: .72rem; font-weight: 700; letter-spacing: .02em; color: var(--primary); background: color-mix(in oklab, var(--primary) 12%, transparent); padding: .2rem .3rem; border-radius: 7px; }
+  .iov-name { font-family: var(--font-display); font-weight: 700; font-size: 1.125rem; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .iov-search.compact .iov-name { font-size: 1rem; }
+  .iov-chev { margin-left: auto; width: 1rem; height: 1rem; fill: none; stroke: var(--muted-foreground); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .iov-field.open .iov-chev { stroke: var(--primary); }
+
+  /* Popover — solid background, explicit fallbacks so it is never see-through */
+  .iov-pop { position: absolute; left: 0; top: calc(100% + .5rem); z-index: 70; width: 264px; max-width: calc(100vw - 2rem); background: var(--background, #ffffff); border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent); border-radius: .9rem; box-shadow: 0 24px 48px -14px color-mix(in oklab, var(--navy) 45%, transparent); overflow: hidden; }
+  .iov-pop[hidden] { display: none; }
+  .iov-pop-search { display: flex; align-items: center; gap: .5rem; padding: .7rem .85rem; border-bottom: 1px solid var(--border); }
+  .iov-pop-ic { width: 1rem; height: 1rem; fill: none; stroke: var(--muted-foreground); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .iov-pop-input { flex: 1; border: none; background: transparent; outline: none; font-size: .9rem; color: var(--navy, #202148); font-weight: 500; }
+  .iov-pop-input::placeholder { color: var(--muted-foreground); }
+  .iov-list { list-style: none; margin: 0; padding: .3rem; max-height: 17rem; overflow-y: auto; }
+  /* :global — these rows are injected via JS, so scoped selectors would miss them */
+  .iov-list :global(li) { display: flex; align-items: center; gap: .6rem; padding: .5rem .6rem; border-radius: .5rem; cursor: pointer; color: var(--navy, #202148); font-weight: 500; font-size: .95rem; }
+  .iov-list :global(li .lcode) { flex: none; font-size: .72rem; font-weight: 700; color: var(--primary); background: color-mix(in oklab, var(--primary) 12%, transparent); padding: .1rem .4rem; border-radius: 5px; }
+  .iov-list :global(li .lname) { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .iov-list :global(li .lcheck) { width: 1rem; height: 1rem; margin-left: auto; fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .iov-list :global(li[data-current="true"]) { background: color-mix(in oklab, var(--primary) 10%, transparent); }
+  .iov-list :global(li[aria-selected="true"]), .iov-list :global(li:hover) { background: color-mix(in oklab, var(--primary) 16%, transparent); }
+  .iov-list :global(.iov-empty) { padding: .85rem; color: var(--muted-foreground); font-weight: 500; font-size: .9rem; }
+
+  .iov-swap { align-self: center; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 999px; background: var(--secondary, var(--cream)); border: 1px solid var(--border); color: var(--navy); cursor: pointer; transition: all .4s; flex: none; }
+  .iov-search.compact .iov-swap { width: 2.5rem; height: 2.5rem; }
+  .iov-swap svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .iov-swap:hover { background: var(--primary); color: var(--primary-foreground); transform: rotate(180deg); }
+
+  .iov-btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: 1rem; background: var(--primary); color: var(--primary-foreground); font-weight: 600; padding: 1rem 1.75rem; border: none; cursor: pointer; transition: filter .2s; flex: none; }
+  .iov-search.compact .iov-btn { padding: .7rem 1.25rem; }
+  .iov-btn svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .iov-btn:hover { filter: brightness(1.08); }
+
+  .iov-err { position: absolute; top: calc(100% + .5rem); left: .5rem; color: var(--primary); font-weight: 600; font-size: .85rem; }
+  .iov-err[hidden] { display: none; }
+
+  @media (max-width: 760px) {
+    .iov-search { flex-direction: column; }
+    .iov-swap { transform: rotate(90deg); }
+    .iov-swap:hover { transform: rotate(270deg); }
+    .iov-pop { min-width: 0; }
+  }
+</style>
+
+<script>
+  type C = { slug: string; name: string; iso: string };
+  document.querySelectorAll<HTMLFormElement>('.iov-search').forEach((form) => {
+    const cEl = form.parentElement?.querySelector('.iov-countries') || document.querySelector('.iov-countries');
+    const pEl = form.parentElement?.querySelector('.iov-popular') || document.querySelector('.iov-popular');
+    if (!cEl || !pEl) return;
+    const COUNTRIES: C[] = JSON.parse(cEl.textContent || '[]');
+    const POPULAR: string[] = JSON.parse(pEl.textContent || '[]');
+    const bySlug = new Map(COUNTRIES.map((c) => [c.slug, c]));
+    const popular = POPULAR.map((s) => bySlug.get(s)).filter(Boolean) as C[];
+    const err = form.querySelector('.iov-err') as HTMLElement | null;
+
+    function setupField(field: HTMLElement) {
+      const btn = field.querySelector('.iov-trigger') as HTMLButtonElement;
+      const hidden = field.querySelector('.iov-value') as HTMLInputElement;
+      const nameEl = field.querySelector('[data-name]') as HTMLElement;
+      const code = field.querySelector('[data-code]') as HTMLElement;
+      const pop = field.querySelector('.iov-pop') as HTMLElement;
+      const input = field.querySelector('.iov-pop-input') as HTMLInputElement;
+      const list = field.querySelector('.iov-list') as HTMLElement;
+      let items: C[] = [];
+      let active = -1;
+
+      const setValue = (slug: string) => {
+        const c = bySlug.get(slug); if (!c) return;
+        hidden.value = slug; nameEl.textContent = c.name; code.textContent = c.iso;
+      };
+      const render = (q: string) => {
+        const s = q.trim().toLowerCase();
+        // Empty query → the full alphabetical list of every country. Typing filters it.
+        items = !s
+          ? COUNTRIES
+          : COUNTRIES.filter((c) => c.name.toLowerCase().includes(s) || c.iso.toLowerCase() === s)
+              .sort((a, b) => (a.name.toLowerCase().startsWith(s) ? 0 : 1) - (b.name.toLowerCase().startsWith(s) ? 0 : 1) || a.name.localeCompare(b.name));
+        active = -1;
+        const cur = hidden.value;
+        list.innerHTML = items.length
+          ? items.map((c, i) => `<li role="option" data-i="${i}"${c.slug === cur ? ' data-current="true"' : ''}><span class="lcode">${c.iso}</span><span class="lname">${c.name}</span>${c.slug === cur ? '<svg class="lcheck" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' : ''}</li>`).join('')
+          : '<li class="iov-empty">No country found</li>';
+      };
+      const open = () => {
+        field.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); pop.hidden = false; input.value = ''; render('');
+        (list.querySelector('li[data-current="true"]') as HTMLElement | null)?.scrollIntoView({ block: 'center' });
+        setTimeout(() => input.focus(), 20);
+      };
+      const close = () => { field.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); pop.hidden = true; active = -1; };
+      const highlight = () => {
+        [...list.querySelectorAll('li[data-i]')].forEach((li, i) => li.setAttribute('aria-selected', i === active ? 'true' : 'false'));
+        (list.querySelector(`li[data-i="${active}"]`) as HTMLElement | null)?.scrollIntoView({ block: 'nearest' });
+      };
+      const choose = (i: number) => { const c = items[i]; if (!c) return; setValue(c.slug); close(); err && (err.hidden = true); };
+
+      btn.addEventListener('click', () => (pop.hidden ? open() : close()));
+      input.addEventListener('input', () => render(input.value));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, items.length - 1); highlight(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); highlight(); }
+        else if (e.key === 'Enter') { e.preventDefault(); choose(active >= 0 ? active : 0); }
+        else if (e.key === 'Escape') { close(); btn.focus(); }
+      });
+      list.addEventListener('mousedown', (e) => {
+        const li = (e.target as HTMLElement).closest('li[data-i]') as HTMLElement | null;
+        if (li) { e.preventDefault(); choose(Number(li.dataset.i)); }
+      });
+      return { get: () => hidden.value, set: setValue, close };
+    }
+
+    const fields = [...form.querySelectorAll('.iov-field')].map((f) => setupField(f as HTMLElement));
+    document.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('.iov-field')) fields.forEach((f) => f.close()); });
+
+    form.querySelector('.iov-swap')?.addEventListener('click', () => {
+      const a = fields[0].get(), b = fields[1].get();
+      fields[0].set(b); fields[1].set(a);
+    });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = fields[0].get(), t = fields[1].get();
+      if (!bySlug.has(f) || !bySlug.has(t) || f === t) { if (err) err.hidden = false; return; }
+      window.location.href = `/${f}-to-${t}`;
+    });
+  });
+</script>

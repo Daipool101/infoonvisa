@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import CorridorContent from '../components/CorridorContent.astro';
+import CountrySearch from '../components/CountrySearch.astro';
 import LoadingScreen from '../components/LoadingScreen.astro';
 import { parseCorridorSlug } from '../lib/corridor';
 import { getEnv, getCorridor, bumpSearchCount, listVerifiedCorridors } from '../lib/supabase';
@@ -111,20 +112,7 @@ const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 
     <!-- Sticky search -->
     <div class="ssearch">
       <div class="ssearch-in">
-        <form class="sbar" id="iov-search">
-          <label class="spick"><span class="slabel">From</span>
-            <span class="sval"><span class="scode" data-code>{from.iso}</span>
-              <select name="from" aria-label="From country">{options.map((c) => <option value={c.slug} data-iso={c.iso} selected={c.slug === from.slug}>{c.name}</option>)}</select>
-            </span>
-          </label>
-          <button type="button" class="sswap" id="iov-swap" aria-label="Swap countries"><svg viewBox="0 0 24 24" class="ic sm" set:html={swapIcon}></svg></button>
-          <label class="spick"><span class="slabel">To</span>
-            <span class="sval"><span class="scode" data-code>{to.iso}</span>
-              <select name="to" aria-label="To country">{options.map((c) => <option value={c.slug} data-iso={c.iso} selected={c.slug === to.slug}>{c.name}</option>)}</select>
-            </span>
-          </label>
-          <button type="submit" class="sbtn"><svg viewBox="0 0 24 24" class="ic sm" set:html={searchIcon}></svg> Search</button>
-        </form>
+        <CountrySearch fromSlug={from.slug} toSlug={to.slug} compact />
       </div>
     </div>
 
@@ -209,7 +197,7 @@ const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 
   @media (max-width: 720px) { .cnav-links { display: none; } }
 
   /* Sticky search */
-  .ssearch { background: var(--background); border-bottom: 1px solid var(--border); }
+  .ssearch { position: relative; z-index: 40; background: var(--background); border-bottom: 1px solid var(--border); }
   .ssearch-in { max-width: 72rem; margin: 0 auto; padding: 1rem 1.5rem; }
   .sbar { border-radius: 1rem; background: var(--cream); border: 1px solid var(--border); padding: .5rem; display: flex; gap: .5rem; align-items: stretch; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
   .spick { flex: 1; border-radius: .75rem; background: var(--background); padding: .625rem 1.25rem; border: 1px solid transparent; cursor: pointer; transition: border-color .2s; }
@@ -251,24 +239,5 @@ const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 
     else { root.dataset.theme = 'dark'; localStorage.setItem('iov-theme', 'dark'); }
   });
 
-  const form = document.getElementById('iov-search') as HTMLFormElement | null;
-  if (form) {
-    const fromSel = form.querySelector('select[name="from"]') as HTMLSelectElement;
-    const toSel = form.querySelector('select[name="to"]') as HTMLSelectElement;
-    const codes = form.querySelectorAll<HTMLElement>('[data-code]');
-    const sync = () => {
-      codes[0].textContent = fromSel.selectedOptions[0].dataset.iso || '';
-      codes[1].textContent = toSel.selectedOptions[0].dataset.iso || '';
-    };
-    fromSel.addEventListener('change', sync);
-    toSel.addEventListener('change', sync);
-    document.getElementById('iov-swap')?.addEventListener('click', () => {
-      const t = fromSel.value; fromSel.value = toSel.value; toSel.value = t; sync();
-    });
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (fromSel.value === toSel.value) { toSel.focus(); return; }
-      window.location.href = `/${fromSel.value}-to-${toSel.value}`;
-    });
-  }
+  // Country search is handled by the shared CountrySearch component.
 </script>
