@@ -101,8 +101,10 @@ HARD RULES — accuracy over completeness:
   about is always better than a precise-looking one you are guessing at.
 - If a fact is uncertain, prefer a conservative statement and advise verifying on the official site.
 - "verdict" must reflect the MAIN requirement for an ORDINARY ${from.name} tourist passport.
-- "verdictHeadline" is one clear sentence, e.g. "${from.name} citizens need an e-Visa before travelling to ${to.name}."
-- "visaOptions" MUST list EVERY visa category realistically available to a ${from.name} citizen for
+- Always describe travellers with the demonym "${from.demonym}" — write "${from.demonym} citizens",
+  NEVER "${from.name} citizens" and never "citizens of ${from.name}".
+- "verdictHeadline" is one clear sentence, e.g. "${from.demonym} citizens need an e-Visa before travelling to ${to.name}."
+- "visaOptions" MUST list EVERY visa category realistically available to a ${from.demonym} citizen for
   ${to.name} — e.g. tourist (single & multiple entry), e-Visa/VOA where applicable, transit,
   business/commercial, and visiting-relatives. Give each its own entry with type, validity, maxStay,
   entries and "eligibility" (a short "best for…" description). Do NOT collapse them into one.
@@ -111,7 +113,7 @@ HARD RULES — accuracy over completeness:
 - "applySteps" are concrete numbered actions; include the official application URL where relevant.
 - "faq" = 4-6 genuinely useful corridor-specific questions (extensions, transit, working, etc.).
 - "tips" = 3-4 short practical entry/safety/customs tips for ${to.name}.
-- "rejectionReasons" = 4-6 of the most common reasons a ${from.name} citizen's ${to.name} tourist
+- "rejectionReasons" = 4-6 of the most common reasons a ${from.demonym} citizen's ${to.name} tourist
   visa application gets REFUSED (e.g. weak proof of funds, unclear travel purpose, incomplete or
   inconsistent documents, weak ties to home country, previous overstays/refusals, invalid passport
   validity). For each, give a short concrete "avoid" tip on how the applicant can prevent it.
