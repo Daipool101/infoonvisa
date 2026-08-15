@@ -1,7 +1,6 @@
 ---
 interface Props { active?: string }
 const { active = '' } = Astro.props;
-const plane = '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>';
 const links = [
   { href: '/', label: 'Home', key: 'home' },
   { href: '/countries', label: 'Countries', key: 'countries' },
@@ -10,24 +9,90 @@ const links = [
   { href: '/contact', label: 'Contact', key: 'contact' },
 ];
 ---
-<header class="bnav">
+<header class="bnav" data-bnav>
   <div class="container bnav-in">
     <a href="/" class="blogo"><span class="blogo-badge"><img src="/logo-icon.png" alt="" width="36" height="36" /></span><span class="blogo-text"><span class="navy">InfoOn</span><span class="orange">Visa</span></span></a>
-    <nav class="bnav-links">
-      {links.map((l) => <a href={l.href} class={active === l.key ? 'on' : ''}>{l.label}</a>)}
+
+    <!-- One link list: a row on desktop, a drop-down panel on phones. -->
+    <nav class="bnav-links" id="bnav-menu" aria-label="Main">
+      {links.map((l) => <a href={l.href} class={active === l.key ? 'on' : ''} aria-current={active === l.key ? 'page' : undefined}>{l.label}</a>)}
     </nav>
+
+    <button type="button" class="bnav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="bnav-menu">
+      <span class="bnav-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
   </div>
 </header>
 
 <style>
   .bnav { position: sticky; top: 0; z-index: 40; background: color-mix(in oklab, var(--background) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
-  .bnav-in { height: 4rem; display: flex; align-items: center; justify-content: space-between; }
-  .blogo { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); font-size: 1.125rem; }
-  .blogo-badge { width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: #fff; border: 1px solid var(--border); overflow: hidden; display: grid; place-items: center; transition: transform .2s; }
+  .bnav-in { height: 4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .blogo { display: flex; align-items: center; gap: .5rem; font-family: var(--font-display); font-weight: 800; color: var(--navy); font-size: 1.125rem; min-width: 0; }
+  .blogo-badge { width: 2.25rem; height: 2.25rem; flex: none; border-radius: .75rem; background: #fff; border: 1px solid var(--border); overflow: hidden; display: grid; place-items: center; transition: transform .2s; }
   .blogo-badge img { width: 100%; height: 100%; object-fit: contain; }
   .blogo:hover .blogo-badge { transform: rotate(-6deg); }
   .bnav-links { display: flex; align-items: center; gap: 1.75rem; font-size: .875rem; font-weight: 500; }
   .bnav-links a { color: color-mix(in oklab, var(--navy) 80%, transparent); transition: color .2s; }
   .bnav-links a:hover, .bnav-links a.on { color: var(--primary); }
-  @media (max-width: 640px) { .bnav-links { gap: 1.1rem; font-size: .8rem; } }
+
+  /* Hamburger: hidden until the links stop fitting. */
+  .bnav-toggle { display: none; width: 2.75rem; height: 2.75rem; margin-right: -.5rem; flex: none; place-items: center; border: none; background: transparent; color: var(--navy); cursor: pointer; border-radius: .6rem; }
+  .bnav-toggle:hover { background: color-mix(in oklab, var(--primary) 10%, transparent); }
+  .bnav-bars { display: grid; gap: 5px; width: 1.25rem; }
+  .bnav-bars span { display: block; height: 2px; border-radius: 2px; background: currentColor; transition: transform .25s, opacity .2s; }
+
+  @media (max-width: 820px) {
+    .bnav-toggle { display: grid; }
+    /* The same list becomes a full-width panel under the bar. */
+    .bnav-links {
+      position: absolute; left: 0; right: 0; top: 100%;
+      flex-direction: column; align-items: stretch; gap: 0;
+      padding: .25rem 1.5rem 1rem;
+      background: var(--background); border-bottom: 1px solid var(--border);
+      box-shadow: 0 18px 30px -20px color-mix(in oklab, var(--navy) 55%, transparent);
+      display: none;
+    }
+    .bnav.open .bnav-links { display: flex; }
+    .bnav-links a { padding: .95rem .25rem; font-size: 1rem; border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent); }
+    .bnav-links a:last-child { border-bottom: none; }
+    /* Bars morph into a cross while the panel is open. */
+    .bnav.open .bnav-bars span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .bnav.open .bnav-bars span:nth-child(2) { opacity: 0; }
+    .bnav.open .bnav-bars span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) { .bnav-bars span { transition: none; } }
 </style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-bnav]').forEach((bar) => {
+    const btn = bar.querySelector<HTMLButtonElement>('.bnav-toggle');
+    const menu = bar.querySelector<HTMLElement>('.bnav-links');
+    if (!btn || !menu) return;
+
+    const setOpen = (open: boolean) => {
+      bar.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', String(open));
+      btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    };
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setOpen(!bar.classList.contains('open'));
+    });
+    // Tapping a link, pressing Escape, or touching the page closes it.
+    menu.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) setOpen(false);
+    });
+    document.addEventListener('click', (e) => {
+      if (!(e.target as HTMLElement).closest('[data-bnav]')) setOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && bar.classList.contains('open')) { setOpen(false); btn.focus(); }
+    });
+    // Leaving mobile width with the panel open would otherwise strand the state.
+    window.matchMedia('(max-width: 820px)').addEventListener('change', (m) => {
+      if (!m.matches) setOpen(false);
+    });
+  });
+</script>
