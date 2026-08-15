@@ -92,13 +92,16 @@ const jsonLd = {
           <span class="logo-badge"><img src="/logo-icon.png" alt="" width="36" height="36" /></span>
           <span class="logo-text"><span class="navy">InfoOn</span><span class="orange">Visa</span></span>
         </a>
-        <nav class="nav-links">
+        <nav class="nav-links" id="home-menu">
           <a href="#home">Home</a>
           <a href="/countries">Countries</a>
           <a href="#how">How it works</a>
           <a href="/blog">Blog</a>
         </nav>
         <a href="#search" class="btn-pill">Start <svg viewBox="0 0 24 24" class="ic sm" set:html={I.arrowRight}></svg></a>
+        <button type="button" class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="home-menu">
+          <span class="nav-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
       </div>
     </header>
 
@@ -361,7 +364,33 @@ const jsonLd = {
   .nav-links a:hover { color: var(--primary); }
   .btn-pill { display: inline-flex; align-items: center; gap: .375rem; border-radius: 999px; background: var(--primary); color: var(--primary-foreground); font-size: .875rem; font-weight: 600; padding: .5rem 1rem; box-shadow: var(--shadow-glow); transition: transform .2s; }
   .btn-pill:hover { transform: translateY(-1px); }
-  @media (max-width: 860px) { .nav-links { display: none; } }
+  /* Hamburger is desktop-hidden, so the desktop bar is unchanged. */
+  .nav-toggle { display: none; width: 2.75rem; height: 2.75rem; margin-right: -.5rem; flex: none; place-items: center; border: none; background: transparent; color: var(--navy); cursor: pointer; border-radius: .6rem; }
+  .nav-toggle:hover { background: color-mix(in oklab, var(--primary) 10%, transparent); }
+  .nav-bars { display: grid; gap: 5px; width: 1.25rem; }
+  .nav-bars span { display: block; height: 2px; border-radius: 2px; background: currentColor; transition: transform .25s, opacity .2s; }
+
+  @media (max-width: 860px) {
+    .nav-toggle { display: grid; }
+    .btn-pill { display: none; } /* replaced by the menu on phones */
+    /* The same link list becomes a drop-down panel under the bar. */
+    .nav-links {
+      display: none;
+      position: absolute; left: 0; right: 0; top: 100%;
+      flex-direction: column; align-items: stretch; gap: 0;
+      padding: .25rem 1.5rem 1rem;
+      background: var(--background); border-bottom: 1px solid var(--border);
+      box-shadow: 0 18px 30px -20px color-mix(in oklab, var(--navy) 55%, transparent);
+    }
+    .nav.open .nav-links { display: flex; }
+    .nav-links a { padding: .95rem .25rem; font-size: 1rem; border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent); }
+    .nav-links a:last-child { border-bottom: none; }
+    .nav.open .nav-bars span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav.open .nav-bars span:nth-child(2) { opacity: 0; }
+    .nav.open .nav-bars span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) { .nav-bars span { transition: none; } }
 
   /* HERO */
   .hero { position: relative; z-index: 20; padding: 5rem 0 7rem; overflow-x: clip; }
@@ -597,5 +626,25 @@ const jsonLd = {
       if (fromSel.value === toSel.value) { toSel.focus(); return; }
       window.location.href = `/${fromSel.value}-to-${toSel.value}`;
     });
+  }
+</script>
+
+<script>
+  // Mobile menu. The bar keeps its desktop layout untouched — this only ever
+  // runs against the hamburger, which is display:none above 860px.
+  const nav = document.querySelector<HTMLElement>('header.nav');
+  const navBtn = nav?.querySelector<HTMLButtonElement>('.nav-toggle');
+  const navMenu = nav?.querySelector<HTMLElement>('.nav-links');
+  if (nav && navBtn && navMenu) {
+    const setOpen = (open: boolean) => {
+      nav.classList.toggle('open', open);
+      navBtn.setAttribute('aria-expanded', String(open));
+      navBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    };
+    navBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!nav.classList.contains('open')); });
+    navMenu.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('a')) setOpen(false); });
+    document.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('header.nav')) setOpen(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+    window.matchMedia('(max-width: 860px)').addEventListener('change', (m) => { if (!m.matches) setOpen(false); });
   }
 </script>
