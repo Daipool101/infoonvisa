@@ -19,7 +19,6 @@ interface Props {
 }
 const { data, from, to, verifiedDate, status, relatedFrom = [], relatedTo = [] } = Astro.props;
 const good = isGoodVerdict(data.verdict);
-const opt = data.visaOptions?.[0];
 
 // Share links (plain anchors — no external scripts). Instagram has no web
 // share endpoint; Copy link + the native mobile share sheet cover it.
@@ -119,7 +118,7 @@ const ESSENTIALS = [
     <section class="card">
       <div class="card-head">
         <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.fileText}></svg></span>
-        <div><h2>Visa types &amp; details</h2><p class="sub">Choose a visa category to see its details — all options for {from.name} → {to.name}.</p></div>
+        <div><h2>Select visa type &amp; details</h2><p class="sub">Pick a visa category to see every detail at a glance — all options for {from.name} → {to.name}.</p></div>
       </div>
       <div class="card-body">
         <div class="vselect-wrap">
@@ -131,17 +130,68 @@ const ESSENTIALS = [
         <div id="visa-panels">
           {(data.visaOptions ?? []).map((o, i) => (
             <div class="vpanel" data-i={i} hidden={i !== 0}>
-              <div class="vpanel-type"><span class="dot"></span>{o.type}</div>
-              <div class="vfields">
-                {o.validity && <div class="field"><div class="flabel">Validity</div><div class="fval">{o.validity}</div></div>}
-                {o.maxStay && <div class="field"><div class="flabel">Max stay</div><div class="fval">{o.maxStay}</div></div>}
-                {o.entries && <div class="field"><div class="flabel">Entries</div><div class="fval">{o.entries}</div></div>}
-                {data.processingTime && <div class="field"><div class="flabel">Processing time</div><div class="fval">{data.processingTime}</div></div>}
-              </div>
-              {o.eligibility && <div class="bestfor"><div class="flabel">Best for</div><p>{o.eligibility}</p></div>}
+              {/* One real table per option: the at-a-glance figures and the
+                  category details in a single scannable block. Semantic
+                  <table>/<th scope> so search engines read it as structured
+                  data rather than loose divs. */}
+              <table class="vtable">
+                <caption class="sr-only">{o.type} — visa details for {from.demonym} citizens travelling to {to.name}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="vt-detail">Detail</th>
+                    <th scope="col">{o.type}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.alert}></svg>Verdict</span></th>
+                    <td class="vt-hl">{VERDICT_LABEL[data.verdict]}</td>
+                  </tr>
+                  {o.validity && (
+                    <tr>
+                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.calendar}></svg>Validity</span></th>
+                      <td>{o.validity}</td>
+                    </tr>
+                  )}
+                  {o.maxStay && (
+                    <tr>
+                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.calendar}></svg>Max stay</span></th>
+                      <td>{o.maxStay}</td>
+                    </tr>
+                  )}
+                  {o.entries && (
+                    <tr>
+                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.fileText}></svg>Entries</span></th>
+                      <td>{o.entries}</td>
+                    </tr>
+                  )}
+                  {data.processingTime && (
+                    <tr>
+                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.info}></svg>Processing time</span></th>
+                      <td>{data.processingTime}</td>
+                    </tr>
+                  )}
+                  {/* No visa, no fee — the row would be misleading on a
+                      visa-free route. */}
+                  {data.verdict !== 'visa_free' && (
+                    <tr>
+                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.info}></svg>Government fee</span></th>
+                      <td>Fees vary by visa type and nationality, and change often — check the official fee portal.</td>
+                    </tr>
+                  )}
+                  {o.eligibility && (
+                    <tr>
+                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.sparkles}></svg>Best for</span></th>
+                      <td>{o.eligibility}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
               <div class="feerow">
-                <span class="muted">Government fee: fees vary by visa type and nationality and change often.</span>
-                <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">Check the official fee portal <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg></a>
+                <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">
+                  {data.verdict === 'visa_free' ? 'Check the official entry rules' : 'Check the official fee portal'}
+                  <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg>
+                </a>
               </div>
             </div>
           ))}
@@ -319,16 +369,8 @@ const ESSENTIALS = [
 
   <!-- Sidebar -->
   <aside class="col-side">
-    <div class="side-card">
-      <div class="flabel">At a glance</div>
-      <dl class="glance">
-        <div><dt>Verdict</dt><dd class="orange">{VERDICT_LABEL[data.verdict]}</dd></div>
-        {opt?.maxStay && <div><dt>Max stay</dt><dd>{opt.maxStay}</dd></div>}
-        {data.processingTime && <div><dt>Processing</dt><dd>{data.processingTime}</dd></div>}
-        {opt?.entries && <div class="last"><dt>Entries</dt><dd>{opt.entries}</dd></div>}
-      </dl>
-    </div>
-
+    {/* "At a glance" used to live here, repeating figures that now sit in the
+        visa-type table where they update with the selected category. */}
     <div class="side-card">
       <div class="side-head"><svg viewBox="0 0 24 24" class="ic sm orange" set:html={I.shield}></svg><div class="flabel">Official sources</div></div>
       <ul class="src">
@@ -411,15 +453,34 @@ const ESSENTIALS = [
   .vselect { width: 100%; appearance: none; -webkit-appearance: none; border: 2px solid var(--primary); background: color-mix(in oklab, var(--primary) 5%, transparent); border-radius: .75rem; padding: 1rem 3rem 1rem 1.25rem; font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 1rem; cursor: pointer; }
   .vselect:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent); }
   .vchev { position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--primary); pointer-events: none; }
-  .vpanel { margin-top: 1rem; border-radius: .75rem; background: var(--cream); border: 1px solid var(--border); padding: 1.5rem; }
+  .vpanel { margin-top: 1.25rem; }
   .vpanel[hidden] { display: none; }
-  .vpanel-type { display: inline-flex; align-items: center; gap: .5rem; font-size: .875rem; font-weight: 700; color: var(--primary); }
-  .vpanel-type .dot { width: .5rem; height: .5rem; border-radius: 999px; background: var(--primary); }
-  .vfields { margin-top: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-  @media (max-width: 540px) { .vfields { grid-template-columns: 1fr; } }
-  .fval { margin-top: .25rem; color: var(--navy); font-weight: 600; line-height: 1.4; }
-  .bestfor { margin-top: 1.25rem; } .bestfor p { margin-top: .25rem; color: color-mix(in oklab, var(--navy) 85%, transparent); }
-  .feerow { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; font-size: .875rem; }
+
+  /* Detail table — one row per fact, updating with the selected visa type. */
+  .vtable { width: 100%; border-collapse: collapse; text-align: left; border: 1px solid var(--border); border-radius: 1rem; overflow: hidden; }
+  .vtable thead tr { background: var(--navy); color: var(--primary-foreground); }
+  .vtable thead th { padding: .85rem 1.25rem; font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+  .vtable thead th.vt-detail { width: 34%; }
+  .vtable tbody tr { border-top: 1px solid var(--border); }
+  .vtable tbody tr:nth-child(odd) { background: var(--background); }
+  .vtable tbody tr:nth-child(even) { background: color-mix(in oklab, var(--cream) 60%, var(--background)); }
+  .vtable th[scope='row'] { padding: 1rem 1.25rem; vertical-align: top; font-size: .875rem; font-weight: 600; color: color-mix(in oklab, var(--navy) 70%, transparent); }
+  .vt-l { display: inline-flex; align-items: flex-start; gap: .5rem; }
+  .vt-l .ic { color: var(--primary); flex: none; margin-top: .1rem; }
+  .vtable td { padding: 1rem 1.25rem; vertical-align: top; color: var(--navy); font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+  .vtable td.vt-hl { color: var(--primary); font-weight: 700; }
+
+  @media (max-width: 560px) {
+    /* Fixed layout so the label column honours its width and the value column
+       gets the remaining space instead of long labels squeezing it. */
+    .vtable { table-layout: fixed; }
+    .vtable thead th, .vtable th[scope='row'], .vtable td { padding: .7rem .7rem; }
+    .vtable thead th.vt-detail { width: 36%; }
+    .vtable th[scope='row'], .vtable td { font-size: .82rem; }
+    .vt-l { gap: .35rem; }
+  }
+
+  .feerow { margin-top: 1.25rem; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; font-size: .875rem; }
 
   /* Documents */
   .progress { height: .5rem; width: 100%; border-radius: 999px; background: var(--cream); overflow: hidden; margin-bottom: 1.25rem; }
@@ -500,12 +561,6 @@ const ESSENTIALS = [
 
   /* Sidebar */
   .side-card { border-radius: 1rem; background: var(--background); border: 1px solid var(--border); box-shadow: var(--shadow-soft); padding: 1.5rem; }
-  .glance { margin-top: 1rem; display: flex; flex-direction: column; }
-  .glance > div { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
-  .glance > div.last { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
-  .glance dt { font-size: .875rem; color: var(--muted-foreground); }
-  .glance dd { text-align: right; font-size: .875rem; font-weight: 600; color: var(--navy); }
-  .glance dd.orange { color: var(--primary); font-weight: 700; }
   .side-head { display: flex; align-items: center; gap: .5rem; }
   .src { margin-top: 1rem; list-style: none; display: flex; flex-direction: column; gap: .75rem; }
   .src li { font-size: .875rem; line-height: 1.4; }
