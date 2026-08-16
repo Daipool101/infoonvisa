@@ -1,6 +1,6 @@
 ---
 import type { CorridorData } from '../lib/corridor';
-import { VERDICT_LABEL, isGoodVerdict, safeUrl } from '../lib/corridor';
+import { VERDICT_LABEL, isGoodVerdict, safeUrl, costBreakdown, costFaq } from '../lib/corridor';
 import type { Country } from '../lib/countries';
 
 interface RelatedLink {
@@ -19,6 +19,9 @@ interface Props {
 }
 const { data, from, to, verifiedDate, status, relatedFrom = [], relatedTo = [] } = Astro.props;
 const good = isGoodVerdict(data.verdict);
+const cost = costBreakdown(data.verdict);
+const costQa = costFaq(data.verdict, from.demonym, to.name);
+const feeIsFree = data.verdict === 'visa_free';
 
 // Share links (plain anchors — no external scripts). Instagram has no web
 // share endpoint; Copy link + the native mobile share sheet cover it.
@@ -199,6 +202,43 @@ const ESSENTIALS = [
       </div>
     </section>
 
+    <!-- Cost. No figures: fees vary by visa type, nationality and channel, and
+         change often, so we explain what is charged and link the official page.
+         The heading is phrased the way people search it. -->
+    <section class="card" id="cost">
+      <div class="card-head">
+        <span class="card-ic"><svg viewBox="0 0 24 24" class="ic" set:html={I.info}></svg></span>
+        <div>
+          {/* Same wording as the FAQ entry, so the heading and the structured
+              data cannot drift apart. */}
+          <h2>{costQa.q}</h2>
+          <p class="sub">{cost.intro}</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <ul class="costlist">
+          {cost.items.map((c) => (
+            <li>
+              <span class="cost-l">{c.label}</span>
+              <span class="cost-v">{c.note}</span>
+            </li>
+          ))}
+        </ul>
+        {!feeIsFree && (
+          <p class="cost-note">
+            <svg viewBox="0 0 24 24" class="ic sm" set:html={I.alert}></svg>
+            We deliberately do not publish fee amounts: they differ by visa type and nationality and change often, and a stale number is worse than none. Check the current amount on the official source.
+          </p>
+        )}
+        <div class="feerow">
+          <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">
+            {feeIsFree ? 'Check the official entry rules' : 'Check the official fee page'}
+            <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
     <!-- Documents checklist -->
     <section class="card" id="iov-docs">
       <div class="card-head">
@@ -318,7 +358,9 @@ const ESSENTIALS = [
       </div>
       <div class="card-body">
         <ul class="faqs">
-          {(data.faq ?? []).map((f, i) => (
+          {/* The cost question is added here (not stored in the database) so it
+              matches the section above and stays in sync with the FAQ schema. */}
+          {[...(data.faq ?? []), costQa].map((f, i) => (
             <li class={`faq-item${i === 0 ? ' open' : ''}`}>
               <button type="button" class="faq-q"><span>{f.q}</span><svg viewBox="0 0 24 24" class="ic chev" set:html={I.chevron}></svg></button>
               <div class="faq-a"><div class="faq-a-in"><p>{f.a}</p></div></div>
@@ -481,6 +523,15 @@ const ESSENTIALS = [
   }
 
   .feerow { margin-top: 1.25rem; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; font-size: .875rem; }
+
+  /* Cost breakdown */
+  .costlist { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+  .costlist li { display: grid; grid-template-columns: 13rem 1fr; gap: .25rem 1rem; align-items: baseline; padding: .9rem 1rem; border: 1px solid var(--border); border-radius: .75rem; background: color-mix(in oklab, var(--cream) 55%, var(--background)); }
+  .cost-l { font-weight: 700; color: var(--navy); font-size: .9rem; }
+  .cost-v { color: color-mix(in oklab, var(--navy) 80%, transparent); line-height: 1.5; }
+  .cost-note { margin-top: 1rem; display: flex; gap: .5rem; align-items: flex-start; font-size: .85rem; color: color-mix(in oklab, var(--navy) 70%, transparent); line-height: 1.5; }
+  .cost-note .ic { color: var(--primary); flex: none; margin-top: .15rem; }
+  @media (max-width: 640px) { .costlist li { grid-template-columns: 1fr; } }
 
   /* Documents */
   .progress { height: .5rem; width: 100%; border-radius: 999px; background: var(--cream); overflow: hidden; margin-bottom: 1.25rem; }

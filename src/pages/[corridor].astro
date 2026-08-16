@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import CorridorContent from '../components/CorridorContent.astro';
 import CountrySearch from '../components/CountrySearch.astro';
 import LoadingScreen from '../components/LoadingScreen.astro';
-import { parseCorridorSlug } from '../lib/corridor';
+import { parseCorridorSlug, costFaq } from '../lib/corridor';
 import { getEnv, getCorridor, bumpSearchCount, listVerifiedCorridors } from '../lib/supabase';
 import { COUNTRIES, countryByIso } from '../lib/countries';
 
@@ -44,7 +44,9 @@ if (row) {
     {
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      mainEntity: row.data.faq.map((f) => ({
+      // Includes the computed cost Q&A rendered on the page — the two must
+      // match, or the structured data misrepresents the page.
+      mainEntity: [...(row.data.faq ?? []), costFaq(row.data.verdict, from.demonym, to.name)].map((f) => ({
         '@type': 'Question',
         name: f.q,
         acceptedAnswer: { '@type': 'Answer', text: f.a },
