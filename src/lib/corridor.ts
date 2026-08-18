@@ -194,6 +194,43 @@ export function costFaq(verdict: Verdict, fromDemonym: string, toName: string): 
   };
 }
 
+// ---- "Does it cover the whole country?" ----
+// Copilot cites these pages for city-level questions ("visa requirements US
+// citizens Paris France", "…Barcelona Spain", "…Berlin Germany") because the
+// destination list already names those places — but nothing on the page tied a
+// city to the visa. Readers genuinely believe a "Paris visa" exists. Answering
+// that in the FAQ is both a real clarification and the honest way to capture
+// those queries, without spinning up thin per-city pages that would duplicate
+// the country guide.
+
+/** "Paris (Eiffel Tower, Louvre)" -> "Paris" */
+const placeName = (s: string) => s.split(' (')[0].trim();
+
+export function placesFaq(
+  verdict: Verdict,
+  toName: string,
+  topPlaces?: string[]
+): { q: string; a: string } | null {
+  const places = (topPlaces || []).map(placeName).filter(Boolean);
+  if (places.length < 2) return null;
+  const shown = places.slice(0, 4);
+  const list =
+    shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}` : shown[0];
+  // The closing sentence has to match the verdict — telling a visa-free
+  // traveller to "apply once" contradicts the rest of the page.
+  const free = verdict === 'visa_free';
+  const entry = free
+    ? `visa-free entry applies to the whole of ${toName}`
+    : `a ${toName} visa is valid for the whole country`;
+  const closing = free
+    ? `Once admitted you can travel anywhere inside ${toName}, up to the permitted length of stay.`
+    : `Apply once for ${toName} and you can travel anywhere inside it, up to the permitted length of stay.`;
+  return {
+    q: `Do I need a separate visa for ${shown[0]}, or does this cover all of ${toName}?`,
+    a: `You do not need a separate visa for any individual city. Entry rules are set nationally, not city by city, so ${entry} — including ${list}. ${closing}`,
+  };
+}
+
 // ---- Page title ----
 // Search Console showed the old title ("India to Georgia visa guide —
 // requirements, documents & how to apply | InfoOnVisa", 87 chars) losing on two

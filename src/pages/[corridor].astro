@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import CorridorContent from '../components/CorridorContent.astro';
 import CountrySearch from '../components/CountrySearch.astro';
 import LoadingScreen from '../components/LoadingScreen.astro';
-import { parseCorridorSlug, costFaq, corridorTitle, corridorDescription } from '../lib/corridor';
+import { parseCorridorSlug, costFaq, placesFaq, corridorTitle, corridorDescription } from '../lib/corridor';
 import { getEnv, getCorridor, bumpSearchCount, listVerifiedCorridors } from '../lib/supabase';
 import { COUNTRIES, countryByIso } from '../lib/countries';
 
@@ -32,6 +32,14 @@ if (row) {
   verifiedDate = new Date(row.generated_at).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
+  // Must mirror exactly what CorridorContent renders, or the structured data
+  // would claim questions the page does not show.
+  const places = placesFaq(row.data.verdict, to.name, row.data.topPlaces);
+  const schemaFaqs = [
+    ...(row.data.faq ?? []),
+    costFaq(row.data.verdict, from.demonym, to.name),
+    ...(places ? [places] : []),
+  ];
   jsonLd = [
     {
       '@context': 'https://schema.org',
@@ -46,7 +54,7 @@ if (row) {
       '@type': 'FAQPage',
       // Includes the computed cost Q&A rendered on the page — the two must
       // match, or the structured data misrepresents the page.
-      mainEntity: [...(row.data.faq ?? []), costFaq(row.data.verdict, from.demonym, to.name)].map((f) => ({
+      mainEntity: schemaFaqs.map((f) => ({
         '@type': 'Question',
         name: f.q,
         acceptedAnswer: { '@type': 'Answer', text: f.a },

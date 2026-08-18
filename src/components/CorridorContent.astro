@@ -1,6 +1,6 @@
 ---
 import type { CorridorData } from '../lib/corridor';
-import { VERDICT_LABEL, isGoodVerdict, safeUrl, costBreakdown, costFaq } from '../lib/corridor';
+import { VERDICT_LABEL, isGoodVerdict, safeUrl, costBreakdown, costFaq, placesFaq } from '../lib/corridor';
 import type { Country } from '../lib/countries';
 
 interface RelatedLink {
@@ -21,6 +21,9 @@ const { data, from, to, verifiedDate, status, relatedFrom = [], relatedTo = [] }
 const good = isGoodVerdict(data.verdict);
 const cost = costBreakdown(data.verdict);
 const costQa = costFaq(data.verdict, from.demonym, to.name);
+const placesQa = placesFaq(data.verdict, to.name, data.topPlaces);
+// Both are computed, not stored, so they stay in step with the FAQ schema.
+const extraFaqs = [costQa, ...(placesQa ? [placesQa] : [])];
 const feeIsFree = data.verdict === 'visa_free';
 
 // Share links (plain anchors — no external scripts). Instagram has no web
@@ -360,7 +363,7 @@ const ESSENTIALS = [
         <ul class="faqs">
           {/* The cost question is added here (not stored in the database) so it
               matches the section above and stays in sync with the FAQ schema. */}
-          {[...(data.faq ?? []), costQa].map((f, i) => (
+          {[...(data.faq ?? []), ...extraFaqs].map((f, i) => (
             <li class={`faq-item${i === 0 ? ' open' : ''}`}>
               <button type="button" class="faq-q"><span>{f.q}</span><svg viewBox="0 0 24 24" class="ic chev" set:html={I.chevron}></svg></button>
               <div class="faq-a"><div class="faq-a-in"><p>{f.a}</p></div></div>
