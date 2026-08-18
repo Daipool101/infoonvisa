@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import CorridorContent from '../components/CorridorContent.astro';
 import CountrySearch from '../components/CountrySearch.astro';
 import LoadingScreen from '../components/LoadingScreen.astro';
-import { parseCorridorSlug, costFaq } from '../lib/corridor';
+import { parseCorridorSlug, costFaq, corridorTitle, corridorDescription } from '../lib/corridor';
 import { getEnv, getCorridor, bumpSearchCount, listVerifiedCorridors } from '../lib/supabase';
 import { COUNTRIES, countryByIso } from '../lib/countries';
 
@@ -20,10 +20,10 @@ const row = await getCorridor(env, parsed.slug);
 
 const { from, to } = parsed;
 const options = [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
-const title = `${from.name} to ${to.name} visa guide — requirements, documents & how to apply | InfoOnVisa`;
-const description = row
-  ? `${row.data.verdictHeadline} Documents, application steps and travel tips for ${from.demonym} citizens visiting ${to.name}.`
-  : `Visa requirements for ${from.demonym} citizens travelling to ${to.name} — generating your verified guide now.`;
+// Titles/descriptions are built in one place (see corridorTitle) so the wording
+// stays consistent and inside the length search engines actually display.
+const title = corridorTitle(row?.data.verdict ?? 'embassy', to.name, from.demonym);
+const description = corridorDescription(row?.data.verdictHeadline, to.name, from.demonym);
 
 let verifiedDate = '';
 let jsonLd: object[] = [];

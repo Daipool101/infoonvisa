@@ -194,6 +194,45 @@ export function costFaq(verdict: Verdict, fromDemonym: string, toName: string): 
   };
 }
 
+// ---- Page title ----
+// Search Console showed the old title ("India to Georgia visa guide —
+// requirements, documents & how to apply | InfoOnVisa", 87 chars) losing on two
+// counts: it ran past Google's ~60-char cut, and it led with "India to Georgia"
+// while the dominant query pattern is "georgia visa for indians" (467
+// impressions across 110 queries). Lead with the destination and the demonym,
+// drop the brand (Google appends the site name itself), and only add the tail
+// when there is room for it.
+//
+// A visa-free route must not be titled "X Visa for Y Citizens" — that asserts a
+// visa is needed. Those use the question form, which is also its own large query
+// cluster ("do canadians need a visa for uk", 193 impressions).
+const THE_PREFIX = /^(United |Democratic |Republic|Bahamas|Gambia|Netherlands|Philippines|Maldives|Marshall|Solomon|Czech|Ivory|Central African|Dominican|Vatican)/;
+
+export function corridorTitle(verdict: Verdict, toName: string, fromDemonym: string): string {
+  const theTo = THE_PREFIX.test(toName) ? `the ${toName}` : toName;
+  if (verdict === 'visa_free') {
+    return `Do ${fromDemonym} Citizens Need a Visa for ${theTo}?`;
+  }
+  const base = `${toName} Visa for ${fromDemonym} Citizens`;
+  const tail = ': Requirements & Documents';
+  return base.length + tail.length <= 62 ? base + tail : base;
+}
+
+export function corridorDescription(
+  verdictHeadline: string | undefined,
+  toName: string,
+  fromDemonym: string
+): string {
+  const theTo = THE_PREFIX.test(toName) ? `the ${toName}` : toName;
+  if (!verdictHeadline) {
+    return `Visa requirements for ${fromDemonym} citizens travelling to ${theTo} — documents, how to apply and official sources.`;
+  }
+  // Keep the (unique, per-route) headline first, then only as much tail as fits
+  // inside the ~155 characters Google will actually show.
+  const tail = ` Documents, steps, fees and official sources for ${fromDemonym} citizens.`;
+  return (verdictHeadline + tail).length <= 158 ? verdictHeadline + tail : verdictHeadline;
+}
+
 // Freshness window: 90 days. Visa rules change slowly, so a 90-day cache cuts
 // regeneration cost ~66% vs 30 days while keeping pages acceptably current.
 export const REFRESH_DAYS = 90;
