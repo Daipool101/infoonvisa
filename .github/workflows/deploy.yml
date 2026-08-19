@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # need the previous commit to see which posts changed
 
       - uses: actions/setup-node@v4
         with:
@@ -33,3 +35,24 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Tell Bing about posts that changed in this push, so a post published
+      # through Pages CMS is submitted without anyone remembering to do it.
+      # Only changed posts are sent — resubmitting unchanged URLs on every push
+      # is what IndexNow asks publishers not to do.
+      - name: Submit changed posts to IndexNow
+        if: github.event_name == 'push'
+        continue-on-error: true # indexing must never fail a deploy
+        run: |
+          CHANGED=$(git diff --name-only --diff-filter=d HEAD^ HEAD -- 'src/content/blog/*.md' || true)
+          URLS=""
+          for f in $CHANGED; do
+            slug=$(basename "$f" .md)
+            URLS="$URLS https://infoonvisa.com/blog/$slug"
+          done
+          if [ -n "$URLS" ]; then
+            echo "Changed posts:$URLS"
+            node scripts/indexnow.mjs $URLS
+          else
+            echo "No blog posts changed in this push — nothing to submit."
+          fi
