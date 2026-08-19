@@ -89,7 +89,13 @@ export function originOf(raw: string): string | null {
   }
 }
 
-export type LinkVerdict = 'alive' | 'dead-path' | 'dead-host';
+// 'unreachable' means the request could not be made at all — DNS failure,
+// refused connection, TLS handshake failure. It is kept separate from
+// 'dead-host' because on Cloudflare Workers, where generation runs, a DNS
+// failure throws a generic error with no error code, so it is indistinguishable
+// from a TLS quirk. Treating it as dead outright would delete valid links from
+// the handful of government sites with broken certificate chains.
+export type LinkVerdict = 'alive' | 'dead-path' | 'dead-host' | 'unreachable';
 
 /** Hosts sitting behind bot protection that answers with misleading status
  *  codes — visa.vfsglobal.com returns 403 from one network and 404 from
@@ -132,10 +138,12 @@ export async function checkUrl(url: string, timeoutMs = 8000): Promise<LinkVerdi
     return 'alive'; // includes 2xx/3xx, and 401/403/5xx which we do not trust as "broken"
   } catch (err: any) {
     const code = String(err?.cause?.code || err?.name || '');
-    // Domain does not resolve => decommissioned. Anything else (timeout, TLS,
-    // reset) is treated as alive so a flaky check never deletes a good link.
+    // Node gives us the reason; a non-resolving domain is decommissioned.
     if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'dead-host';
-    return 'alive';
+    if (code === 'TimeoutError' || code === 'AbortError') return 'alive'; // slow, not gone
+    // Workers gives no code. We could not connect, but we cannot tell a dead
+    // domain from a certificate problem, so say so and let the caller decide.
+    return 'unreachable';
   }
 }
 
@@ -153,6 +161,11 @@ export async function resolveUrl(raw: string, timeoutMs = 8000): Promise<string 
   if (verdict !== 'alive') verdict = await checkUrl(url, timeoutMs);
   if (verdict === 'alive') return url;
   if (verdict === 'dead-host') return null; // origin shares the dead host
+  // Twice unreachable: hand it back as unusable so a curated portal can take
+  // over, rather than publishing a link nobody can open. This is what let
+  // molina.imigrasi.go.id — a domain that has not resolved for weeks — be
+  // saved as Indonesia's official source from the Workers runtime.
+  if (verdict === 'unreachable') return null;
   const origin = originOf(url);
   if (!origin || origin === url) return null;
   return (await checkUrl(origin, timeoutMs)) === 'alive' ? origin : null;

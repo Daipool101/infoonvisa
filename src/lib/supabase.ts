@@ -127,7 +127,15 @@ function isOfficialSourceUrl(url?: string): boolean {
     host === 'canada.ca' ||
     host.endsWith('.canada.ca') || // Government of Canada (canada.ca)
     host === 'europa.eu' ||
-    host.endsWith('.europa.eu') // Official EU (Schengen, ec.europa.eu, etc.)
+    host.endsWith('.europa.eu') || // Official EU (Schengen, ec.europa.eu, etc.)
+    // Official immigration authorities that do not sit on a .gov-style domain.
+    // Without these the auto-publish gate holds a correctly sourced page:
+    // irishimmigration.ie is Ireland's Department of Justice service, and ind.nl
+    // is the Dutch Immigration and Naturalisation Service.
+    host === 'irishimmigration.ie' ||
+    host.endsWith('.irishimmigration.ie') ||
+    host === 'ind.nl' ||
+    host.endsWith('.ind.nl')
   );
 }
 
