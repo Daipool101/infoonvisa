@@ -73,6 +73,43 @@ jobs:
         env:
           REPORT: ${{ steps.check.outputs.body }}
 
+      # Verdict staleness. A script cannot judge whether a verdict is right —
+      # that needs reading an official source — so this only says which pages
+      # deserve a human's attention next, busiest first. It keeps one rolling
+      # issue rather than nagging weekly.
+      - name: Check for verdicts needing review
+        id: verdicts
+        continue-on-error: true
+        run: node scripts/verdict-review.mjs
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Keep one rolling verdict-review issue
+        if: steps.verdicts.outcome == 'failure' && steps.verdicts.outputs.count != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const body = `@${owner}\n\n${process.env.REPORT}`;
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner, repo: context.repo.repo, state: 'open', labels: 'verdict-review',
+            });
+            if (open.length) {
+              // Replace the body so the list stays current instead of growing.
+              await github.rest.issues.update({
+                owner, repo: context.repo.repo, issue_number: open[0].number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner, repo: context.repo.repo,
+                title: 'Verdicts due a check against official sources',
+                body, labels: ['verdict-review'], assignees: [owner],
+              });
+            }
+        env:
+          REPORT: ${{ steps.verdicts.outputs.body }}
+
       - name: Close the issue when everything is healthy
         if: steps.check.outcome == 'success'
         uses: actions/github-script@v7

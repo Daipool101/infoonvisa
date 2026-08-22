@@ -43,6 +43,41 @@ const ukEta = (demonym, country) => ({
 });
 
 const CORRECTIONS = {
+  // Verified: https://overseas.mofa.go.kr/us-en/brd/m_4502/view.do?seq=715890
+  // "The countries/regions that are currently exempt from K-ETA (including the
+  // U.S.A) are subject to this extension… From January 1, 2026 to December 31,
+  // 2026." So an American needs no K-ETA today — the page demanded one. The
+  // exemption is dated, so the page says when it ends rather than implying
+  // it is permanent.
+  'united-states-to-south-korea': {
+    verdict: 'visa_free',
+    verdictHeadline:
+      'American citizens can visit South Korea visa-free for up to 90 days, and are exempt from K-ETA until 31 December 2026.',
+    summary:
+      'American citizens do not need a visa for tourism in South Korea and may stay up to 90 days. They are also temporarily exempt from the K-ETA travel authorisation: the Ministry of Justice has extended that exemption to 31 December 2026, so no K-ETA is required for arrivals before then. Applying for a K-ETA anyway is optional and carries a fee, but it lets you skip the paper arrival card. Check the official notice before you travel, as the exemption is renewed year by year rather than being permanent.',
+    officialSource: {
+      label: 'Embassy of the Republic of Korea in the USA — K-ETA exemption notice',
+      url: 'https://overseas.mofa.go.kr/us-en/brd/m_4502/view.do?seq=715890',
+    },
+    firstOption: {
+      type: 'Visa exemption (K-ETA waived to 31 Dec 2026)',
+      validity: 'No application required while the exemption lasts',
+      maxStay: '90 days',
+      entries: 'Multiple',
+      eligibility:
+        'Best for tourism and short visits on an ordinary US passport. A K-ETA is optional until 31 December 2026 and expected to be required again afterwards.',
+    },
+    applySteps: [
+      { text: 'Check your passport is valid for the whole of your stay in South Korea.' },
+      { text: 'No visa and no K-ETA is needed for arrivals up to 31 December 2026 — you may travel without applying for anything.' },
+      {
+        text: 'Optional: apply for a K-ETA anyway if you would rather skip the paper arrival card on the plane. A fee applies.',
+        link: { label: 'Official K-ETA portal', url: 'https://www.k-eta.go.kr/portal/apply/index.do' },
+      },
+      { text: 'Re-check the official notice close to your travel date — the exemption is extended a year at a time, not granted permanently.' },
+    ],
+  },
+
   // Verified: https://www.gov.uk/guidance/apply-for-an-electronic-travel-authorisation-eta
   'canada-to-united-kingdom': ukEta('Canadian', 'Canada'),
   'united-states-to-united-kingdom': ukEta('American', 'the United States'),
