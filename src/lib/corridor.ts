@@ -247,7 +247,11 @@ const THE_PREFIX = /^(United |Democratic |Republic|Bahamas|Gambia|Netherlands|Ph
 
 export function corridorTitle(verdict: Verdict, toName: string, fromDemonym: string): string {
   const theTo = THE_PREFIX.test(toName) ? `the ${toName}` : toName;
-  if (verdict === 'visa_free') {
+  // An ETA is a travel authorisation, not a visa, so "United Kingdom Visa for
+  // Canadian Citizens" would be wrong. The question form is both accurate — the
+  // answer is "no visa, but you do need an ETA" — and the exact phrasing of our
+  // largest query cluster ("do canadians need a visa for uk", 378 impressions).
+  if (verdict === 'visa_free' || verdict === 'eta') {
     return `Do ${fromDemonym} Citizens Need a Visa for ${theTo}?`;
   }
   const base = `${toName} Visa for ${fromDemonym} Citizens`;
