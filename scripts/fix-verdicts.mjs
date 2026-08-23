@@ -43,6 +43,60 @@ const ukEta = (demonym, country) => ({
 });
 
 const CORRECTIONS = {
+  // Verified: https://www.canada.ca/en/immigration-refugees-citizenship/services/visit-canada/eta/facts.html
+  // "U.S. citizens are exempt from the eTA requirement and must carry proper
+  // identification such as a valid U.S. passport." The page demanded an eTA.
+  'united-states-to-canada': {
+    verdict: 'visa_free',
+    verdictHeadline: 'American citizens do not need a visa or an eTA to visit Canada — a valid US passport is enough.',
+    summary:
+      'American citizens are exempt from both the visitor visa and the electronic travel authorisation (eTA) for Canada. You need proper identification, normally a valid US passport, and you are admitted for up to six months at the discretion of the border services officer. Lawful permanent residents of the United States are also eTA-exempt but must carry their green card together with a passport from their country of nationality.',
+    officialSource: {
+      label: 'Government of Canada — about the eTA (exemptions)',
+      url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/visit-canada/eta/facts.html',
+    },
+    firstOption: {
+      type: 'Visitor entry (no visa or eTA required)',
+      validity: 'No application required',
+      maxStay: 'Usually up to 6 months, set by the officer on arrival',
+      entries: 'Multiple',
+      eligibility: 'Best for tourism, family visits and business trips on a US passport.',
+    },
+    applySteps: [
+      { text: 'Carry a valid US passport. Other documents such as a birth certificate are not sufficient for air travel.' },
+      { text: 'Do not apply or pay for an eTA — US citizens are exempt, and sites charging for one are not official.' },
+      { text: 'Be ready to show onward travel, funds and where you will stay if the officer asks.' },
+      { text: 'Ask for a longer stay to be recorded on arrival if you plan to remain beyond six months.' },
+    ],
+  },
+
+  // Verified: https://www.mfa.gov.tr/visa-information-for-foreigners.en.mfa
+  // "Ordinary passport holders who travel for touristic purposes are exempt from
+  // visas for up to 90 days in any 180 day period." The page sold them an e-Visa.
+  'united-kingdom-to-turkey': {
+    verdict: 'visa_free',
+    verdictHeadline: 'British citizens can enter Türkiye visa-free for up to 90 days in any 180-day period.',
+    summary:
+      'British ordinary passport holders travelling for tourism are exempt from the visa requirement for Türkiye and may stay up to 90 days within any 180-day period. The e-Visa that British travellers used to buy is no longer needed. Holders of British National (Overseas), British Subject or British Protected Person passports are not covered by the exemption and must obtain a visa from a Turkish mission.',
+    officialSource: {
+      label: 'Republic of Türkiye Ministry of Foreign Affairs — visa information for foreigners',
+      url: 'https://www.mfa.gov.tr/visa-information-for-foreigners.en.mfa',
+    },
+    firstOption: {
+      type: 'Visa exemption (ordinary British passport)',
+      validity: 'No application required',
+      maxStay: '90 days in any 180-day period',
+      entries: 'Multiple, within the 90/180 limit',
+      eligibility: 'Best for tourism on an ordinary British passport. Not for work, study or stays beyond 90 days.',
+    },
+    applySteps: [
+      { text: 'Check you hold an ordinary British passport — BN(O), British Subject and British Protected Person holders still need a visa.' },
+      { text: 'No visa or e-Visa is required, so there is nothing to apply for and nothing to pay.' },
+      { text: 'Track your days: the limit is 90 within any rolling 180-day period, not per entry.' },
+      { text: 'Carry proof of onward travel and accommodation in case the border officer asks.' },
+    ],
+  },
+
   // Verified: https://overseas.mofa.go.kr/us-en/brd/m_4502/view.do?seq=715890
   // "The countries/regions that are currently exempt from K-ETA (including the
   // U.S.A) are subject to this extension… From January 1, 2026 to December 31,

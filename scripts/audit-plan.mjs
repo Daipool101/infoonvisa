@@ -14,7 +14,9 @@ import { createClient } from '@supabase/supabase-js';
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(n); return i === -1 ? null : args[i + 1]; };
 const ONLY = Number(flag('--batch')) || null;
-const PER_BATCH = Number(flag('--size')) || 10; // pages per batch, roughly
+// Batches are counted in DESTINATIONS, because a destination is one official
+// lookup — that is the unit of work, not the page.
+const PER_BATCH = Number(flag('--size')) || 10;
 
 const env = {};
 for (const l of readFileSync(new URL('../.dev.vars', import.meta.url), 'utf8').split(/\r?\n/)) {
@@ -67,7 +69,7 @@ const groups = [...byDest].map(([dest, pages]) => ({
 const batches = [];
 let cur = { n: 1, groups: [], pages: 0 };
 for (const g of groups) {
-  if (cur.pages >= PER_BATCH && cur.groups.length) { batches.push(cur); cur = { n: batches.length + 1, groups: [], pages: 0 }; }
+  if (cur.groups.length >= PER_BATCH) { batches.push(cur); cur = { n: batches.length + 1, groups: [], pages: 0 }; }
   cur.groups.push(g);
   cur.pages += g.unchecked;
 }
