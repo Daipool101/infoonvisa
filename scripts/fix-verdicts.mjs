@@ -43,6 +43,64 @@ const ukEta = (demonym, country) => ({
 });
 
 const CORRECTIONS = {
+  // Verified: https://www.imi.gov.my/index.php/en/main-services/visa/visa-requirement-by-country/
+  // Malaysia's Immigration Department: "India citizen: visa exempts until 31st
+  // December 2026." The page was selling an e-visa that is not needed. The
+  // exemption is dated, so the page says so rather than implying permanence.
+  'india-to-malaysia': {
+    verdict: 'visa_free',
+    verdictHeadline: 'Indian citizens can enter Malaysia visa-free until 31 December 2026.',
+    summary:
+      'Malaysia has exempted Indian passport holders from its visa requirement for tourism, and the exemption currently runs to 31 December 2026. No visa or e-visa application is needed for a short visit while it is in force. You must still complete the Malaysia Digital Arrival Card before you travel, and carry a return ticket, accommodation details and proof of funds. Because the exemption is granted for a fixed period rather than permanently, check the Immigration Department before booking travel beyond that date.',
+    officialSource: {
+      label: 'Immigration Department of Malaysia — visa requirement by country',
+      url: 'https://www.imi.gov.my/index.php/en/main-services/visa/visa-requirement-by-country/',
+    },
+    firstOption: {
+      type: 'Visa exemption (to 31 December 2026)',
+      validity: 'No application required while the exemption lasts',
+      maxStay: 'Short tourist stay as granted on arrival',
+      entries: 'Multiple',
+      eligibility: 'Best for tourism and short visits on an Indian passport, for arrivals up to 31 December 2026.',
+    },
+    applySteps: [
+      { text: 'Check your passport has at least six months validity left.' },
+      { text: 'No visa or e-visa is required for arrivals up to 31 December 2026 — do not pay a third-party site for one.' },
+      { text: 'Complete the Malaysia Digital Arrival Card online within three days of travel. It is free on the official portal.' },
+      { text: 'Carry a return or onward ticket, accommodation details and proof of funds for the immigration officer.' },
+      { text: 'Re-check the Immigration Department page if you are travelling in 2027 or later, when the exemption may have lapsed.' },
+    ],
+  },
+
+  // Verified: https://evisa.gov.ph/page/policy
+  // "Indian nationals may enter the Philippines without a visa for a
+  // non-extendible and non-convertible period of 14 days for tourism and
+  // business purposes." The page demanded an embassy visa.
+  'india-to-philippines': {
+    verdict: 'visa_free',
+    verdictHeadline: 'Indian citizens can enter the Philippines visa-free for 14 days — or 30 days with a US, UK, Schengen or similar visa.',
+    summary:
+      'Indian passport holders may enter the Philippines without a visa for a non-extendible, non-convertible 14 days for tourism or business. Indians who hold a valid American, Japanese, Australian, Canadian, Schengen, Singapore or UK visa get 30 days instead, also non-extendible. You need a passport valid at least six months, a confirmed return or onward ticket, proof of accommodation and sufficient funds. Neither period can be extended or converted once you are in the country, so anyone planning to work, study or stay longer must apply for the appropriate visa before travelling.',
+    officialSource: {
+      label: 'Republic of the Philippines — official eVisa portal, visa policy',
+      url: 'https://evisa.gov.ph/page/policy',
+    },
+    firstOption: {
+      type: 'Visa-free entry (14 days)',
+      validity: 'No application required',
+      maxStay: '14 days, non-extendible — 30 days if you hold a US, UK, Schengen, Japanese, Australian, Canadian or Singapore visa',
+      entries: 'Single stay per arrival',
+      eligibility: 'Best for short tourism or business trips. Not convertible to another visa once you have entered.',
+    },
+    applySteps: [
+      { text: 'Check your passport is valid for at least six months beyond arrival.' },
+      { text: 'No visa application is needed for a stay of 14 days or less — there is nothing to pay.' },
+      { text: 'If you hold a valid US, UK, Schengen, Japanese, Australian, Canadian or Singapore visa, carry it: it raises your visa-free stay to 30 days.' },
+      { text: 'Carry a confirmed return or onward ticket, hotel booking and proof of funds. Immigration officers do ask for these.' },
+      { text: 'Plan to leave within the period granted — it cannot be extended or converted inside the Philippines.' },
+    ],
+  },
+
   // Verified: https://www.canada.ca/en/immigration-refugees-citizenship/services/visit-canada/eta/facts.html
   // "U.S. citizens are exempt from the eTA requirement and must carry proper
   // identification such as a valid U.S. passport." The page demanded an eTA.

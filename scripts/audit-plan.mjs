@@ -48,7 +48,10 @@ for (const r of rows) {
     slug: r.slug,
     origin: r.slug.split('-to-')[0],
     verdict: r.verdict,
-    checked: !!r.data?.verdictCheckedOn,
+    // A destination already attempted and handed to a human is not open work —
+    // it kept resurfacing in every batch and crowding out genuinely new ground.
+    checked: !!r.data?.verdictCheckedOn || !!r.data?.verdictCheckAttempted,
+    handedOver: !r.data?.verdictCheckedOn && !!r.data?.verdictCheckAttempted,
     traffic: (impr.get(r.slug) || 0) + (r.search_count || 0),
     source: r.data?.officialSource?.url,
   });
