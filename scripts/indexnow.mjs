@@ -68,7 +68,7 @@ console.log('  key file verified ✓');
 
 // 10,000 URLs per request is the documented ceiling; batch well under it.
 const BATCH = 1000;
-let sent = 0;
+let sent = 0, pending = 0, failed = 0;
 for (let i = 0; i < urls.length; i += BATCH) {
   const urlList = urls.slice(i, i + BATCH);
   const res = await fetch(ENDPOINT, {
@@ -77,11 +77,21 @@ for (let i = 0; i < urls.length; i += BATCH) {
     body: JSON.stringify({ host: HOST, key: KEY, keyLocation: KEY_LOCATION, urlList }),
   });
   const text = await res.text();
-  // 200 = accepted, 202 = accepted but key still validating.
-  if (res.status === 200 || res.status === 202) {
+  if (res.status === 200) {
     sent += urlList.length;
-    console.log(`  batch ${i / BATCH + 1}: ${urlList.length} URLs -> ${res.status} ${res.status === 202 ? '(accepted, key validating)' : 'OK'}`);
+    console.log(`  batch ${i / BATCH + 1}: ${urlList.length} URLs -> 200 OK`);
+  } else if (res.status === 202) {
+    // 202 is NOT success. It means the key is still being validated, and Bing
+    // DISCARDS the batch: a 154-URL submission answered 202 on 2026-08-19 and
+    // never appeared in Bing's received list, while 200-answered batches did.
+    // Treat it as a failure so nobody reports it as done.
+    pending += urlList.length;
+    console.error(
+      `  batch ${i / BATCH + 1}: 202 — key still validating, so these ${urlList.length} URLs were NOT accepted.\n` +
+      `     Wait for the key to validate (check Bing Webmaster Tools > IndexNow) and run this again.`
+    );
   } else {
+    failed += urlList.length;
     console.error(`  batch ${i / BATCH + 1}: FAILED ${res.status} ${text.slice(0, 200)}`);
   }
 }
