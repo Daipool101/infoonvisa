@@ -42,5 +42,11 @@ Allow: /
 User-agent: meta-externalagent
 Allow: /
 
+# sitemap-0.xml is listed directly as well as through the index. Bing read the
+# index once (7 July 2026), recorded it as "1 URL discovered" — the child
+# reference, not the pages — and never followed through to the 22 URLs inside,
+# so the whole blog stayed out of its sitemap discovery. Naming the child
+# explicitly costs nothing and does not depend on a crawler following an index.
 Sitemap: https://infoonvisa.com/sitemap-index.xml
+Sitemap: https://infoonvisa.com/sitemap-0.xml
 Sitemap: https://infoonvisa.com/sitemap-corridors.xml
