@@ -220,6 +220,45 @@ const CORRECTIONS = {
       { text: 'At the border, be ready to show onward travel, accommodation details and proof of funds.' },
     ],
   },
+
+  // Verified 2026-09-12 against Qatar's Ministry of Interior, General
+  // Directorate of Passports, "On Arrival Visas", which lists as its own entry:
+  // "Free on-Arrival Tourist Visa for a maximum of (30) days (Pakistani, Indian
+  // and Thai nationalities)".
+  //
+  // The page was sending Indians to buy a Hayya entry permit and claimed the
+  // visa on arrival was available only to those already holding a UK, US,
+  // Canadian, Australian, New Zealand, Schengen or GCC visa or residence
+  // permit. MOI lists the Indian entitlement separately from the GCC-resident
+  // line and from the 43- and 39-country lists, with no such qualifier — so the
+  // gate was wrong, and it pushed people into a paid application they do not
+  // need. The conditions kept below (passport validity, return ticket,
+  // confirmed accommodation, funds) are the standard on-arrival requirements
+  // MOI applies; they are conditions of the free visa, not a different route.
+  'india-to-qatar': {
+    verdict: 'voa',
+    verdictHeadline: 'Indian citizens can get a free visa on arrival in Qatar for up to 30 days.',
+    summary:
+      'Qatar grants Indian passport holders a free tourist visa on arrival for a maximum of 30 days — the Ministry of Interior lists Indian nationality by name among the on-arrival visas it issues at no charge. You do not need to buy an entry permit before you fly, and it does not depend on already holding a UK, US, Schengen or GCC visa. You will be asked at immigration for a passport valid for at least six months, a confirmed return or onward ticket, confirmed accommodation for your stay and enough money to cover it, so have those ready. Registering your trip on the Hayya platform before you travel is still possible and some travellers prefer the reassurance of an approval in hand, but for a short holiday it is not a requirement.',
+    officialSource: {
+      label: 'Qatar Ministry of Interior — General Directorate of Passports, On Arrival Visas',
+      url: 'https://portal.moi.gov.qa/wps/portal/MOIInternet/departmentcommittees/ganationalborderexpatriateaffairs/?1dmy&urile=wcm%3apath%3a%2Fwcmlib-internet-en%2Fsa-departmentcommittee%2Fgeneraladministrationofnationalitybordersandexpatriateaffairs%2F937038a1-7068-4e28-9743-afcf845c3706',
+    },
+    firstOption: {
+      type: 'Free tourist visa on arrival',
+      validity: 'Issued at the airport on arrival — no advance application',
+      maxStay: '30 days',
+      entries: 'Single',
+      eligibility: 'Indian passport holders travelling for tourism, with a confirmed return ticket, confirmed accommodation and funds for the stay. Not for work or study.',
+    },
+    applySteps: [
+      { text: 'Check your passport is valid for at least six months from the day you arrive in Qatar.' },
+      { text: 'Book a confirmed return or onward ticket and confirmed accommodation for the whole stay — immigration officers ask to see both.' },
+      { text: 'Carry evidence that you can cover your stay, such as recent bank statements or an international credit card.' },
+      { text: 'On arrival at Hamad International Airport, go to the immigration counter and present your passport with those documents. The visa is stamped free of charge for up to 30 days.' },
+      { text: 'If you would rather travel with an approval already granted, you can register on the Hayya platform before departure instead.', link: { label: 'Hayya Platform', url: 'https://hayya.qa/' } },
+    ],
+  },
 };
 
 // Options withdrawn by the authority: keep the page from advertising a visa
@@ -229,7 +268,33 @@ const REMOVE_OPTIONS = {
   'india-to-japan': /transit/i,
   'russia-to-japan': /transit/i,
   'china-to-japan': /transit/i,
+  // The old, wrongly gated visa-on-arrival row. The corrected row above replaces
+  // it; leaving both would show two contradictory on-arrival rules side by side.
+  'india-to-qatar': /^Tourist Visa on Arrival/i,
 };
+
+// Answers that were true about the Hayya route but, now that the verdict says
+// the visa is free on arrival, would answer the wrong question. Keyed by slug,
+// then by the question text they belong to.
+const FAQ_REWRITES = {
+  'india-to-qatar': {
+    "I'm travelling to Qatar next week, is that enough time to get an e-Visa?":
+      'You almost certainly do not need one. Indian passport holders are issued a free tourist visa on arrival in Qatar for up to 30 days, so a week is ample — there is no application to wait on. Spend the time instead on the things immigration will ask to see: a passport valid for at least six months, a confirmed return ticket and confirmed accommodation. If you would still rather travel with an approval in hand, the Hayya platform is open to you, but it is not a requirement for a short holiday.',
+    'How much money do I need to show in my bank account for a Qatar e-Visa?':
+      'Qatar does not publish a fixed amount. Because Indian citizens are issued the visa free on arrival rather than applying in advance, the check happens at the immigration counter: you should be able to show you can cover your stay, typically through recent bank statements or an international credit card. Carry your accommodation booking and return ticket alongside them — an officer is more interested in a coherent, funded trip than in a particular balance.',
+    'I am self-employed, what documents do I need to show for my Qatar e-Visa?':
+      'Self-employment is not an obstacle here. Indian citizens receive the tourist visa free on arrival, so there is no advance application in which to prove your professional status. Bring what supports a normal tourist entry: your passport, confirmed return ticket, confirmed accommodation, and evidence you can fund the trip, such as recent bank statements. If you choose to register on the Hayya platform before travelling instead, business registration documents and tax returns are the usual way to evidence self-employed income.',
+    'My passport expires in 5 months - can I still apply for Qatar?':
+      'Renew it first. Qatar expects a passport valid for at least six months from the date you arrive, and this is checked at the immigration counter where your free visa on arrival is issued — so a passport with five months left can see you refused entry after you have already flown. That is a worse position than being turned down for an application at home. Renew the passport, then travel.',
+  },
+};
+
+// Rebuilding an object literal reorders its keys, so a plain JSON.stringify
+// comparison reports a difference where the content is identical. Sort keys.
+const stable = (v) => JSON.stringify(v, (_k, x) =>
+  (x && typeof x === 'object' && !Array.isArray(x))
+    ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, x[k]]))
+    : x);
 
 const { data: rows, error } = await db.from('corridors').select('id,slug,data,status,generated_at');
 if (error) { console.error(error.message); process.exit(1); }
@@ -240,7 +305,8 @@ const updates = [];
 for (const r of rows) {
   const c = CORRECTIONS[r.slug];
   const removeRe = REMOVE_OPTIONS[r.slug];
-  if (!c && !removeRe) continue;
+  const faqFix = FAQ_REWRITES[r.slug];
+  if (!c && !removeRe && !faqFix) continue;
   const d = { ...r.data };
   const notes = [];
 
@@ -267,7 +333,26 @@ for (const r of rows) {
     if ((d.faq || []).length !== faqBefore) notes.push(`removed ${faqBefore - d.faq.length} transit-visa FAQ`);
   }
 
-  if (!notes.length) continue;
+  if (faqFix) {
+    let n = 0;
+    d.faq = (d.faq || []).map((f) => {
+      const a = faqFix[(f.q || '').trim()];
+      if (!a) return f;
+      n++;
+      return { ...f, a };
+    });
+    // A question listed here but not found means the FAQ was reworded upstream
+    // and the rewrite silently did nothing — say so rather than pass quietly.
+    const missing = Object.keys(faqFix).filter((q) => !(d.faq || []).some((f) => (f.q || '').trim() === q));
+    if (n) notes.push(`rewrote ${n} FAQ answer(s)`);
+    if (missing.length) notes.push(`WARNING: ${missing.length} FAQ question(s) not found: ${missing.join(' / ')}`);
+  }
+
+  // Corrections are idempotent, so re-running would re-write pages that already
+  // hold the corrected text. That is harmless in the database but not in the
+  // sitemap: generated_at drives lastmod, and bumping it on an unchanged page
+  // tells crawlers to come back for nothing. Only write what genuinely differs.
+  if (!notes.length || stable(d) === stable(r.data)) continue;
   changed++;
   console.log(`~ ${r.slug}`);
   notes.forEach((n) => console.log(`    ${n}`));
