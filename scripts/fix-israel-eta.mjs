@@ -42,6 +42,12 @@ const res = await db.from('corridors').select('id,verdict,data').eq('slug', SLUG
 if (res.error) { console.error(res.error.message); process.exit(1); }
 const d = { ...res.data.data };
 
+// The verdict is stored twice: a `verdict` column and a `verdict` key inside
+// the data JSON. The pages render data.verdict — it drives the badge, the
+// at-a-glance row, the fee section and the generated city FAQ — so setting only
+// the column leaves a page whose headline says ETA-IL under a "Visa-free" badge.
+d.verdict = 'eta';
+
 d.verdictHeadline =
   'American citizens need an approved ETA-IL before flying to Israel, then may stay up to 90 days.';
 
