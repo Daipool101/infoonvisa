@@ -50,6 +50,38 @@ export interface RejectionReason {
   avoid?: string; // short "how to avoid it" tip
 }
 
+/**
+ * A visa fee we have read on an official government page ourselves.
+ *
+ * Phase 2 of the fee work. The rule that shapes this type: a wrong fee is worse
+ * than no fee, so there is no field for an estimate, a range or a "typically".
+ * Either we read the number on the government's own page and record where and
+ * when, or the page keeps saying nothing and sends the reader to the source.
+ *
+ * `verifiedOn` is displayed to the reader. It is deliberately NOT wired into
+ * the sitemap's lastmod or into any schema date: those drive recrawl scheduling,
+ * and a date that moves whenever we re-check a fee would churn the sitemap
+ * without the page having changed for a reader.
+ */
+export interface VerifiedFee {
+  /** visaOption.type this fee belongs to, or '*' for every option on the page. */
+  appliesTo: string;
+  /** Exactly as the government charges it, in its own currency: "US$30", "Rp 500,000". */
+  amount: string;
+  /** What the amount covers: "Single entry, tourism". Keep it short. */
+  note?: string;
+  /**
+   * true / false only when the official page says so. null means it is silent —
+   * we say that rather than guessing, because "non-refundable" is a claim about
+   * the reader's money.
+   */
+  refundable: boolean | null;
+  /** ISO date we last read the amount on the source below. */
+  verifiedOn: string;
+  /** The government page the amount was read from — not a summary of it. */
+  source: Source;
+}
+
 export interface CorridorData {
   // A. Verdict
   verdict: Verdict;
@@ -61,6 +93,9 @@ export interface CorridorData {
 
   // B. Visa details
   visaOptions: VisaOption[];
+
+  // Verified fee amounts, added route by route. Absent on most pages.
+  fees?: VerifiedFee[];
 
   // C. Documents
   documents: DocItem[];
@@ -166,13 +201,66 @@ export function costBreakdown(verdict: Verdict): CostBreakdown {
     };
   }
   return {
-    intro: 'There are usually two or three separate charges, and people often confuse them.',
+    intro: 'The consular fee is the charge that matters; anything else depends on how and where you apply.',
     items: [
       { label: 'Government / consular fee', note: 'Set by the embassy or consulate. It varies by visa type, number of entries and your nationality.' },
-      { label: 'Visa centre service fee', note: 'Charged by the application centre (such as VFS Global) on top of the government fee.' },
       { label: 'Courier, SMS & biometrics', note: 'Optional extras such as passport return by courier are billed separately.' },
     ],
   };
+}
+
+/**
+ * The verified fee for one visa option, if we have one.
+ *
+ * Matching is by the option's own type string, with '*' as a wildcard for routes
+ * where a single fee covers everything. Matching on the type rather than an
+ * index means reordering or adding a visa option can never silently attach a
+ * fee to the wrong row — it just stops matching, and the page falls back to
+ * telling the reader to check the official source.
+ */
+export function feeFor(optionType: string, fees?: VerifiedFee[]): VerifiedFee | undefined {
+  if (!fees?.length) return undefined;
+  return fees.find((f) => f.appliesTo === optionType) ?? fees.find((f) => f.appliesTo === '*');
+}
+
+/** "2026-09-12" -> "12 September 2026". Returns '' for anything unparseable. */
+export function formatVerifiedOn(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+/**
+ * Is this visa option the visa-free route itself, rather than a paid visa that
+ * happens to sit on the same page?
+ *
+ * A visa-free page usually lists the exemption AND the real visas you would buy
+ * to stay longer — Thailand's page carries the 30-day exemption next to a
+ * Tourist Visa (TR) and a Transit Visa. Saying "no fee" against every row on
+ * such a page tells readers a TR visa is free, which is exactly the kind of
+ * wrong number the fee work is meant to prevent.
+ *
+ * Matching on wording is imperfect, so the default is the safe one: anything
+ * this does not recognise as an exemption falls through to "check the official
+ * source" rather than being called free.
+ */
+export function isExemptionOption(type: string): boolean {
+  // Also the phrasings used where the right to enter comes from a treaty rather
+  // than from an exemption granted to visitors: Schengen short stays, and EU
+  // free movement.
+  //
+  // Deliberately NOT matched, even though they appear on visa-free pages:
+  // Mexico's Forma Migratoria Múltiple and Bhutan's Entry Permit. No visa is
+  // needed on either route, but the document itself is charged for, so calling
+  // it free would be the wrong number rather than a missing one.
+  return /visa[\s-]*(free|exempt)|exemption|no visa required|free(dom of)? movement|short[\s-]*stay/i.test(type);
+}
+
+/** "Yes" / "No" / "Not stated by the official source" — never a guess. */
+export function refundableLabel(refundable: boolean | null): string {
+  if (refundable === true) return 'Yes';
+  if (refundable === false) return 'No — the fee is not refunded if your application is refused';
+  return 'Not stated on the official fee page';
 }
 
 // A cost question phrased the way people actually search, added to the page's

@@ -1,6 +1,6 @@
 ---
 import type { CorridorData } from '../lib/corridor';
-import { VERDICT_LABEL, isGoodVerdict, safeUrl, costBreakdown, costFaq, placesFaq } from '../lib/corridor';
+import { VERDICT_LABEL, isGoodVerdict, safeUrl, costBreakdown, costFaq, placesFaq, feeFor, formatVerifiedOn, refundableLabel, isExemptionOption } from '../lib/corridor';
 import type { Country } from '../lib/countries';
 
 interface RelatedLink {
@@ -25,6 +25,7 @@ const placesQa = placesFaq(data.verdict, to.name, data.topPlaces);
 // Both are computed, not stored, so they stay in step with the FAQ schema.
 const extraFaqs = [costQa, ...(placesQa ? [placesQa] : [])];
 const feeIsFree = data.verdict === 'visa_free';
+const hasVerifiedFee = (data.fees?.length ?? 0) > 0;
 
 // Share links (plain anchors — no external scripts). Instagram has no web
 // share endpoint; Copy link + the native mobile share sheet cover it.
@@ -153,6 +154,36 @@ const ESSENTIALS = [
                     <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.alert}></svg>Verdict</span></th>
                     <td class="vt-hl">{VERDICT_LABEL[data.verdict]}</td>
                   </tr>
+                  {/* Fee sits directly under the verdict: once someone knows
+                      whether they need a visa, the next thing they want is what
+                      it costs. Three states — no visa so no fee, a fee we have
+                      read on the government's own page, or no verified amount
+                      and a pointer to the source. */}
+                  {data.verdict === 'visa_free' && isExemptionOption(o.type) ? (
+                    <tr>
+                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.info}></svg>Fee</span></th>
+                      <td>None — no visa is required for this route.</td>
+                    </tr>
+                  ) : feeFor(o.type, data.fees) ? (
+                    <>
+                      <tr>
+                        <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.info}></svg>Fee</span></th>
+                        <td class="vt-hl">
+                          {feeFor(o.type, data.fees)!.amount}
+                          {feeFor(o.type, data.fees)!.note && <span class="vt-sub">{feeFor(o.type, data.fees)!.note}</span>}
+                        </td>
+                      </tr>
+                      <tr>
+                        <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.info}></svg>Refundable</span></th>
+                        <td>{refundableLabel(feeFor(o.type, data.fees)!.refundable)}</td>
+                      </tr>
+                    </>
+                  ) : (
+                    <tr>
+                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.info}></svg>Fee</span></th>
+                      <td>Varies by visa type and nationality, and changes often — check the official fee portal.</td>
+                    </tr>
+                  )}
                   {o.validity && (
                     <tr>
                       <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.calendar}></svg>Validity</span></th>
@@ -177,14 +208,6 @@ const ESSENTIALS = [
                       <td>{data.processingTime}</td>
                     </tr>
                   )}
-                  {/* No visa, no fee — the row would be misleading on a
-                      visa-free route. */}
-                  {data.verdict !== 'visa_free' && (
-                    <tr>
-                      <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.info}></svg>Government fee</span></th>
-                      <td>Fees vary by visa type and nationality, and change often — check the official fee portal.</td>
-                    </tr>
-                  )}
                   {o.eligibility && (
                     <tr>
                       <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.sparkles}></svg>Best for</span></th>
@@ -193,11 +216,27 @@ const ESSENTIALS = [
                   )}
                 </tbody>
               </table>
+              {/* When we publish an amount we say when we read it and link the
+                  exact page we read it on, so the reader can cross-check in one
+                  click rather than trusting us. */}
               <div class="feerow">
-                <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">
-                  {data.verdict === 'visa_free' ? 'Check the official entry rules' : 'Check the official fee portal'}
-                  <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg>
-                </a>
+                {feeFor(o.type, data.fees) ? (
+                  <>
+                    <span class="verified">
+                      <svg viewBox="0 0 24 24" class="ic xs" set:html={I.checkCircle}></svg>
+                      Fee verified {formatVerifiedOn(feeFor(o.type, data.fees)!.verifiedOn)}
+                    </span>
+                    <a class="ext" href={safeUrl(feeFor(o.type, data.fees)!.source.url)} target="_blank" rel="noopener noreferrer nofollow">
+                      Cross-check on {feeFor(o.type, data.fees)!.source.label}
+                      <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg>
+                    </a>
+                  </>
+                ) : (
+                  <a class="ext" href={safeUrl(data.officialSource.url)} target="_blank" rel="noopener noreferrer nofollow">
+                    {data.verdict === 'visa_free' ? 'Check the official entry rules' : 'Check the official fee portal'}
+                    <svg viewBox="0 0 24 24" class="ic xs" set:html={I.externalLink}></svg>
+                  </a>
+                )}
               </div>
             </div>
           ))}
@@ -229,8 +268,10 @@ const ESSENTIALS = [
         </ul>
         {!feeIsFree && (
           <p class="cost-note">
-            <svg viewBox="0 0 24 24" class="ic sm" set:html={I.alert}></svg>
-            We deliberately do not publish fee amounts: they differ by visa type and nationality and change often, and a stale number is worse than none. Check the current amount on the official source.
+            <svg viewBox="0 0 24 24" class="ic sm" set:html={hasVerifiedFee ? I.checkCircle : I.alert}></svg>
+            {hasVerifiedFee
+              ? 'The amounts above were read on the government\'s own page on the date shown, and we link that page so you can cross-check before you pay. Fees do change — if the official page disagrees with us, it is right.'
+              : 'We do not publish an amount for this route yet: fees differ by visa type and nationality and change often, and a stale number is worse than none. Check the current amount on the official source.'}
           </p>
         )}
         <div class="feerow">
@@ -514,6 +555,11 @@ const ESSENTIALS = [
   .vt-l .ic { color: var(--primary); flex: none; margin-top: .1rem; }
   .vtable td { padding: 1rem 1.25rem; vertical-align: top; color: var(--navy); font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
   .vtable td.vt-hl { color: var(--primary); font-weight: 700; }
+  /* "Single entry, tourism" under the amount — present so the figure is never
+     read as covering more than it does. */
+  .vt-sub { display: block; margin-top: .15rem; font-weight: 400; font-size: .85rem; color: color-mix(in oklab, var(--navy) 65%, transparent); }
+  .verified { display: inline-flex; align-items: center; gap: .4rem; color: color-mix(in oklab, var(--navy) 70%, transparent); }
+  .verified .ic { color: var(--primary); flex: none; }
 
   @media (max-width: 560px) {
     /* Fixed layout so the label column honours its width and the value column
