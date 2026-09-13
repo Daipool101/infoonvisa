@@ -91,24 +91,123 @@ jobs:
         with:
           script: |
             const owner = context.repo.owner;
-            const body = `@${owner}\n\n${process.env.REPORT}`;
+            const repo = context.repo.repo;
+            const sig = '${{ steps.verdicts.outputs.sig }}';
+            // The signature is stored in the body so next week's run can tell a
+            // changed list from an unchanged one.
+            const body = `@${owner}\n\n${process.env.REPORT}\n\n<!-- verdict-sig:${sig} -->`;
             const { data: open } = await github.rest.issues.listForRepo({
-              owner, repo: context.repo.repo, state: 'open', labels: 'verdict-review',
+              owner, repo, state: 'open', labels: 'verdict-review',
             });
-            if (open.length) {
-              // Replace the body so the list stays current instead of growing.
-              await github.rest.issues.update({
-                owner, repo: context.repo.repo, issue_number: open[0].number, body,
-              });
-            } else {
+
+            if (!open.length) {
               await github.rest.issues.create({
-                owner, repo: context.repo.repo,
+                owner, repo,
                 title: 'Verdicts due a check against official sources',
                 body, labels: ['verdict-review'], assignees: [owner],
               });
+              return;
+            }
+
+            const issue = open[0];
+            const prevSig = (issue.body || '').match(/<!-- verdict-sig:([a-f0-9]*) -->/)?.[1] ?? '';
+
+            // Always refresh the body so the issue is never stale when opened.
+            await github.rest.issues.update({
+              owner, repo, issue_number: issue.number, body,
+            });
+
+            // ...but GitHub does NOT notify anyone about an edited body. Comment
+            // only when the set of pages has actually changed, so the owner is
+            // emailed when there is genuinely something new, and not otherwise.
+            if (prevSig !== sig) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: `@${owner} the list of verdicts needing a check has **changed** since the last run.\n\n${process.env.REPORT}`,
+              });
+            } else {
+              core.info('Verdict list unchanged since last run — issue refreshed silently, no comment.');
             }
         env:
           REPORT: ${{ steps.verdicts.outputs.body }}
+
+      # Once every verdict is confirmed the rolling issue should close itself,
+      # rather than sitting open forever describing a backlog that is gone.
+      # Closing an issue does notify, so this is also the "you are all clear"
+      # signal.
+      - name: Close the verdict-review issue when nothing is overdue
+        if: steps.verdicts.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: 'verdict-review',
+            });
+            for (const issue of open) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: `@${owner} every live page now has a verdict confirmed against an official source. Closing — this will reopen automatically if any page falls out of date.`,
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: issue.number, state: 'closed',
+              });
+            }
+
+      # Proof of life. A healthy week is deliberately silent, which means silence
+      # is ambiguous: "nothing is broken" and "the automation stopped running"
+      # look identical from the inbox. This posts one short all-clear a month —
+      # on the first run after the 1st — so a missing report is itself the
+      # signal that something needs looking at.
+      - name: Monthly "still watching" report
+        if: github.event_name == 'schedule' || inputs.test_alert
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const now = new Date();
+            const firstRunOfMonth = now.getUTCDate() <= 7;
+            if (!firstRunOfMonth && context.eventName === 'schedule') {
+              core.info(`Day ${now.getUTCDate()} of the month — not the monthly report run.`);
+              return;
+            }
+
+            const linksOk = '${{ steps.check.outcome }}' === 'success';
+            const checked = '${{ steps.check.outputs.checked }}' || 'all';
+            const verdictsOk = '${{ steps.verdicts.outcome }}' === 'success';
+            const due = '${{ steps.verdicts.outputs.count }}' || '0';
+            const month = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+            const body = [
+              `@${owner} **Monthly health report — ${month}**`,
+              '',
+              `| Check | Result |`,
+              `| --- | --- |`,
+              `| Official source links | ${linksOk ? `✅ ${checked} checked, all healthy` : '⚠️ breakage found — see the open link-check issue'} |`,
+              `| Verdicts confirmed against an official source | ${verdictsOk ? '✅ every live page is current' : `⚠️ ${due} page(s) due a check`} |`,
+              '',
+              'This arrives once a month whether or not anything is wrong, so that silence is never ambiguous.',
+              'If a month goes by with no report, the automation itself has stopped — check the Actions tab.',
+              '',
+              'Anything genuinely broken raises its own issue immediately; you do not have to wait for this.',
+            ].join('\n');
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: 'health-report',
+            });
+            if (open.length) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: open[0].number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner, repo,
+                title: 'Monthly health report — source links & verdicts',
+                body, labels: ['health-report'], assignees: [owner],
+              });
+            }
 
       - name: Close the issue when everything is healthy
         if: steps.check.outcome == 'success'

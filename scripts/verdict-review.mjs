@@ -14,6 +14,7 @@
 //   node scripts/verdict-review.mjs            # report
 //   node scripts/verdict-review.mjs --days 90  # change the staleness threshold
 import { readFileSync, appendFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const args = process.argv.slice(2);
@@ -95,8 +96,20 @@ const lines = [
 const body = lines.join('\n');
 console.log(body);
 
+// A fingerprint of WHICH pages are on the list, not how it is worded. The
+// workflow keeps one rolling issue and rewrites its body every week — but
+// GitHub sends no notification for an edited body, so for three weeks the list
+// changed under a silent issue and nobody was told. The workflow now compares
+// this signature against the one stored in the issue and posts a comment (which
+// does notify) only when the actual set of pages has moved.
+const sig = createHash('sha1')
+  .update(overdue.map((r) => r.slug).sort().join(','))
+  .digest('hex')
+  .slice(0, 12);
+
 if (process.env.GITHUB_OUTPUT) {
   appendFileSync(process.env.GITHUB_OUTPUT, `count=${overdue.length}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `sig=${sig}\n`);
   appendFileSync(process.env.GITHUB_OUTPUT, `body<<__EOF__\n${body}\n__EOF__\n`);
 }
 process.exit(1);
