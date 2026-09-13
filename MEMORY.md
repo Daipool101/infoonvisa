@@ -176,7 +176,17 @@ node scripts/indexnow.mjs <url> <url>          # 200 = accepted, 202 = FAILED
 
 **Verifying a change actually landed:** corridor pages are SSR from Supabase, so a data change is live immediately — no deploy needed. Always `curl` the live page and check the rendered value, and **assert HTTP 200 before reading the file**. A stale file from a previous run once looked like a serious bug that didn't exist.
 
-**Weekly link check** runs Mondays 04:00 UTC and opens a GitHub issue (emailed to the owner) **only** when something is broken. A healthy week is silent. It closes the issue automatically when links recover.
+**Weekly link check** runs Mondays 04:00 UTC. It does three things:
+
+1. **Broken source links** → opens (or comments on) an issue, labelled `link-check`. Closes itself when links recover.
+2. **Verdicts due a human check** → one rolling issue labelled `verdict-review`. The body refreshes weekly; it **comments only when the set of pages changes** (see below). Closes itself when nothing is overdue.
+3. **Monthly health report** → one short all-clear a month on a `health-report` issue, on the first run after the 1st.
+
+**Why the monthly report exists:** a healthy week is deliberately silent, which makes silence ambiguous — "nothing is broken" and "the automation stopped" look the same from an inbox. If a month passes with no report, the automation itself has stopped; check the Actions tab.
+
+> ⚠️ **The lesson that caused this:** the verdict issue used to be kept current by *editing its body*, and **GitHub does not notify anyone about an edited issue body**. It was opened on 24 Aug (that email arrived) and silently rewritten every week after, with 0 comments, while its body went stale. If a workflow needs to tell a human, it must **comment**.
+
+**To prove email delivery end to end:** Actions → *Weekly source-link check* → **Run workflow** → tick **"Send a TEST alert"**. That fakes one broken link, raises a real issue, and emails you. Close the issue afterwards.
 
 ---
 

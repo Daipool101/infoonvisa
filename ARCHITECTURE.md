@@ -184,6 +184,14 @@ Node's `ENOTFOUND` check silently never fires on Workers, so a dead domain looke
 
 202 = key still validating. A 154-URL submission answered 202 and never reached Bing. `scripts/indexnow.mjs` treats 202 as failure. Only **200** is success.
 
+### ⚠️ Editing a GitHub issue body notifies nobody
+
+The weekly check kept one rolling issue current by **rewriting its body**. GitHub sends no notification for an edited body — so the issue was opened once (which emailed), then silently updated every week for three weeks while the owner heard nothing and assumed the automation had died.
+
+Notifications fire on: **issue opened, comment added, assignment, closing**. Not on a body edit. If a workflow needs to tell a human something changed, it must **comment**, not update.
+
+The fix in `link-check.yml`: `verdict-review.mjs` emits a signature of *which* pages are on the list, stored in the body as `<!-- verdict-sig:… -->`. The body still refreshes weekly; a comment is posted only when the signature changes.
+
 ### ⚠️ Guard every mapped array
 
 `tips` is optional; an unguarded `.map()` served three pages as 0 bytes. Use `(data.tips ?? []).map(...)`.
