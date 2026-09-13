@@ -175,7 +175,7 @@ const ESSENTIALS = [
                       </tr>
                       <tr>
                         <th scope="row"><span class="vt-l"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.info}></svg>Refundable</span></th>
-                        <td>{refundableLabel(feeFor(o.type, data.fees)!.refundable)}</td>
+                        <td>{refundableLabel(feeFor(o.type, data.fees)!.refundable, feeFor(o.type, data.fees)!.refundableNote)}</td>
                       </tr>
                     </>
                   ) : (

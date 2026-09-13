@@ -76,6 +76,13 @@ export interface VerifiedFee {
    * the reader's money.
    */
   refundable: boolean | null;
+  /**
+   * Overrides the Yes/No wording when the government's actual rule is neither.
+   * Japan, for example, does not refund the fee — it does not charge it at all
+   * unless the visa is issued, which is better news than "No" and different
+   * news from "Yes".
+   */
+  refundableNote?: string;
   /** ISO date we last read the amount on the source below. */
   verifiedOn: string;
   /** The government page the amount was read from — not a summary of it. */
@@ -257,7 +264,8 @@ export function isExemptionOption(type: string): boolean {
 }
 
 /** "Yes" / "No" / "Not stated by the official source" — never a guess. */
-export function refundableLabel(refundable: boolean | null): string {
+export function refundableLabel(refundable: boolean | null, note?: string): string {
+  if (note) return note;
   if (refundable === true) return 'Yes';
   if (refundable === false) return 'No — the fee is not refunded if your application is refused';
   return 'Not stated on the official fee page';
