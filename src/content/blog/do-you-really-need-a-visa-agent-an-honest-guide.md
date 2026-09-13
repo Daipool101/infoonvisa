@@ -1,17 +1,16 @@
 ---
-title: Nishit Salian
+title: "Do you really need a visa agent? An honest guide"
 description: Visa agents charge for something you can often do yourself. Here's
   when an agent is genuinely worth it, when it's a waste of money, and how to
   decide for your trip.
-pubDate: 2026-07-25
+pubDate: 2026-09-14
 author: InfoOnVisa
 tags:
   - visa-basics
   - application-tips
   - guides
 cover: /images/global-residence-index-addEU6TScGI-unsplash.jpg
-readMins: 0
-draft: true
+readMins: 4
 ---
 Search "visa help" and you'll find hundreds of agents promising to "get your visa approved." Some are genuinely useful. Many charge a hefty fee for something you could do yourself in an afternoon. Here's an honest breakdown so you can decide — not a sales pitch.
 
