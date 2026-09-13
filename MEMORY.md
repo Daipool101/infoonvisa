@@ -23,7 +23,7 @@ The entire business rests on one thing: **the pages are right.** A visa site tha
 |---|---|
 | Live corridor pages | **126** (`status = 'verified'`) |
 | Awaiting review | 3 (`pending_review`) |
-| Blog posts | 17 (1 draft) |
+| Blog posts | 17 (all published) |
 | Countries available | 198 |
 
 **Verdict spread:** visa-free 58 · e-visa 26 · embassy 25 · eta 9 · voa 8
@@ -142,7 +142,7 @@ Expect 4–6 routes from a Batch 5, not 10. **Do not pad a batch with a guess** 
 ### D. Smaller items
 
 - **Rotate the Supabase service-role key.** It has been shared in chat and is still live.
-- `do-you-really-need-a-visa-agent-an-honest-guide` — draft; title was accidentally changed to "Nishit Salian".
+- ~~`do-you-really-need-a-visa-agent-an-honest-guide` — draft with a placeholder title~~ — **done 14 Sep 2026**: retitled "Do you really need a visa agent? An honest guide" and published.
 - `united-states-to-bahamas` and `united-states-to-south-africa` — generation failed, retry.
 - Airport Transit Visa (Type A) rows on Schengen pages are unpriced — the Visa Code governs them but Article 16 as read says "applicants" without naming Type A.
 
