@@ -36,6 +36,59 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      # Post-deploy smoke test.
+      #
+      # The corridor pages are server-rendered from Supabase, and when the
+      # Worker cannot reach Supabase the app quietly falls back to the bundled
+      # seed — which contains exactly one route. Every other page then serves
+      # the loading screen instead of content, the corridors sitemap collapses
+      # from ~126 URLs to 1, and nothing anywhere goes red. That is precisely
+      # what happened on 14 September 2026, and it was found by accident while
+      # checking something else.
+      #
+      # The adapter writes `"vars": {}` into the generated wrangler config, so a
+      # deploy REPLACES the Worker's plain-text variables with nothing. Anything
+      # set as a Variable rather than an encrypted Secret is wiped on the next
+      # push. This step makes that failure loud.
+      #
+      # india-to-japan is deliberately NOT used as a probe: it is the seeded
+      # route, so it renders even when the database is unreachable.
+      - name: Smoke test — are corridor pages actually rendering?
+        run: |
+          sleep 20
+          fail=0
+          for slug in india-to-germany united-states-to-india india-to-thailand; do
+            url="https://infoonvisa.com/$slug"
+            body=$(curl -s --max-time 45 "$url")
+            if echo "$body" | grep -q 'Finding your visa requirements'; then
+              echo "::error::$url is serving the LOADING SCREEN — the Worker cannot read Supabase."
+              fail=1
+            elif ! echo "$body" | grep -q 'vtable'; then
+              echo "::error::$url rendered without the visa table."
+              fail=1
+            else
+              echo "ok: $url"
+            fi
+          done
+
+          # The corridors sitemap is built straight from the database, so its
+          # size is the clearest single signal that reads are working.
+          count=$(curl -s --max-time 45 https://infoonvisa.com/sitemap-corridors.xml | grep -c '<loc>' || true)
+          echo "corridors sitemap URLs: $count"
+          if [ "$count" -lt 50 ]; then
+            echo "::error::Only $count URL(s) in sitemap-corridors.xml — expected ~126. Database reads are failing."
+            fail=1
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo ""
+            echo "FIX: in the Cloudflare dashboard open the 'infoonvisa' Worker →"
+            echo "Settings → Variables and Secrets, and add PUBLIC_SUPABASE_URL,"
+            echo "PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY as SECRETS"
+            echo "(encrypted). Plain Variables are erased by every deploy."
+            exit 1
+          fi
+
       # Tell Bing about posts that changed in this push, so a post published
       # through Pages CMS is submitted without anyone remembering to do it.
       # Only changed posts are sent — resubmitting unchanged URLs on every push
