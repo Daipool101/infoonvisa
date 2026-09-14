@@ -1,9 +1,20 @@
 name: Weekly source-link check
 
 # Government sites move and get decommissioned, which silently breaks the
-# "official source" links on live corridor pages. This checks them every week
-# and opens an issue (which GitHub emails to the repo owner) ONLY when
-# something is actually broken — a healthy week is completely silent.
+# "official source" links on live corridor pages, and entry rules change under
+# verdicts we have already published. This checks both every week.
+#
+# Design note, learned the hard way. The checks used to signal "found something"
+# by exiting 1, with `continue-on-error: true` so the job stayed green. That made
+# three different situations look identical from the outside — healthy site,
+# broken site, crashed script — and when the verdict script failed on 14 Sep 2026
+# the notify step was skipped and nobody was told anything. Now:
+#
+#   · the scripts exit 0 unless they genuinely failed, and report what they found
+#     as step OUTPUTS
+#   · nothing is masked with continue-on-error, so a crash fails the run and
+#     GitHub emails you about the failed workflow
+#   · every run writes a summary you can open in the Actions tab
 on:
   schedule:
     - cron: '0 4 * * 1' # Mondays, 04:00 UTC (~09:30 IST)
@@ -31,70 +42,86 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # No continue-on-error: if this cannot run, the workflow must go red.
       - name: Check source links
         id: check
-        continue-on-error: true
         run: node scripts/check-links.mjs
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SIMULATE_BROKEN: ${{ inputs.test_alert }}
 
-      - name: Open an issue when links are broken
-        if: steps.check.outcome == 'failure' && steps.check.outputs.count != ''
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const count = '${{ steps.check.outputs.count }}';
-            const owner = context.repo.owner;
-            // Assign + @mention the owner: watching a repo does not reliably
-            // email you about issues a bot opens, but being assigned or
-            // mentioned does, under GitHub's default notification settings.
-            const body = `@${owner}\n\n${process.env.REPORT}`;
-            const title = `${count} broken source link${count === '1' ? '' : 's'} on live pages`;
-            // Reuse the open issue if there is one, so a persistent problem
-            // does not create a new issue (and a new email) every week.
-            const { data: open } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner, repo: context.repo.repo,
-              state: 'open', labels: 'link-check',
-            });
-            if (open.length) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: open[0].number,
-                body: `Re-checked on ${new Date().toISOString().slice(0, 10)}:\n\n${body}`,
-              });
-            } else {
-              await github.rest.issues.create({
-                owner: context.repo.owner, repo: context.repo.repo,
-                title, body, labels: ['link-check'], assignees: [owner],
-              });
-            }
-        env:
-          REPORT: ${{ steps.check.outputs.body }}
-
-      # Verdict staleness. A script cannot judge whether a verdict is right —
-      # that needs reading an official source — so this only says which pages
-      # deserve a human's attention next, busiest first. It keeps one rolling
-      # issue rather than nagging weekly.
       - name: Check for verdicts needing review
         id: verdicts
-        continue-on-error: true
         run: node scripts/verdict-review.mjs
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
+      # ---- Broken source links -------------------------------------------
+      - name: Open an issue when links are broken
+        if: steps.check.outputs.broken != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const count = '${{ steps.check.outputs.broken }}';
+            // Assign + @mention the owner: watching a repo does not reliably
+            // email you about issues a bot opens, but being assigned or
+            // mentioned does, under GitHub's default notification settings.
+            const body = `@${owner}\n\n${process.env.REPORT}`;
+            const title = `${count} broken source link${count === '1' ? '' : 's'} on live pages`;
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: 'link-check',
+            });
+            if (open.length) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: open[0].number,
+                body: `Re-checked on ${new Date().toISOString().slice(0, 10)}:\n\n${body}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner, repo, title, body, labels: ['link-check'], assignees: [owner],
+              });
+            }
+        env:
+          REPORT: ${{ steps.check.outputs.body }}
+
+      - name: Close the link issue when everything is healthy
+        if: steps.check.outputs.broken == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: 'link-check',
+            });
+            for (const issue of open) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: 'All source links are healthy again — closing.',
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: issue.number, state: 'closed',
+              });
+            }
+
+      # ---- Verdicts due a human check -------------------------------------
+      # A script cannot judge whether a verdict is right — that needs reading an
+      # official source — so this only says which pages deserve attention next.
+      # One rolling issue, and a COMMENT (which notifies) only when the set of
+      # pages actually changes. Editing an issue body notifies nobody, which is
+      # how three weeks of changes went unannounced.
       - name: Keep one rolling verdict-review issue
-        if: steps.verdicts.outcome == 'failure' && steps.verdicts.outputs.count != ''
+        if: steps.verdicts.outputs.overdue != '0'
         uses: actions/github-script@v7
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const sig = '${{ steps.verdicts.outputs.sig }}';
-            // The signature is stored in the body so next week's run can tell a
-            // changed list from an unchanged one.
             const body = `@${owner}\n\n${process.env.REPORT}\n\n<!-- verdict-sig:${sig} -->`;
             const { data: open } = await github.rest.issues.listForRepo({
               owner, repo, state: 'open', labels: 'verdict-review',
@@ -106,37 +133,33 @@ jobs:
                 title: 'Verdicts due a check against official sources',
                 body, labels: ['verdict-review'], assignees: [owner],
               });
+              core.info('Opened a new verdict-review issue.');
               return;
             }
 
             const issue = open[0];
-            const prevSig = (issue.body || '').match(/<!-- verdict-sig:([a-f0-9]*) -->/)?.[1] ?? '';
+            const prevSig = (issue.body || '').match(/<!-- verdict-sig:([a-z0-9]*) -->/)?.[1] ?? '';
 
-            // Always refresh the body so the issue is never stale when opened.
+            // Refresh the body so the issue is never stale when opened...
             await github.rest.issues.update({
               owner, repo, issue_number: issue.number, body,
             });
 
-            // ...but GitHub does NOT notify anyone about an edited body. Comment
-            // only when the set of pages has actually changed, so the owner is
-            // emailed when there is genuinely something new, and not otherwise.
+            // ...and comment only when the actual set of pages has moved.
             if (prevSig !== sig) {
               await github.rest.issues.createComment({
                 owner, repo, issue_number: issue.number,
                 body: `@${owner} the list of verdicts needing a check has **changed** since the last run.\n\n${process.env.REPORT}`,
               });
+              core.info(`Commented: signature ${prevSig || '(none)'} -> ${sig}`);
             } else {
-              core.info('Verdict list unchanged since last run — issue refreshed silently, no comment.');
+              core.info('Verdict list unchanged — issue refreshed silently, no comment.');
             }
         env:
           REPORT: ${{ steps.verdicts.outputs.body }}
 
-      # Once every verdict is confirmed the rolling issue should close itself,
-      # rather than sitting open forever describing a backlog that is gone.
-      # Closing an issue does notify, so this is also the "you are all clear"
-      # signal.
       - name: Close the verdict-review issue when nothing is overdue
-        if: steps.verdicts.outcome == 'success'
+        if: steps.verdicts.outputs.overdue == '0'
         uses: actions/github-script@v7
         with:
           script: |
@@ -148,83 +171,77 @@ jobs:
             for (const issue of open) {
               await github.rest.issues.createComment({
                 owner, repo, issue_number: issue.number,
-                body: `@${owner} every live page now has a verdict confirmed against an official source. Closing — this will reopen automatically if any page falls out of date.`,
+                body: `@${owner} every live page now has a verdict confirmed against an official source. Closing — this reopens automatically if any page falls out of date.`,
               });
               await github.rest.issues.update({
                 owner, repo, issue_number: issue.number, state: 'closed',
               });
             }
 
-      # Proof of life. A healthy week is deliberately silent, which means silence
-      # is ambiguous: "nothing is broken" and "the automation stopped running"
-      # look identical from the inbox. This posts one short all-clear a month —
-      # on the first run after the 1st — so a missing report is itself the
-      # signal that something needs looking at.
+      # ---- Proof of life ---------------------------------------------------
+      # A healthy week is deliberately silent, which makes silence ambiguous:
+      # "nothing is broken" and "the automation stopped" look identical from an
+      # inbox. One short report a month, on the first run after the 1st, so a
+      # missing report is itself the signal.
+      # No `if:` — the script itself decides whether today is the monthly run,
+      # so there is one place holding that rule rather than two that can drift.
       - name: Monthly "still watching" report
-        if: github.event_name == 'schedule' || inputs.test_alert
         uses: actions/github-script@v7
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const now = new Date();
-            const firstRunOfMonth = now.getUTCDate() <= 7;
-            if (!firstRunOfMonth && context.eventName === 'schedule') {
-              core.info(`Day ${now.getUTCDate()} of the month — not the monthly report run.`);
+            if (now.getUTCDate() > 7 && context.eventName === 'schedule') {
+              core.info(`Day ${now.getUTCDate()} — not the monthly report run.`);
               return;
             }
-
-            const linksOk = '${{ steps.check.outcome }}' === 'success';
             const checked = '${{ steps.check.outputs.checked }}' || 'all';
-            const verdictsOk = '${{ steps.verdicts.outcome }}' === 'success';
-            const due = '${{ steps.verdicts.outputs.count }}' || '0';
+            const broken = '${{ steps.check.outputs.broken }}';
+            const overdue = '${{ steps.verdicts.outputs.overdue }}';
             const month = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-
             const body = [
               `@${owner} **Monthly health report — ${month}**`,
               '',
-              `| Check | Result |`,
-              `| --- | --- |`,
-              `| Official source links | ${linksOk ? `✅ ${checked} checked, all healthy` : '⚠️ breakage found — see the open link-check issue'} |`,
-              `| Verdicts confirmed against an official source | ${verdictsOk ? '✅ every live page is current' : `⚠️ ${due} page(s) due a check`} |`,
+              '| Check | Result |',
+              '| --- | --- |',
+              `| Official source links | ${broken === '0' ? `✅ ${checked} checked, all healthy` : `⚠️ ${broken} broken — see the open link-check issue`} |`,
+              `| Verdicts confirmed against an official source | ${overdue === '0' ? '✅ every live page is current' : `⚠️ ${overdue} page(s) due a check`} |`,
               '',
-              'This arrives once a month whether or not anything is wrong, so that silence is never ambiguous.',
-              'If a month goes by with no report, the automation itself has stopped — check the Actions tab.',
+              'This arrives once a month whether or not anything is wrong, so silence is never ambiguous.',
+              'If a month passes with no report, the automation itself has stopped — check the Actions tab.',
               '',
-              'Anything genuinely broken raises its own issue immediately; you do not have to wait for this.',
+              'Anything genuinely broken raises its own issue immediately; you do not wait for this.',
             ].join('\n');
-
             const { data: open } = await github.rest.issues.listForRepo({
               owner, repo, state: 'open', labels: 'health-report',
             });
             if (open.length) {
-              await github.rest.issues.createComment({
-                owner, repo, issue_number: open[0].number, body,
-              });
+              await github.rest.issues.createComment({ owner, repo, issue_number: open[0].number, body });
             } else {
               await github.rest.issues.create({
-                owner, repo,
-                title: 'Monthly health report — source links & verdicts',
+                owner, repo, title: 'Monthly health report — source links & verdicts',
                 body, labels: ['health-report'], assignees: [owner],
               });
             }
 
-      - name: Close the issue when everything is healthy
-        if: steps.check.outcome == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: open } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner, repo: context.repo.repo,
-              state: 'open', labels: 'link-check',
-            });
-            for (const issue of open) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: issue.number, body: 'All source links are healthy again — closing.',
-              });
-              await github.rest.issues.update({
-                owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: issue.number, state: 'closed',
-              });
-            }
+      # ---- Always leave a trace -------------------------------------------
+      # So the next person debugging "why did I get no email?" can read what the
+      # run actually found, instead of inferring it from which steps skipped.
+      - name: Write run summary
+        if: always()
+        run: |
+          {
+            echo "### Weekly check — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| links checked | \`${{ steps.check.outputs.checked }}\` |"
+            echo "| links broken | \`${{ steps.check.outputs.broken }}\` |"
+            echo "| verdicts overdue | \`${{ steps.verdicts.outputs.overdue }}\` |"
+            echo "| verdict signature | \`${{ steps.verdicts.outputs.sig }}\` |"
+            echo "| link step outcome | \`${{ steps.check.outcome }}\` |"
+            echo "| verdict step outcome | \`${{ steps.verdicts.outcome }}\` |"
+            echo ""
+            echo "An empty value above means the script did not get far enough to report it."
+          } >> "$GITHUB_STEP_SUMMARY"

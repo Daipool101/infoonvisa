@@ -100,15 +100,23 @@ if (SIMULATED) {
   broken.push({ url: 'https://example.invalid/not-a-real-link', why: 'TEST — nothing is actually broken', pages: ['(test run)'] });
 }
 
-// Report the size of the sweep even on a healthy run, so the monthly proof-of-
-// life can say "293 links checked, all healthy" rather than just "fine". A
-// heartbeat with no number in it does not prove much.
-if (process.env.GITHUB_OUTPUT) {
-  appendFileSync(process.env.GITHUB_OUTPUT, `checked=${urls.size}\n`);
+// Outputs are written on every path and the script exits 0 unless something
+// genuinely went wrong — see the same note in verdict-review.mjs. `checked` is
+// reported even on a healthy run so the monthly proof-of-life can say
+// "293 links checked, all healthy" rather than just "fine".
+function emit(pairs) {
+  if (!process.env.GITHUB_OUTPUT) return;
+  for (const [k, v] of Object.entries(pairs)) {
+    appendFileSync(
+      process.env.GITHUB_OUTPUT,
+      String(v).includes('\n') ? `${k}<<__EOF__\n${v}\n__EOF__\n` : `${k}=${v}\n`
+    );
+  }
 }
 
 if (!broken.length) {
   console.log('All source links healthy.');
+  emit({ checked: urls.size, broken: 0, body: '' });
   process.exit(0);
 }
 
@@ -129,8 +137,5 @@ const body = lines.join('\n');
 console.log('\n' + body);
 
 // Hand the report to the GitHub Action so it can open an issue.
-if (process.env.GITHUB_OUTPUT) {
-  appendFileSync(process.env.GITHUB_OUTPUT, `count=${broken.length}\n`);
-  appendFileSync(process.env.GITHUB_OUTPUT, `body<<__EOF__\n${body}\n__EOF__\n`);
-}
-process.exit(1);
+emit({ checked: urls.size, broken: broken.length, body });
+process.exit(0);

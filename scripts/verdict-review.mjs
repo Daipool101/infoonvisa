@@ -74,7 +74,29 @@ console.log(`  never verdict-checked by a human : ${neverChecked.length}`);
 console.log(`  checked, but ${STALE_DAYS}+ days ago         : ${dueRecheck.length}`);
 console.log(`  recently confirmed               : ${scored.length - overdue.length}\n`);
 
-if (!overdue.length) { console.log('Nothing overdue.'); process.exit(0); }
+// Outputs are written on EVERY path, including the healthy one, and the script
+// exits 0 unless something genuinely went wrong.
+//
+// It used to signal "work to do" by exiting 1, with continue-on-error in the
+// workflow. That made a crash and a healthy run indistinguishable: both left
+// the job green and both skipped the notify step, so when this script failed on
+// 14 September nobody was told and the issue silently went stale. Exit codes now
+// mean only "did this script work", and the count says what it found.
+function emit(pairs) {
+  if (!process.env.GITHUB_OUTPUT) return;
+  for (const [k, v] of Object.entries(pairs)) {
+    appendFileSync(
+      process.env.GITHUB_OUTPUT,
+      String(v).includes('\n') ? `${k}<<__EOF__\n${v}\n__EOF__\n` : `${k}=${v}\n`
+    );
+  }
+}
+
+if (!overdue.length) {
+  console.log('Nothing overdue.');
+  emit({ overdue: 0, sig: 'none', body: '' });
+  process.exit(0);
+}
 
 const top = overdue.slice(0, LIMIT);
 const lines = [
@@ -107,9 +129,5 @@ const sig = createHash('sha1')
   .digest('hex')
   .slice(0, 12);
 
-if (process.env.GITHUB_OUTPUT) {
-  appendFileSync(process.env.GITHUB_OUTPUT, `count=${overdue.length}\n`);
-  appendFileSync(process.env.GITHUB_OUTPUT, `sig=${sig}\n`);
-  appendFileSync(process.env.GITHUB_OUTPUT, `body<<__EOF__\n${body}\n__EOF__\n`);
-}
-process.exit(1);
+emit({ overdue: overdue.length, sig, body });
+process.exit(0);
