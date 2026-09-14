@@ -30,8 +30,16 @@ jobs:
       - name: Build
         run: npm run build
 
+      # --keep-vars is load-bearing. The Astro adapter writes `"vars": {}` into
+      # the generated config, and without this flag wrangler treats that as the
+      # complete list and removes every variable and secret set outside the
+      # config. The Worker then cannot reach Supabase, the app falls back to its
+      # bundled seed, and for several minutes every corridor page serves a
+      # loading screen while sitemap-corridors.xml reports one URL instead of
+      # ~126 — with the deploy still reporting success. Observed on 14 Sep 2026,
+      # and reproduced on the very next deploy.
       - name: Deploy to Cloudflare Workers
-        run: npx wrangler deploy --config dist/server/wrangler.json
+        run: npx wrangler deploy --config dist/server/wrangler.json --keep-vars
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
