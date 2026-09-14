@@ -1,0 +1,172 @@
+---
+// One corridor: what it claims, when a human last confirmed it, and the form
+// that records a verification.
+//
+// The source URL on that form is REQUIRED. Every wrong claim this project has
+// had to remove came from something nobody had actually read on an official
+// page, so the tool refuses to record a check without saying what was read.
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getEnv } from '../../../lib/supabase';
+import { getAdminUser, notFound } from '../../../lib/admin-auth';
+import { getAdminCorridor, fmtDate, STALE_DAYS } from '../../../lib/admin-data';
+import { VERDICT_LABEL, feeFor, refundableLabel } from '../../../lib/corridor';
+
+export const prerender = false;
+
+const env = getEnv();
+const user = await getAdminUser(env, Astro.request);
+if (!user) return notFound();
+
+const { slug } = Astro.params;
+const row = slug ? await getAdminCorridor(env, slug) : null;
+if (!row) return new Response('Corridor not found', { status: 404 });
+
+const d = row.data;
+const checkedOn = (d as any).verdictCheckedOn as string | undefined;
+const flagged = !!(d as any).verdictCheckAttempted && !checkedOn;
+const ageDays = Math.floor((Date.now() - new Date(checkedOn ?? row.generated_at).getTime()) / 86400000);
+const stale = !!checkedOn && ageDays >= STALE_DAYS;
+---
+
+<AdminLayout title={row.slug} email={user.email}>
+  <div class="top">
+    <div>
+      {row.status === 'verified' && <span class="chip ok">live</span>}
+      {row.status === 'pending_review' && <span class="chip warn">waiting for review</span>}
+      {row.status === 'low_quality' && <span class="chip">rejected</span>}
+      {!checkedOn && !flagged && <span class="chip warn">never human-checked</span>}
+      {flagged && <span class="chip warn">could not verify</span>}
+      {stale && <span class="chip warn">stale — {ageDays} days</span>}
+    </div>
+    <div class="row">
+      <a class="btn" href={`/${row.slug}`} target="_blank" rel="noopener">View live page ↗</a>
+      <a class="btn" href="/admin">← Back</a>
+    </div>
+  </div>
+
+  <section class="panel">
+    <h2>What this page claims</h2>
+    <table class="t kv">
+      <tbody>
+        <tr><th>Verdict</th><td><strong>{VERDICT_LABEL[d.verdict]}</strong></td></tr>
+        <tr><th>Headline</th><td>{d.verdictHeadline}</td></tr>
+        <tr><th>Max stay</th><td>{d.maxStayDays ?? '—'} {d.maxStayDays ? 'days' : ''}</td></tr>
+        <tr><th>Processing</th><td>{d.processingTime ?? '—'}</td></tr>
+        <tr><th>Official source</th><td>
+          {d.officialSource?.url
+            ? <a href={d.officialSource.url} target="_blank" rel="noopener noreferrer nofollow">{d.officialSource.label || d.officialSource.url}</a>
+            : <span class="muted">none</span>}
+        </td></tr>
+        <tr><th>Searches</th><td>{row.search_count ?? 0}</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Visa options &amp; fees <span class="count">{d.visaOptions?.length ?? 0}</span></h2>
+    <table class="t">
+      <thead><tr><th>Option</th><th>Max stay</th><th>Fee</th><th>Refundable</th><th>Fee verified</th></tr></thead>
+      <tbody>
+        {(d.visaOptions ?? []).map((o) => {
+          const fee = feeFor(o.type, d.fees);
+          return (
+            <tr>
+              <td>{o.type}</td>
+              <td class="muted">{o.maxStay ?? '—'}</td>
+              <td>{fee ? <strong>{fee.amount}</strong> : <span class="muted">not published</span>}</td>
+              <td class="muted">{fee ? refundableLabel(fee.refundable, fee.refundableNote) : '—'}</td>
+              <td class="muted">{fee ? fmtDate(fee.verifiedOn) : '—'}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+    <p class="hint">Editing fees and options comes in the next phase. For now this is the read-only picture.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Verdict verification</h2>
+    {checkedOn ? (
+      <p class="sub">
+        Last confirmed <strong>{fmtDate(checkedOn)}</strong>
+        {(d as any).verdictCheckedBy ? ` by ${(d as any).verdictCheckedBy}` : ''}.
+        {stale && <span class="warntext"> That is {ageDays} days ago — worth re-checking.</span>}
+      </p>
+    ) : flagged ? (
+      <p class="sub"><strong>Tried and could not verify.</strong> {(d as any).verdictCheckNote}</p>
+    ) : (
+      <p class="sub">No human has confirmed this verdict against an official source yet.</p>
+    )}
+
+    {(d as any).verdictCheckSource && (
+      <p class="sub"><em>Last recorded as:</em> {(d as any).verdictCheckSource}</p>
+    )}
+
+    <form id="verify">
+      <input type="hidden" name="slug" value={row.slug} />
+      <label class="f" for="src">Official source URL <span class="req">*</span></label>
+      <input class="f" id="src" name="source" type="url" required placeholder="https://… the government page you actually read" />
+      <div class="hint">Must be the page you read yourself — not a summary of it, and not a travel site.</div>
+
+      <label class="f" for="note">What does it say? <span class="req">*</span></label>
+      <textarea class="f" id="note" name="note" required placeholder="Quote the line that settles it, e.g. &quot;Nationals of India are eligible for Entry Permit at the port of entry&quot;"></textarea>
+      <div class="hint">Future you will want to know what was read, not just that someone looked.</div>
+
+      <div class="row" style="margin-top:1rem">
+        <button class="btn primary" type="submit">Mark verdict as verified</button>
+        <button class="btn" type="button" id="cantverify">Could not verify — flag it</button>
+      </div>
+      <p class="hint">
+        "Could not verify" records that you tried and what blocked you, so the route goes on the manual list
+        instead of silently looking checked.
+      </p>
+      <p class="msg" id="msg"></p>
+    </form>
+  </section>
+</AdminLayout>
+
+<script is:inline>
+  const form = document.getElementById('verify');
+  const msg = document.getElementById('msg');
+
+  async function send(outcome) {
+    const src = document.getElementById('src');
+    const note = document.getElementById('note');
+    // A flag needs a reason, but not a working URL — the whole point is that
+    // the source could not be read.
+    if (outcome === 'verified' && !src.reportValidity()) return;
+    if (!note.value.trim()) { note.reportValidity(); return; }
+
+    msg.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/admin/verify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          slug: form.slug.value,
+          outcome,
+          source: src.value.trim(),
+          note: note.value.trim(),
+        }),
+      });
+      const out = await res.json();
+      if (!res.ok || !out.ok) throw new Error(out.error || 'failed');
+      msg.textContent = 'Saved.';
+      location.reload();
+    } catch (err) {
+      msg.textContent = 'Could not save: ' + err.message;
+    }
+  }
+
+  form.addEventListener('submit', (e) => { e.preventDefault(); send('verified'); });
+  document.getElementById('cantverify').addEventListener('click', () => send('flagged'));
+</script>
+
+<style>
+  .top { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .top > div:first-child { display: flex; gap: .35rem; flex-wrap: wrap; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; }
+  table.t.kv th { width: 11rem; text-transform: none; font-size: .82rem; }
+  .warntext { color: #b4541a; font-weight: 650; }
+  .msg { font-size: .88rem; margin-top: .6rem; }
+</style>

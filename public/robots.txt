@@ -4,6 +4,12 @@
 
 User-agent: *
 Allow: /
+# The admin dashboard and the write endpoints are private. They sit behind
+# Cloudflare Access and are noindex anyway; this keeps them out of a crawl
+# entirely. Kept inside THIS group rather than a second "User-agent: *" block —
+# a repeated group is ambiguous and some crawlers honour only the first.
+Disallow: /admin
+Disallow: /api/
 
 # --- AI / LLM crawlers: explicitly welcome ---
 User-agent: GPTBot

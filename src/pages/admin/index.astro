@@ -1,0 +1,176 @@
+---
+// The dashboard. Read-only: everything here either shows you something or
+// sends you to a page where you can act on it.
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getEnv } from '../../lib/supabase';
+import { getAdminUser, notFound } from '../../lib/admin-auth';
+import { loadAdmin, fmtDate, STALE_DAYS } from '../../lib/admin-data';
+import { VERDICT_LABEL } from '../../lib/corridor';
+
+export const prerender = false;
+
+const env = getEnv();
+const user = await getAdminUser(env, Astro.request);
+if (!user) return notFound();
+
+const loaded = await loadAdmin(env);
+if (!loaded) return new Response('Database unavailable', { status: 503 });
+const { rows, metrics } = loaded;
+
+const live = rows.filter((r) => r.status === 'verified');
+// Highest traffic × longest since anyone looked. This is the answer to "what
+// should I do next", which is the only question a dashboard has to answer well.
+const attention = live.filter((r) => !r.checkedOn || r.stale || r.needsFee).slice(0, 15);
+
+const CARDS = [
+  { label: 'Live pages', value: metrics.live, href: '#all', tone: '' },
+  { label: 'Waiting for review', value: metrics.pending, href: '/admin/review', tone: metrics.pending ? 'warn' : 'ok' },
+  { label: 'Verdict human-checked', value: `${metrics.humanVerified}/${metrics.live}`, href: '#all', tone: 'ok' },
+  { label: 'Never checked', value: metrics.neverChecked, href: '#all', tone: metrics.neverChecked ? 'warn' : 'ok' },
+  { label: `Stale (${STALE_DAYS}d+)`, value: metrics.stale, href: '#all', tone: metrics.stale ? 'warn' : 'ok' },
+  { label: 'Could not verify', value: metrics.flagged, href: '#all', tone: metrics.flagged ? 'warn' : 'ok' },
+  { label: 'Fees published', value: `${metrics.withFee}/${metrics.live}`, href: '#all', tone: '' },
+  { label: 'Still need a fee', value: metrics.needsFee, href: '#all', tone: '' },
+];
+---
+
+<AdminLayout title="Dashboard" email={user.email}>
+  <section class="cards">
+    {CARDS.map((c) => (
+      <a class={`card ${c.tone}`} href={c.href}>
+        <span class="cval">{c.value}</span>
+        <span class="clab">{c.label}</span>
+      </a>
+    ))}
+  </section>
+
+  {metrics.pending > 0 && (
+    <div class="banner">
+      <strong>{metrics.pending} page{metrics.pending === 1 ? '' : 's'} waiting for your review.</strong>
+      These are generated but not published — they stay out of Google until you approve them.
+      <a href="/admin/review">Review now →</a>
+    </div>
+  )}
+
+  <section class="panel">
+    <h2>Do these next</h2>
+    <p class="sub">Ranked by how many people land on the page against how long since anyone confirmed it. A page nobody has ever checked outranks one that is merely old.</p>
+    {attention.length === 0 ? (
+      <p class="empty">Nothing outstanding — every live page is checked, current and priced.</p>
+    ) : (
+      <table class="t">
+        <thead>
+          <tr><th>Route</th><th>Verdict</th><th>Searches</th><th>Last checked</th><th>Why</th><th></th></tr>
+        </thead>
+        <tbody>
+          {attention.map((r) => (
+            <tr>
+              <td><a href={`/admin/c/${r.slug}`}>{r.slug}</a></td>
+              <td><span class="tag">{VERDICT_LABEL[r.verdict]}</span></td>
+              <td class="num">{r.traffic}</td>
+              <td>{r.checkedOn ? fmtDate(r.checkedOn) : <em>never</em>}</td>
+              <td class="why">
+                {!r.checkedOn && !r.flagged && <span class="chip warn">never checked</span>}
+                {r.flagged && <span class="chip warn">could not verify</span>}
+                {r.stale && <span class="chip">stale ({r.ageDays}d)</span>}
+                {r.needsFee && <span class="chip">no fee</span>}
+              </td>
+              <td><a class="btn sm" href={`/admin/c/${r.slug}`}>Open</a></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </section>
+
+  <section class="panel" id="all">
+    <h2>All corridors <span class="count">{rows.length}</span></h2>
+    <div class="filters">
+      <input id="q" type="search" placeholder="Search a route, e.g. india-to-japan" />
+      <select id="fverdict">
+        <option value="">Any verdict</option>
+        {Object.entries(VERDICT_LABEL).map(([k, v]) => <option value={k}>{v}</option>)}
+      </select>
+      <select id="fstatus">
+        <option value="">Any status</option>
+        <option value="verified">Live</option>
+        <option value="pending_review">Waiting for review</option>
+        <option value="low_quality">Rejected</option>
+      </select>
+      <select id="fflag">
+        <option value="">Any state</option>
+        <option value="never">Never checked</option>
+        <option value="flagged">Could not verify</option>
+        <option value="stale">Stale</option>
+        <option value="nofee">Needs a fee</option>
+        <option value="hasfee">Has a fee</option>
+      </select>
+      <span class="shown" id="shown"></span>
+    </div>
+
+    <table class="t" id="tbl">
+      <thead>
+        <tr><th>Route</th><th>Status</th><th>Verdict</th><th>Searches</th><th>Checked</th><th>Fees</th><th></th></tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr
+            data-slug={r.slug}
+            data-verdict={r.verdict}
+            data-status={r.status}
+            data-never={String(!r.checkedOn)}
+            data-flagged={String(r.flagged)}
+            data-stale={String(r.stale)}
+            data-nofee={String(r.needsFee)}
+            data-hasfee={String(r.feeCount > 0)}
+          >
+            <td><a href={`/admin/c/${r.slug}`}>{r.slug}</a></td>
+            <td>
+              {r.status === 'verified' && <span class="chip ok">live</span>}
+              {r.status === 'pending_review' && <span class="chip warn">review</span>}
+              {r.status === 'low_quality' && <span class="chip">rejected</span>}
+            </td>
+            <td><span class="tag">{VERDICT_LABEL[r.verdict]}</span></td>
+            <td class="num">{r.traffic}</td>
+            <td>{r.checkedOn ? fmtDate(r.checkedOn) : <em class="muted">never</em>}</td>
+            <td class="num">{r.feeCount || <span class="muted">—</span>}</td>
+            <td><a class="btn sm" href={`/admin/c/${r.slug}`}>Open</a></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</AdminLayout>
+
+<script is:inline>
+  // Filtering is done here rather than on the server: 130 rows is nothing for a
+  // browser, and it keeps the page instant without a round trip per keystroke.
+  (function () {
+    const q = document.getElementById('q');
+    const fv = document.getElementById('fverdict');
+    const fs = document.getElementById('fstatus');
+    const ff = document.getElementById('fflag');
+    const rows = Array.from(document.querySelectorAll('#tbl tbody tr'));
+    const shown = document.getElementById('shown');
+
+    function apply() {
+      const term = (q.value || '').trim().toLowerCase();
+      let n = 0;
+      for (const row of rows) {
+        let ok = true;
+        if (term && !row.dataset.slug.includes(term)) ok = false;
+        if (ok && fv.value && row.dataset.verdict !== fv.value) ok = false;
+        if (ok && fs.value && row.dataset.status !== fs.value) ok = false;
+        if (ok && ff.value) {
+          const map = { never: 'never', flagged: 'flagged', stale: 'stale', nofee: 'nofee', hasfee: 'hasfee' };
+          if (row.dataset[map[ff.value]] !== 'true') ok = false;
+        }
+        row.hidden = !ok;
+        if (ok) n++;
+      }
+      shown.textContent = n + ' of ' + rows.length;
+    }
+    [q, fv, fs, ff].forEach((el) => el && el.addEventListener('input', apply));
+    apply();
+  })();
+</script>

@@ -19,6 +19,12 @@ export interface AppEnv {
   GCP_SA_KEY: string; // service-account JSON (raw or base64)
   // Secret that gates forced regeneration via /api/generate (admin backfills).
   REGEN_KEY: string;
+  // Local development only — see admin-auth.ts. Never set in production.
+  ADMIN_DEV_BYPASS: string;
+  // Cloudflare Access, guarding /admin. Absent = the dashboard 404s, which is
+  // the safe default: a missing variable must lock the door, never open it.
+  ADMIN_ACCESS_TEAM_DOMAIN: string; // e.g. yourteam.cloudflareaccess.com
+  ADMIN_ACCESS_AUD: string; // Application Audience (AUD) tag from Access
 }
 
 // Accessing the cloudflare env proxy can throw during prerender/build — guard it.
@@ -30,9 +36,26 @@ function cf(key: string): string | undefined {
   }
 }
 
+// Build-time fallback, limited to values that are public by definition.
+//
+// These MUST be written as individual `import.meta.env.NAME` references. Taking
+// the object as a whole — `const ime = import.meta.env` — makes Vite materialise
+// every key it knows about into the bundle, and with a .dev.vars present that
+// baked the service-role key, the Gemini key and the GCP service account
+// straight into dist/. CI never had that file so its builds were clean, but
+// `npm run deploy` runs locally and would have shipped them inside the Worker.
+//
+// Naming each key keeps the substitution static and auditable: what is listed
+// here is all that can ever reach the bundle.
+const PUBLIC_FALLBACK: Record<string, string | undefined> = {
+  PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL,
+  PUBLIC_ADSENSE_CLIENT: import.meta.env.PUBLIC_ADSENSE_CLIENT,
+};
+
 export function getEnv(): AppEnv {
-  const ime = import.meta.env as any;
-  const pick = (k: string) => cf(k) ?? ime[k] ?? '';
+  // Everything else comes only from the Cloudflare env: real secrets in
+  // production, and .dev.vars through the adapter's platformProxy in local dev.
+  const pick = (k: string) => cf(k) ?? PUBLIC_FALLBACK[k] ?? '';
   return {
     PUBLIC_SUPABASE_URL: pick('PUBLIC_SUPABASE_URL'),
     PUBLIC_SUPABASE_ANON_KEY: pick('PUBLIC_SUPABASE_ANON_KEY'),
@@ -44,6 +67,9 @@ export function getEnv(): AppEnv {
     GCP_LOCATION: pick('GCP_LOCATION') || 'us-central1',
     GCP_SA_KEY: pick('GCP_SA_KEY'),
     REGEN_KEY: pick('REGEN_KEY'),
+    ADMIN_ACCESS_TEAM_DOMAIN: pick('ADMIN_ACCESS_TEAM_DOMAIN'),
+    ADMIN_ACCESS_AUD: pick('ADMIN_ACCESS_AUD'),
+    ADMIN_DEV_BYPASS: pick('ADMIN_DEV_BYPASS'),
   };
 }
 

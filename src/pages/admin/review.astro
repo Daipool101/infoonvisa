@@ -1,0 +1,112 @@
+---
+// The review queue: pages the generator produced that no human has approved.
+//
+// They are already served to visitors but carry noindex, so they stay out of
+// Google until approved. That gate is the whole defence against Google's
+// scaled-content-abuse policy, and until now it existed only as a SQL command
+// someone had to remember to run — which is how three pages ended up sitting
+// here unseen.
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getEnv } from '../../lib/supabase';
+import { getAdminUser, notFound } from '../../lib/admin-auth';
+import { loadAdmin, fmtDate } from '../../lib/admin-data';
+import { VERDICT_LABEL } from '../../lib/corridor';
+
+export const prerender = false;
+
+const env = getEnv();
+const user = await getAdminUser(env, Astro.request);
+if (!user) return notFound();
+
+const loaded = await loadAdmin(env);
+if (!loaded) return new Response('Database unavailable', { status: 503 });
+const pending = loaded.rows.filter((r) => r.status === 'pending_review');
+const rejected = loaded.rows.filter((r) => r.status === 'low_quality');
+---
+
+<AdminLayout title="Review queue" email={user.email}>
+  <p class="sub">
+    These pages exist and are shown to visitors, but they carry <code>noindex</code> — Google will not
+    index them until you approve. Read the page, confirm the verdict against the official source, then approve.
+  </p>
+
+  {pending.length === 0 ? (
+    <section class="panel"><p class="empty">Nothing waiting. Every generated page has been reviewed.</p></section>
+  ) : (
+    pending.map((r) => (
+      <section class="panel">
+        <h2>{r.slug}</h2>
+        <p class="sub">{r.headline}</p>
+        <table class="t">
+          <tbody>
+            <tr><th>Verdict</th><td>{VERDICT_LABEL[r.verdict]}</td></tr>
+            <tr><th>Visa options</th><td>{r.optionCount}</td></tr>
+            <tr><th>Official source</th><td>
+              {r.officialSource
+                ? <a href={r.officialSource} target="_blank" rel="noopener noreferrer nofollow">{r.officialSource}</a>
+                : <span class="muted">none recorded</span>}
+            </td></tr>
+            <tr><th>Generated</th><td>{r.ageDays} days ago</td></tr>
+          </tbody>
+        </table>
+        <div class="row">
+          <a class="btn" href={`/${r.slug}`} target="_blank" rel="noopener">Preview the page ↗</a>
+          <a class="btn" href={`/admin/c/${r.slug}`}>Open details</a>
+          <button class="btn primary" data-act="verified" data-slug={r.slug}>Approve &amp; publish</button>
+          <button class="btn danger" data-act="low_quality" data-slug={r.slug}>Reject</button>
+        </div>
+        <p class="hint">Approving makes the page indexable and adds it to the sitemap. Rejecting hides it from visitors.</p>
+      </section>
+    ))
+  )}
+
+  {rejected.length > 0 && (
+    <section class="panel">
+      <h2>Rejected <span class="count">{rejected.length}</span></h2>
+      <p class="sub">Hidden from visitors and search engines. You can put one back into the queue.</p>
+      <table class="t">
+        <tbody>
+          {rejected.map((r) => (
+            <tr>
+              <td>{r.slug}</td>
+              <td class="muted">{fmtDate(r.checkedOn)}</td>
+              <td><button class="btn sm" data-act="pending_review" data-slug={r.slug}>Back to queue</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  )}
+</AdminLayout>
+
+<script is:inline>
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const { act, slug } = btn.dataset;
+    const what = act === 'verified' ? 'publish' : act === 'low_quality' ? 'reject' : 'move back to the queue';
+    if (!confirm(`Are you sure you want to ${what} ${slug}?`)) return;
+    btn.disabled = true;
+    btn.textContent = 'Working…';
+    try {
+      const res = await fetch('/api/admin/status', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slug, status: act }),
+      });
+      const out = await res.json();
+      if (!res.ok || !out.ok) throw new Error(out.error || 'failed');
+      location.reload();
+    } catch (err) {
+      alert('Could not save: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Try again';
+    }
+  });
+</script>
+
+<style>
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+  table.t th { width: 12rem; text-transform: none; font-size: .8rem; }
+  code { background: #f2f4f9; padding: .05rem .3rem; border-radius: .25rem; font-size: .88em; }
+</style>
