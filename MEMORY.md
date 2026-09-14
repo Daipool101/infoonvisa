@@ -184,7 +184,14 @@ node scripts/indexnow.mjs <url> <url>          # 200 = accepted, 202 = FAILED
 
 **Why the monthly report exists:** a healthy week is deliberately silent, which makes silence ambiguous — "nothing is broken" and "the automation stopped" look the same from an inbox. If a month passes with no report, the automation itself has stopped; check the Actions tab.
 
-> ⚠️ **The lesson that caused this:** the verdict issue used to be kept current by *editing its body*, and **GitHub does not notify anyone about an edited issue body**. It was opened on 24 Aug (that email arrived) and silently rewritten every week after, with 0 comments, while its body went stale. If a workflow needs to tell a human, it must **comment**.
+> ⚠️ **Two lessons, both learned from this going silent for weeks.**
+>
+> 1. **GitHub does not notify anyone about an edited issue body.** The verdict issue used to be kept current by rewriting its body. It was opened 24 Aug (that email arrived) and silently rewritten every week after, with 0 comments, while its body went stale. If a workflow needs to tell a human, it must **comment**.
+> 2. **Never let an exit code mean two things.** The scripts used to signal "found work" by exiting 1, with `continue-on-error` keeping the job green. A healthy site, a broken site and a *crashed script* then looked identical from the outside — and when the verdict script crashed, the notify step was skipped and nobody was told. The scripts now exit 0 unless they genuinely failed and report findings as **outputs**; `continue-on-error` is gone, so a crash turns the run red and GitHub emails about the failed run.
+>
+> Every run also writes a summary table (links checked, broken, verdicts overdue, step outcomes) to the Actions tab. If this ever goes quiet again, **read that first** — an empty value means the script did not get far enough to report it.
+
+**Verified working end to end on 14 Sep 2026:** a manual test run produced all three notifications — the link-check issue, a comment on the rolling verdict-review issue, and the monthly health report.
 
 **To prove email delivery end to end:** Actions → *Weekly source-link check* → **Run workflow** → tick **"Send a TEST alert"**. That fakes one broken link, raises a real issue, and emails you. Close the issue afterwards.
 
