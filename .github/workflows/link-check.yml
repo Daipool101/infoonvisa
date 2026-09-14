@@ -200,8 +200,15 @@ jobs:
             const broken = '${{ steps.check.outputs.broken }}';
             const overdue = '${{ steps.verdicts.outputs.overdue }}';
             const month = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+            // A test run injects a fake broken link, so without this line the
+            // report would sit in the archive claiming a breakage that never
+            // existed. A health record has to be honest about its own test data.
+            const isTest = '${{ inputs.test_alert }}' === 'true';
             const body = [
               `@${owner} **Monthly health report — ${month}**`,
+              ...(isTest
+                ? ['', '> 🧪 **Triggered manually as a test.** The "broken link" below is a fake one injected by the test, not a real failure.']
+                : []),
               '',
               '| Check | Result |',
               '| --- | --- |',
