@@ -53,21 +53,34 @@ jobs:
       #
       # india-to-japan is deliberately NOT used as a probe: it is the seeded
       # route, so it renders even when the database is unreachable.
+      # Retries matter here. A Worker can serve a request or two from the new
+      # version before its secrets are fully attached, and during that window
+      # the app falls back to the bundled seed exactly as it would if the
+      # database were really unreachable. That happened on 14 Sep 2026 and
+      # cleared on its own within minutes. A single immediate probe would call
+      # that an outage and turn a good deploy red, so this only fails after the
+      # problem has persisted for a couple of minutes — long enough to tell a
+      # propagation blip from something genuinely broken.
       - name: Smoke test — are corridor pages actually rendering?
         run: |
-          sleep 20
+          probe() {
+            body=$(curl -s --max-time 45 "https://infoonvisa.com/$1")
+            echo "$body" | grep -q 'Finding your visa requirements' && return 1
+            echo "$body" | grep -q 'vtable' || return 1
+            return 0
+          }
+
           fail=0
           for slug in india-to-germany united-states-to-india india-to-thailand; do
-            url="https://infoonvisa.com/$slug"
-            body=$(curl -s --max-time 45 "$url")
-            if echo "$body" | grep -q 'Finding your visa requirements'; then
-              echo "::error::$url is serving the LOADING SCREEN — the Worker cannot read Supabase."
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              sleep 20
+              if probe "$slug"; then ok=1; echo "ok: $slug (attempt $attempt)"; break; fi
+              echo "  $slug not ready yet (attempt $attempt/5)"
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::https://infoonvisa.com/$slug still serving the loading screen after 5 attempts — the Worker cannot read Supabase."
               fail=1
-            elif ! echo "$body" | grep -q 'vtable'; then
-              echo "::error::$url rendered without the visa table."
-              fail=1
-            else
-              echo "ok: $url"
             fi
           done
 
@@ -82,10 +95,18 @@ jobs:
 
           if [ "$fail" -ne 0 ]; then
             echo ""
-            echo "FIX: in the Cloudflare dashboard open the 'infoonvisa' Worker →"
-            echo "Settings → Variables and Secrets, and add PUBLIC_SUPABASE_URL,"
-            echo "PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY as SECRETS"
-            echo "(encrypted). Plain Variables are erased by every deploy."
+            echo "This persisted for over two minutes, so it is not a deploy blip."
+            echo "Check, in this order:"
+            echo "  1. Is Supabase up?  status.supabase.com"
+            echo "  2. Cloudflare → Workers → infoonvisa → Settings → Variables and"
+            echo "     Secrets: PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY and"
+            echo "     SUPABASE_SERVICE_ROLE_KEY must all be present as SECRETS."
+            echo "     (Plain Variables get erased by a deploy; Secrets do not.)"
+            echo "  3. Has the service-role key been rotated in Supabase without"
+            echo "     updating the Worker?"
+            echo ""
+            echo "Note: india-to-japan is the seeded route and renders even when the"
+            echo "database is unreachable — never use it to judge whether this is fixed."
             exit 1
           fi
 
