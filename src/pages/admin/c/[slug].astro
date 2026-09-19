@@ -368,6 +368,53 @@ const saved = {
   const dlg = document.getElementById('confirm');
 
   const val = (el) => (el ? el.value.trim() : '');
+
+  // ---- Put the saved values back into the form, every load ---------------
+  //
+  // Not belt and braces — a real hazard seen on this page. Browsers restore
+  // the form state of a reloaded page over whatever the server sent, so the
+  // Verdict dropdown showed "Visa on arrival" on a page whose stored verdict
+  // was "embassy". The diff preview would have caught a save, but a control
+  // that quietly disagrees with the database has no business on a page that
+  // publishes to strangers. The JSON below is the row as stored, so writing it
+  // into the controls after load makes the form incapable of lying.
+  function hydrate() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+    set('verdict', SAVED.verdict);
+    set('verdictHeadline', SAVED.verdictHeadline);
+    set('summary', SAVED.summary);
+    set('maxStayDays', SAVED.maxStayDays == null ? '' : SAVED.maxStayDays);
+    set('processingTime', SAVED.processingTime);
+    set('osLabel', SAVED.officialSource?.label);
+    set('osUrl', SAVED.officialSource?.url);
+
+    // Rows were rendered from these same arrays, in this same order.
+    const fill = (sel, list, map) => {
+      const rows = document.querySelectorAll(sel);
+      rows.forEach((box, i) => {
+        const item = list[i];
+        if (!item) return;
+        for (const [k, v] of Object.entries(map(item))) {
+          const el = box.querySelector(`[data-k="${k}"]`);
+          if (el) el.value = v ?? '';
+        }
+      });
+    };
+    fill('[data-row="opt"]', SAVED.visaOptions ?? [], (o) => ({
+      type: o.type, validity: o.validity, maxStay: o.maxStay, entries: o.entries, eligibility: o.eligibility,
+    }));
+    fill('[data-row="src"]', SAVED.sources ?? [], (s) => ({ label: s.label, url: s.url }));
+    fill('[data-row="fee"]', SAVED.fees ?? [], (f) => ({
+      amount: f.amount, note: f.note, refundableNote: f.refundableNote,
+      verifiedOn: (f.verifiedOn ?? '').slice(0, 10),
+      refundable: f.refundable === true ? 'true' : f.refundable === false ? 'false' : '',
+      'source.label': f.source?.label, 'source.url': f.source?.url,
+    }));
+    // The "applies to" dropdowns are rebuilt by syncAppliesTo, which prefers
+    // the control's current value. Clearing it first makes it fall back to
+    // data-current — the value the server rendered — rather than a restored one.
+    for (const sel of document.querySelectorAll('.fee-applies')) sel.value = '';
+  }
   const show = (text, kind) => {
     toast.textContent = text;
     toast.className = 'saveline ' + (kind || '');
@@ -594,6 +641,7 @@ const saved = {
     }
   }
   document.addEventListener('input', (e) => { if (e.target.classList.contains('opt-type')) syncAppliesTo(); });
+  hydrate();
   syncAppliesTo();
 
   // ---- Undo -------------------------------------------------------------

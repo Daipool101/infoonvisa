@@ -212,11 +212,11 @@ export function sanitizeField(field: FieldKey, raw: unknown, options: VisaOption
         if (eligibility) opt.eligibility = eligibility;
         return opt;
       });
-      const seen = new Set<string>();
-      for (const o of out) {
-        if (seen.has(o.type)) throw new EditError(`Two options are both called "${o.type}".`);
-        seen.add(o.type);
-      }
+      // Duplicate names are allowed. Real pages have them — India→Norway lists
+      // "Schengen Tourist Visa (Type C)" twice, once single entry and once
+      // multiple, which is how Norway describes it. Refusing that would have
+      // made the options panel unsavable on a page with nothing wrong with it.
+      // The ambiguity it creates is handled where it actually bites: a fee.
       return out;
     }
 
@@ -224,6 +224,7 @@ export function sanitizeField(field: FieldKey, raw: unknown, options: VisaOption
       const list = Array.isArray(raw) ? raw : [];
       if (!list.length) return undefined; // no fees is a valid, honest state
       const types = new Set(options.map((o) => o.type));
+      const duplicated = new Set(options.map((o) => o.type).filter((t, i, a) => a.indexOf(t) !== i));
       const out: VerifiedFee[] = list.map((f, i) => {
         const v = (f ?? {}) as Record<string, unknown>;
         const appliesTo = text(v.appliesTo, `Fee ${i + 1} "applies to"`, { max: 120, required: true });
@@ -233,6 +234,17 @@ export function sanitizeField(field: FieldKey, raw: unknown, options: VisaOption
           throw new EditError(
             `Fee ${i + 1} applies to "${appliesTo}", which is not one of this page's options. ` +
               `Point it at an existing option, or delete it.`
+          );
+        }
+        // Options may share a name; a fee may not point at a shared one. The
+        // reader would see the same price on two rows that cost different
+        // amounts — a single- and a multiple-entry visa, say — with nothing
+        // on the page admitting the fee only really belongs to one of them.
+        if (duplicated.has(appliesTo)) {
+          throw new EditError(
+            `Fee ${i + 1} applies to "${appliesTo}", and two options share that name. ` +
+              `Give them distinguishing names first (for example "(single entry)" and ` +
+              `"(multiple entry)"), so the fee lands on one of them.`
           );
         }
         const refundableRaw = v.refundable;
