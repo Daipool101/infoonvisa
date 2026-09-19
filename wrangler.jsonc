@@ -11,6 +11,14 @@
 
   // NOTE: this file deliberately declares no "vars".
   //
+  // ── EVERY SETTING BELOW MUST BE TYPE "SECRET", NEVER "TEXT"/"VARIABLE" ──
+  // A plain Variable does not survive a deploy: the generated config carries
+  // "vars": {} and the Variable is replaced by nothing. Secrets are untouched.
+  // This is not theoretical — ADMIN_ACCESS_TEAM_DOMAIN and ADMIN_ACCESS_AUD were
+  // added as Variables on 19 Sep 2026, worked, and were gone a few commits later,
+  // which locked the admin dashboard. Neither is actually secret; Secret is
+  // simply the only type that persists.
+  //
   // The Worker's settings live in the Cloudflare dashboard, under
   // Settings -> Runtime variables and secrets (NOT the Builds section, which is
   // only read while Cloudflare builds the code — putting them there is what left

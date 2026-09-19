@@ -172,6 +172,8 @@ Expect 4–6 routes from a Batch 5, not 10. **Do not pad a batch with a guess** 
 
 **Recording a verification requires a source URL and a note.** Obvious non-sources are refused. "Could not verify" records what blocked you, so a route that beat us never looks checked. Every action stores who did it.
 
+> 🔴 **Every Worker setting must be type "Secret", never "Text"/"Variable".** A plain Variable is erased by the next deploy — the generated config carries `vars: {}` and replaces it with nothing, while Secrets are left alone. `ADMIN_ACCESS_*` were added as Variables, worked, and vanished a few commits later, locking the dashboard. Neither value is genuinely secret; Secret is just the only type that survives.
+
 **If `/admin` shows "Not found"**, the two Access settings are missing or wrong — that is the designed failure mode, not a bug. They live in the Cloudflare dashboard under **Settings → Runtime variables and secrets**:
 
 - `ADMIN_ACCESS_TEAM_DOMAIN` = `summer-scene-d750.cloudflareaccess.com`

@@ -184,6 +184,16 @@ Node's `ENOTFOUND` check silently never fires on Workers, so a dead domain looke
 
 202 = key still validating. A 154-URL submission answered 202 and never reached Bing. `scripts/indexnow.mjs` treats 202 as failure. Only **200** is success.
 
+### ⚠️ A Cloudflare "Variable" does not survive a deploy — only a "Secret" does
+
+The Worker's settings are entered in the dashboard, and the type matters more than it looks. The generated deploy config carries `vars: {}`; a plain **Variable** is replaced by nothing on the next deploy, while a **Secret** is left alone.
+
+`ADMIN_ACCESS_TEAM_DOMAIN` and `ADMIN_ACCESS_AUD` were added as Variables, worked, and were gone a few commits later — which locked the admin dashboard while the dashboard UI still listed them. Neither value is genuinely secret; Secret is simply the only type that persists.
+
+Two related traps in the same place:
+- **Runtime vs Builds.** Both sections have a panel headed "Variables and secrets" and both render every value as "Value encrypted". Only **Runtime** reaches the running site; settings placed under **Builds** are read only while Cloudflare builds the code. That mistake kept the site serving blank pages for forty minutes.
+- `--keep-vars` on the deploy command stops wrangler pruning what is not in the config. Do not remove it.
+
 ### ⚠️ Editing a GitHub issue body notifies nobody
 
 The weekly check kept one rolling issue current by **rewriting its body**. GitHub sends no notification for an edited body — so the issue was opened once (which emailed), then silently updated every week for three weeks while the owner heard nothing and assumed the automation had died.
