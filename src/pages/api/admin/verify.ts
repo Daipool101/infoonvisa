@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { getEnv } from '../../../lib/supabase';
 import { getAdminUser, notFound } from '../../../lib/admin-auth';
 import { adminClient } from '../../../lib/admin-data';
+import { checkSourceUrl, EditError } from '../../../lib/admin-edit';
 
 export const prerender = false;
 
@@ -38,19 +39,13 @@ export const POST: APIRoute = async ({ request }) => {
   if (outcome !== 'verified' && outcome !== 'flagged') return json({ ok: false, error: 'bad outcome' }, 400);
 
   if (outcome === 'verified') {
-    if (!source) return json({ ok: false, error: 'a source URL is required to confirm a verdict' }, 400);
-    let host = '';
+    // Same test the editor applies to a fee's source, from one place: what
+    // counts as a source must not depend on which form you happened to use.
     try {
-      const u = new URL(source);
-      if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('scheme');
-      host = u.hostname;
-    } catch {
-      return json({ ok: false, error: 'the source must be a valid http(s) URL' }, 400);
-    }
-    // Not a whitelist — government domains worldwide are too varied for that —
-    // but a nudge when the "official source" is obviously not one.
-    if (/(^|\.)(wikipedia\.org|blogspot\.|medium\.com|quora\.com|tripadvisor\.)/i.test(host)) {
-      return json({ ok: false, error: `${host} is not an official government source` }, 400);
+      checkSourceUrl(source, 'The source');
+    } catch (e) {
+      if (e instanceof EditError) return json({ ok: false, error: e.message }, 400);
+      throw e;
     }
   }
 

@@ -168,7 +168,7 @@ Expect 4–6 routes from a Batch 5, not 10. **Do not pad a batch with a guess** 
 |---|---|
 | Dashboard | reading numbers out of the database by hand |
 | Review queue | `update corridors set status='verified' where slug=…` |
-| Corridor detail | `scripts/audit-record.mjs` |
+| Corridor detail | `scripts/audit-record.mjs`, and the one-off `scripts/fix-*.mjs` |
 
 **Recording a verification requires a source URL and a note.** Obvious non-sources are refused. "Could not verify" records what blocked you, so a route that beat us never looks checked. Every action stores who did it.
 
@@ -181,7 +181,18 @@ Expect 4–6 routes from a Batch 5, not 10. **Do not pad a batch with a guess** 
 
 Access protects **two** destinations — `infoonvisa.com/admin` and `infoonvisa.com/api/admin`. The second covers the endpoints the dashboard's buttons call; without it the buttons break.
 
-**Not built yet (Phase 3):** editing verdicts, fees and source links; a diff preview; change history and undo. Until then, content edits are still scripts.
+**Editing (Phase 3, 19 Sep 2026).** The corridor detail page edits the verdict, headline, summary, max stay, processing time, official source, visa options, fees and sources. `src/lib/admin-edit.ts` holds every rule; `/api/admin/edit` is the only writer. What it guarantees, and why each one exists:
+
+- **A diff before every save.** Each panel shows before → after and waits for a second click. Nothing about a live page changes on one click.
+- **Verdict without headline is called out.** Changing the badge while leaving the words under it triggers a warning in the preview — that mismatch once shipped "ETA required" under a green *Visa-free* badge.
+- **The mirrored columns move together.** `verdict`, `max_stay_days` and `sources` exist both as columns and inside `data`; `mirroredColumns()` writes both, always. Never update one alone.
+- **A fee must point at a real option.** Rename an option and its fee is repointed in the same save, or the save is refused — an orphaned fee just stops being shown, with nothing to say why.
+- **A fee needs a date and a source**, and the date cannot be in the future.
+- **Every change is recorded** in `data.changeLog` (last 40) with who, when, and the value it replaced.
+- **Undo puts the old value back as a new change** rather than erasing history, and is offered only on the newest change to a field — reverting an older one would silently discard everything done since.
+- **Saving a live page pings IndexNow.** Only HTTP 200 counts; 202 means discarded, and the toast says so and points at the manual *Tell search engines* button.
+
+Writing a `scripts/fix-*.mjs` for a content change is now the fallback, not the default — a script bypasses every guard above.
 
 ---
 

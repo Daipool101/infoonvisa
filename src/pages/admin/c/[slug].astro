@@ -1,15 +1,22 @@
 ---
-// One corridor: what it claims, when a human last confirmed it, and the form
-// that records a verification.
+// One corridor: everything it claims, editable, with a record of every change.
 //
-// The source URL on that form is REQUIRED. Every wrong claim this project has
-// had to remove came from something nobody had actually read on an official
-// page, so the tool refuses to record a check without saying what was read.
+// Two rules shape this page.
+//
+// The source URL on the verification form is REQUIRED. Every wrong claim this
+// project has had to remove came from something nobody had actually read on an
+// official page, so the tool refuses to record a check without saying what was
+// read.
+//
+// And nothing saves silently. Each panel shows exactly what is about to change,
+// before and after, and waits for a second click. Editing a live page that
+// strangers are reading deserves the extra second.
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { getEnv } from '../../../lib/supabase';
 import { getAdminUser, notFound } from '../../../lib/admin-auth';
 import { getAdminCorridor, fmtDate, STALE_DAYS } from '../../../lib/admin-data';
-import { VERDICT_LABEL, feeFor, refundableLabel } from '../../../lib/corridor';
+import { VERDICT_LABEL } from '../../../lib/corridor';
+import { FIELD_LABEL, undoableIds, type ChangeEntry } from '../../../lib/admin-edit';
 
 export const prerender = false;
 
@@ -26,6 +33,45 @@ const checkedOn = (d as any).verdictCheckedOn as string | undefined;
 const flagged = !!(d as any).verdictCheckAttempted && !checkedOn;
 const ageDays = Math.floor((Date.now() - new Date(checkedOn ?? row.generated_at).getTime()) / 86400000);
 const stale = !!checkedOn && ageDays >= STALE_DAYS;
+
+const options = d.visaOptions ?? [];
+const fees = d.fees ?? [];
+const sources = d.sources ?? [];
+const log = (Array.isArray((d as any).changeLog) ? (d as any).changeLog : []) as ChangeEntry[];
+const canUndo = undoableIds(log);
+
+const VERDICTS = Object.entries(VERDICT_LABEL) as [string, string][];
+
+// History cells hold whole arrays of options or fees. Rendering them in full
+// would bury the one thing the row is for — seeing at a glance what moved.
+function summarise(v: unknown): string {
+  if (v === null || v === undefined || v === '') return '(empty)';
+  if (Array.isArray(v)) {
+    if (!v.length) return '(none)';
+    const names = v.map((x: any) => x?.type ?? x?.appliesTo ?? x?.label ?? x?.url ?? '?');
+    return `${v.length}: ${names.join(', ')}`;
+  }
+  if (typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    return String(o.label ?? o.url ?? JSON.stringify(o));
+  }
+  const s = String(v);
+  return s.length > 140 ? s.slice(0, 140) + '…' : s;
+}
+// The client needs the saved values to work out what actually changed; sending
+// them as data beats re-reading the inputs' defaultValue, which HTML lets a
+// stray autocomplete quietly overwrite.
+const saved = {
+  verdict: d.verdict,
+  verdictHeadline: d.verdictHeadline ?? '',
+  summary: d.summary ?? '',
+  maxStayDays: d.maxStayDays ?? null,
+  processingTime: d.processingTime ?? '',
+  officialSource: d.officialSource ?? { label: '', url: '' },
+  sources,
+  visaOptions: options,
+  fees,
+};
 ---
 
 <AdminLayout title={row.slug} email={user.email}>
@@ -40,50 +86,197 @@ const stale = !!checkedOn && ageDays >= STALE_DAYS;
     </div>
     <div class="row">
       <a class="btn" href={`/${row.slug}`} target="_blank" rel="noopener">View live page ↗</a>
+      {row.status === 'verified' && <button class="btn" type="button" id="ping">Tell search engines</button>}
       <a class="btn" href="/admin">← Back</a>
     </div>
   </div>
 
-  <section class="panel">
-    <h2>What this page claims</h2>
-    <table class="t kv">
-      <tbody>
-        <tr><th>Verdict</th><td><strong>{VERDICT_LABEL[d.verdict]}</strong></td></tr>
-        <tr><th>Headline</th><td>{d.verdictHeadline}</td></tr>
-        <tr><th>Max stay</th><td>{d.maxStayDays ?? '—'} {d.maxStayDays ? 'days' : ''}</td></tr>
-        <tr><th>Processing</th><td>{d.processingTime ?? '—'}</td></tr>
-        <tr><th>Official source</th><td>
-          {d.officialSource?.url
-            ? <a href={d.officialSource.url} target="_blank" rel="noopener noreferrer nofollow">{d.officialSource.label || d.officialSource.url}</a>
-            : <span class="muted">none</span>}
-        </td></tr>
-        <tr><th>Searches</th><td>{row.search_count ?? 0}</td></tr>
-      </tbody>
-    </table>
+  <p class="saveline" id="toast"></p>
+
+  <!-- ── The verdict ─────────────────────────────────────────────────── -->
+  <section class="panel" data-panel="verdict">
+    <h2>The verdict</h2>
+    <p class="sub">The answer at the top of the page, and the line under it.</p>
+
+    <div class="grid2">
+      <div>
+        <label class="f" for="verdict">Verdict</label>
+        <select class="f" id="verdict" data-k="verdict">
+          {VERDICTS.map(([v, label]) => <option value={v} selected={v === d.verdict}>{label}</option>)}
+        </select>
+        <div class="hint">Drives the badge, the colour and the sitemap. Changing it changes the answer.</div>
+      </div>
+      <div>
+        <label class="f" for="maxStayDays">Max stay (days)</label>
+        <input class="f" id="maxStayDays" type="number" min="1" max="3650" data-k="maxStayDays" value={d.maxStayDays ?? ''} />
+        <div class="hint">Leave blank when there is no single number.</div>
+      </div>
+    </div>
+
+    <label class="f" for="verdictHeadline">Headline</label>
+    <input class="f" id="verdictHeadline" data-k="verdictHeadline" value={d.verdictHeadline ?? ''} />
+
+    <label class="f" for="summary">Summary</label>
+    <textarea class="f tall" id="summary" data-k="summary">{d.summary ?? ''}</textarea>
+
+    <div class="grid2">
+      <div>
+        <label class="f" for="processingTime">Processing time</label>
+        <input class="f" id="processingTime" data-k="processingTime" value={d.processingTime ?? ''} placeholder="e.g. 5–7 working days" />
+      </div>
+      <div>
+        <label class="f" for="osLabel">Official source — name</label>
+        <input class="f" id="osLabel" data-k="officialSource.label" value={d.officialSource?.label ?? ''} />
+      </div>
+    </div>
+
+    <label class="f" for="osUrl">Official source — URL</label>
+    <input class="f" id="osUrl" type="url" data-k="officialSource.url" value={d.officialSource?.url ?? ''} />
+    <div class="hint">This is the link the page sends readers to. It should be the government's own page.</div>
+
+    <div class="row save"><button class="btn primary" type="button" data-save="verdict">Review &amp; save</button></div>
   </section>
 
-  <section class="panel">
-    <h2>Visa options &amp; fees <span class="count">{d.visaOptions?.length ?? 0}</span></h2>
-    <table class="t">
-      <thead><tr><th>Option</th><th>Max stay</th><th>Fee</th><th>Refundable</th><th>Fee verified</th></tr></thead>
-      <tbody>
-        {(d.visaOptions ?? []).map((o) => {
-          const fee = feeFor(o.type, d.fees);
-          return (
-            <tr>
-              <td>{o.type}</td>
-              <td class="muted">{o.maxStay ?? '—'}</td>
-              <td>{fee ? <strong>{fee.amount}</strong> : <span class="muted">not published</span>}</td>
-              <td class="muted">{fee ? refundableLabel(fee.refundable, fee.refundableNote) : '—'}</td>
-              <td class="muted">{fee ? fmtDate(fee.verifiedOn) : '—'}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-    <p class="hint">Editing fees and options comes in the next phase. For now this is the read-only picture.</p>
+  <!-- ── Visa options ────────────────────────────────────────────────── -->
+  <section class="panel" data-panel="visaOptions">
+    <h2>Visa options <span class="count">{options.length}</span></h2>
+    <p class="sub">Each row is one way into the country. The name is what fees point at, so renaming one means repointing its fee below.</p>
+
+    <div id="optRows">
+      {options.map((o) => (
+        <div class="rowbox" data-row="opt">
+          <div class="grid2">
+            <div>
+              <label class="f">Name</label>
+              <input class="f opt-type" data-k="type" value={o.type} />
+            </div>
+            <div>
+              <label class="f">Max stay</label>
+              <input class="f" data-k="maxStay" value={o.maxStay ?? ''} placeholder="e.g. 90 days" />
+            </div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label class="f">Validity</label>
+              <input class="f" data-k="validity" value={o.validity ?? ''} placeholder="e.g. 90 days from issue" />
+            </div>
+            <div>
+              <label class="f">Entries</label>
+              <input class="f" data-k="entries" value={o.entries ?? ''} placeholder="Single / Multiple" />
+            </div>
+          </div>
+          <label class="f">Who it is for</label>
+          <input class="f" data-k="eligibility" value={o.eligibility ?? ''} />
+          <div class="row rowend"><button class="btn danger sm" type="button" data-del>Remove this option</button></div>
+        </div>
+      ))}
+    </div>
+
+    <div class="row save">
+      <button class="btn" type="button" id="addOpt">+ Add an option</button>
+      <button class="btn primary" type="button" data-save="visaOptions">Review &amp; save</button>
+    </div>
   </section>
 
+  <!-- ── Fees ────────────────────────────────────────────────────────── -->
+  <section class="panel" data-panel="fees">
+    <h2>Fees <span class="count">{fees.length}</span></h2>
+    <p class="sub">
+      Only amounts read on a government page. A wrong fee is worse than no fee — if you cannot find the number,
+      leave the row out and the page will say nothing rather than guess.
+    </p>
+
+    <div id="feeRows">
+      {fees.map((f) => (
+        <div class="rowbox" data-row="fee">
+          <div class="grid2">
+            <div>
+              <label class="f">Applies to</label>
+              <select class="f fee-applies" data-k="appliesTo" data-current={f.appliesTo}></select>
+            </div>
+            <div>
+              <label class="f">Amount</label>
+              <input class="f" data-k="amount" value={f.amount} placeholder="US$30 · ¥15,000 · Rp 500,000" />
+            </div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label class="f">Refundable if refused?</label>
+              <select class="f" data-k="refundable">
+                <option value="" selected={f.refundable === null}>Not stated on the official page</option>
+                <option value="true" selected={f.refundable === true}>Yes</option>
+                <option value="false" selected={f.refundable === false}>No</option>
+              </select>
+            </div>
+            <div>
+              <label class="f">Date you read it</label>
+              <input class="f" type="date" data-k="verifiedOn" value={(f.verifiedOn ?? '').slice(0, 10)} />
+            </div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label class="f">What it covers</label>
+              <input class="f" data-k="note" value={f.note ?? ''} placeholder="Single entry, tourism" />
+            </div>
+            <div>
+              <label class="f">Refund wording (if Yes/No is wrong)</label>
+              <input class="f" data-k="refundableNote" value={f.refundableNote ?? ''} placeholder="Not charged unless the visa is issued" />
+            </div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label class="f">Source — name</label>
+              <input class="f" data-k="source.label" value={f.source?.label ?? ''} />
+            </div>
+            <div>
+              <label class="f">Source — URL</label>
+              <input class="f" type="url" data-k="source.url" value={f.source?.url ?? ''} />
+            </div>
+          </div>
+          <div class="row rowend"><button class="btn danger sm" type="button" data-del>Remove this fee</button></div>
+        </div>
+      ))}
+    </div>
+
+    <div class="row save">
+      <button class="btn" type="button" id="addFee">+ Add a fee</button>
+      <button class="btn primary" type="button" data-save="fees">Review &amp; save</button>
+    </div>
+  </section>
+
+  <!-- ── Sources ─────────────────────────────────────────────────────── -->
+  <section class="panel" data-panel="sources">
+    <h2>Sources <span class="count">{sources.length}</span></h2>
+    <p class="sub">Everything the page was built from. Replace a dead link here and the broken-link report clears.</p>
+
+    <div id="srcRows">
+      {sources.map((s) => (
+        <div class="rowbox tight" data-row="src">
+          <div class="grid2">
+            <div>
+              <label class="f">Name</label>
+              <input class="f" data-k="label" value={s.label} />
+            </div>
+            <div>
+              <label class="f">URL</label>
+              <input class="f" type="url" data-k="url" value={s.url} />
+            </div>
+          </div>
+          <div class="row rowend">
+            <a class="btn sm" href={s.url} target="_blank" rel="noopener noreferrer nofollow">Open ↗</a>
+            <button class="btn danger sm" type="button" data-del>Remove</button>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="row save">
+      <button class="btn" type="button" id="addSrc">+ Add a source</button>
+      <button class="btn primary" type="button" data-save="sources">Review &amp; save</button>
+    </div>
+  </section>
+
+  <!-- ── Verification ────────────────────────────────────────────────── -->
   <section class="panel">
     <h2>Verdict verification</h2>
     {checkedOn ? (
@@ -123,13 +316,319 @@ const stale = !!checkedOn && ageDays >= STALE_DAYS;
       <p class="msg" id="msg"></p>
     </form>
   </section>
+
+  <!-- ── History ─────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <h2>Change history <span class="count">{log.length}</span></h2>
+    {log.length === 0 ? (
+      <p class="empty">No manual edits yet — this page is as it was generated.</p>
+    ) : (
+      <>
+        <p class="sub">Newest first. Undo is offered on the most recent change to each field; an older one is left alone so an undo can never wipe out work done since.</p>
+        <table class="t">
+          <thead><tr><th>When</th><th>What</th><th>Was</th><th>Now</th><th>Who</th><th></th></tr></thead>
+          <tbody>
+            {log.map((e) => (
+              <tr>
+                <td class="muted nowrap">{fmtDate(e.at)}</td>
+                <td><strong>{FIELD_LABEL[e.field] ?? e.field}</strong>{e.undoOf && <span class="chip">undo</span>}</td>
+                <td class="was"><code>{summarise(e.before)}</code></td>
+                <td class="was"><code>{summarise(e.after)}</code></td>
+                <td class="muted nowrap">{(e.by ?? '').split('@')[0]}</td>
+                <td>
+                  {canUndo.has(e.id)
+                    ? <button class="btn sm" type="button" data-undo={e.id}>Undo</button>
+                    : <span class="tag">superseded</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    )}
+  </section>
+
+  <dialog id="confirm">
+    <h3 id="cTitle">About to change</h3>
+    <div id="cBody"></div>
+    <div class="row" style="margin-top:1rem;justify-content:flex-end">
+      <button class="btn" type="button" id="cCancel">Cancel</button>
+      <button class="btn primary" type="button" id="cGo">Save it</button>
+    </div>
+  </dialog>
+
+  <script type="application/json" id="saved" set:html={JSON.stringify(saved)} />
+  <script type="application/json" id="slug" set:html={JSON.stringify(row.slug)} />
 </AdminLayout>
 
 <script is:inline>
+  const SAVED = JSON.parse(document.getElementById('saved').textContent);
+  const SLUG = JSON.parse(document.getElementById('slug').textContent);
+  const toast = document.getElementById('toast');
+  const dlg = document.getElementById('confirm');
+
+  const val = (el) => (el ? el.value.trim() : '');
+  const show = (text, kind) => {
+    toast.textContent = text;
+    toast.className = 'saveline ' + (kind || '');
+    if (kind === 'ok') setTimeout(() => { toast.textContent = ''; }, 6000);
+  };
+
+  // ---- Reading the forms back ------------------------------------------
+  // Each panel knows how to describe itself as the shape the API expects.
+  // Blank optional fields are simply left out, so "cleared the note" and
+  // "never had a note" end up identical rather than differing by an "".
+  function readRows(container, sel, build) {
+    return [...container.querySelectorAll(sel)].map((box) => {
+      const g = (k) => val(box.querySelector(`[data-k="${k}"]`));
+      return build(g, box);
+    });
+  }
+
+  function readPanel(panel) {
+    if (panel === 'verdict') {
+      const stay = val(document.getElementById('maxStayDays'));
+      return {
+        verdict: val(document.getElementById('verdict')),
+        verdictHeadline: val(document.getElementById('verdictHeadline')),
+        summary: document.getElementById('summary').value.trim(),
+        maxStayDays: stay === '' ? null : Number(stay),
+        processingTime: val(document.getElementById('processingTime')),
+        officialSource: { label: val(document.getElementById('osLabel')), url: val(document.getElementById('osUrl')) },
+      };
+    }
+    if (panel === 'visaOptions') {
+      return {
+        visaOptions: readRows(document.getElementById('optRows'), '[data-row="opt"]', (g) => {
+          const o = { type: g('type') };
+          for (const k of ['validity', 'maxStay', 'entries', 'eligibility']) if (g(k)) o[k] = g(k);
+          return o;
+        }),
+      };
+    }
+    if (panel === 'fees') {
+      return {
+        fees: readRows(document.getElementById('feeRows'), '[data-row="fee"]', (g) => {
+          const r = g('refundable');
+          const f = {
+            appliesTo: g('appliesTo'),
+            amount: g('amount'),
+            refundable: r === 'true' ? true : r === 'false' ? false : null,
+            verifiedOn: g('verifiedOn'),
+            source: { label: g('source.label'), url: g('source.url') },
+          };
+          if (g('note')) f.note = g('note');
+          if (g('refundableNote')) f.refundableNote = g('refundableNote');
+          return f;
+        }),
+      };
+    }
+    return {
+      sources: readRows(document.getElementById('srcRows'), '[data-row="src"]', (g) => ({
+        label: g('label'),
+        url: g('url'),
+      })),
+    };
+  }
+
+  // ---- The diff ---------------------------------------------------------
+  const LABEL = {
+    verdict: 'Verdict', verdictHeadline: 'Headline', summary: 'Summary',
+    maxStayDays: 'Max stay (days)', processingTime: 'Processing time',
+    officialSource: 'Official source', sources: 'Sources',
+    visaOptions: 'Visa options', fees: 'Fees',
+  };
+
+  // Compared the same way the server compares it — key order ignored — so the
+  // preview cannot claim a change the server will then decide was nothing.
+  function canon(v) {
+    if (Array.isArray(v)) return v.map(canon);
+    if (v && typeof v === 'object') {
+      const out = {};
+      for (const k of Object.keys(v).sort()) if (v[k] !== undefined) out[k] = canon(v[k]);
+      return out;
+    }
+    return v;
+  }
+  const same = (a, b) => JSON.stringify(canon(a ?? null) ?? null) === JSON.stringify(canon(b ?? null) ?? null);
+
+  function render(v) {
+    if (v === null || v === undefined || v === '') return '(empty)';
+    if (Array.isArray(v)) {
+      if (!v.length) return '(none)';
+      return v.map((x, i) => `${i + 1}. ` + describe(x)).join('\n');
+    }
+    if (typeof v === 'object') return describe(v);
+    return String(v);
+  }
+
+  function describe(o) {
+    if (typeof o !== 'object' || o === null) return String(o);
+    return Object.entries(o)
+      .filter(([, x]) => x !== '' && x !== null && x !== undefined)
+      .map(([k, x]) => `${k}: ${typeof x === 'object' ? JSON.stringify(x) : x}`)
+      .join(' · ');
+  }
+
+  function diff(patch) {
+    return Object.keys(patch)
+      .filter((k) => !same(SAVED[k] ?? null, patch[k] ?? null))
+      .map((k) => ({ field: k, before: SAVED[k], after: patch[k] }));
+  }
+
+  // ---- Saving -----------------------------------------------------------
+  let pending = null;
+
+  function askThenSave(patch) {
+    const changes = diff(patch);
+    if (!changes.length) return show('Nothing has changed in that section.', '');
+    document.getElementById('cTitle').textContent =
+      changes.length === 1 ? 'One change' : `${changes.length} changes`;
+    // The verdict drives the badge; the headline and summary are the words
+    // under it. Moving one without the others is how a page ended up showing
+    // "ETA required" beneath a green Visa-free badge — so say so, out loud,
+    // while there is still a Cancel button on screen.
+    const fields = changes.map((c) => c.field);
+    const mismatch =
+      fields.includes('verdict') &&
+      !fields.includes('verdictHeadline') &&
+      !fields.includes('summary');
+
+    document.getElementById('cBody').innerHTML =
+      (mismatch
+        ? `<div class="dwarn">You are changing the verdict but not the headline or summary.
+             The badge will say one thing and the words under it another. Check they still agree.</div>`
+        : '') +
+      changes
+        .map(
+          (c) => `<div class="d">
+            <div class="dfield">${LABEL[c.field] || c.field}</div>
+            <div class="dpair"><span class="dtag was">before</span><pre>${esc(render(c.before))}</pre></div>
+            <div class="dpair"><span class="dtag now">after</span><pre>${esc(render(c.after))}</pre></div>
+          </div>`
+        )
+        .join('');
+    pending = { patch };
+    dlg.showModal();
+  }
+
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+
+  async function post(body) {
+    const res = await fetch('/api/admin/edit', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ slug: SLUG, ...body }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok || !out.ok) throw new Error(out.error || `failed (${res.status})`);
+    return out;
+  }
+
+  document.getElementById('cCancel').addEventListener('click', () => { pending = null; dlg.close(); });
+
+  document.getElementById('cGo').addEventListener('click', async () => {
+    const job = pending;
+    dlg.close();
+    if (!job) return;
+    show('Saving…');
+    try {
+      const out = await post(job);
+      // A 202 from IndexNow means the batch was accepted and discarded, so it
+      // is reported as not-yet-told rather than success.
+      const told = out.ping
+        ? out.ping.accepted
+          ? ' Search engines told.'
+          : ` Search engines answered ${out.ping.status} — not accepted; try "Tell search engines".`
+        : '';
+      show('Saved.' + told, 'ok');
+      setTimeout(() => location.reload(), 900);
+    } catch (e) {
+      show('Not saved: ' + e.message, 'bad');
+    }
+  });
+
+  for (const b of document.querySelectorAll('[data-save]')) {
+    b.addEventListener('click', () => askThenSave(readPanel(b.dataset.save)));
+  }
+
+  // ---- Adding and removing rows ----------------------------------------
+  document.addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del]');
+    if (!del) return;
+    del.closest('[data-row]').remove();
+    syncAppliesTo();
+  });
+
+  function addRow(containerId) {
+    const c = document.getElementById(containerId);
+    const first = c.querySelector('[data-row]');
+    if (!first) return show('Add the first one by hand for now — nothing to copy the shape from.', 'bad');
+    const clone = first.cloneNode(true);
+    for (const el of clone.querySelectorAll('input')) el.value = '';
+    for (const el of clone.querySelectorAll('select')) el.selectedIndex = 0;
+    c.appendChild(clone);
+    syncAppliesTo();
+    clone.querySelector('input')?.focus();
+  }
+
+  document.getElementById('addOpt')?.addEventListener('click', () => addRow('optRows'));
+  document.getElementById('addFee')?.addEventListener('click', () => addRow('feeRows'));
+  document.getElementById('addSrc')?.addEventListener('click', () => addRow('srcRows'));
+
+  // Keep each fee's "applies to" list in step with the option names above it.
+  // A fee pointing at an option that no longer exists is kept visible and
+  // marked, rather than quietly reassigned to something else.
+  function syncAppliesTo() {
+    const types = [...document.querySelectorAll('.opt-type')].map((i) => i.value.trim()).filter(Boolean);
+    for (const sel of document.querySelectorAll('.fee-applies')) {
+      const current = sel.value || sel.dataset.current || '';
+      const opts = ['*', ...types];
+      if (current && !opts.includes(current)) opts.push(current);
+      sel.innerHTML = opts
+        .map((t) => {
+          const label = t === '*' ? 'Every option on this page' : types.includes(t) ? t : `${t} (no such option)`;
+          return `<option value="${esc(t)}"${t === current ? ' selected' : ''}>${esc(label)}</option>`;
+        })
+        .join('');
+    }
+  }
+  document.addEventListener('input', (e) => { if (e.target.classList.contains('opt-type')) syncAppliesTo(); });
+  syncAppliesTo();
+
+  // ---- Undo -------------------------------------------------------------
+  for (const b of document.querySelectorAll('[data-undo]')) {
+    b.addEventListener('click', async () => {
+      if (!confirm('Put back the earlier value? This is recorded as a new change, not a deletion.')) return;
+      show('Undoing…');
+      try {
+        await post({ undo: b.dataset.undo });
+        show('Put back.', 'ok');
+        setTimeout(() => location.reload(), 700);
+      } catch (e) {
+        show('Could not undo: ' + e.message, 'bad');
+      }
+    });
+  }
+
+  // ---- Resubmit to search engines --------------------------------------
+  document.getElementById('ping')?.addEventListener('click', async () => {
+    show('Submitting…');
+    const res = await fetch('/api/admin/indexnow', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ slug: SLUG }),
+    });
+    const out = await res.json().catch(() => ({}));
+    show(out.accepted ? 'Accepted by IndexNow (200).' : `Not accepted — answered ${out.status || '?'}.`,
+      out.accepted ? 'ok' : 'bad');
+  });
+
+  // ---- Verification form (unchanged behaviour) --------------------------
   const form = document.getElementById('verify');
   const msg = document.getElementById('msg');
 
-  async function send(outcome) {
+  async function sendVerify(outcome) {
     const src = document.getElementById('src');
     const note = document.getElementById('note');
     // A flag needs a reason, but not a working URL — the whole point is that
@@ -143,7 +642,7 @@ const stale = !!checkedOn && ageDays >= STALE_DAYS;
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          slug: form.slug.value,
+          slug: SLUG,
           outcome,
           source: src.value.trim(),
           note: note.value.trim(),
@@ -158,15 +657,55 @@ const stale = !!checkedOn && ageDays >= STALE_DAYS;
     }
   }
 
-  form.addEventListener('submit', (e) => { e.preventDefault(); send('verified'); });
-  document.getElementById('cantverify').addEventListener('click', () => send('flagged'));
+  form.addEventListener('submit', (e) => { e.preventDefault(); sendVerify('verified'); });
+  document.getElementById('cantverify').addEventListener('click', () => sendVerify('flagged'));
 </script>
 
 <style>
   .top { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
   .top > div:first-child { display: flex; gap: .35rem; flex-wrap: wrap; }
   .row { display: flex; flex-wrap: wrap; gap: .5rem; }
-  table.t.kv th { width: 11rem; text-transform: none; font-size: .82rem; }
+  .rowend { justify-content: flex-end; margin-top: .6rem; }
+  .row.save { margin-top: 1.1rem; padding-top: .9rem; border-top: 1px solid var(--line); }
+  .row.save .primary { margin-left: auto; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  textarea.tall { min-height: 9rem; }
+  .rowbox { border: 1px solid var(--line); border-radius: .7rem; padding: .35rem .9rem .9rem; margin-bottom: .75rem; background: #fcfcfe; }
+  .rowbox.tight { padding-bottom: .7rem; }
   .warntext { color: #b4541a; font-weight: 650; }
   .msg { font-size: .88rem; margin-top: .6rem; }
+  .nowrap { white-space: nowrap; }
+  td.was { max-width: 20rem; }
+  td.was code { font-size: .78rem; color: var(--muted); word-break: break-word; }
+  .chip { margin-left: .4rem; }
+
+  .saveline { min-height: 1.2rem; margin: 0 0 .75rem; font-size: .9rem; font-weight: 650; }
+  .saveline.ok { color: var(--ok); }
+  .saveline.bad { color: #a11; }
+
+  dialog { border: 1px solid var(--line); border-radius: .9rem; padding: 1.25rem; max-width: 46rem; width: calc(100% - 2rem); }
+  dialog::backdrop { background: rgba(20, 33, 61, .35); }
+  dialog h3 { margin: 0 0 .75rem; font-size: 1.05rem; }
+  /* The diff rows are written into the dialog by script, so they never carry
+     Astro's scoping attribute and a scoped rule would not reach them. */
+  :global(.dwarn) {
+    background: #fff6ec; border: 1px solid #f0d3b4; color: #6b3b12;
+    padding: .7rem .85rem; border-radius: .6rem; font-size: .88rem; margin-bottom: .9rem;
+  }
+  :global(.d) { border-top: 1px solid var(--line); padding: .7rem 0; }
+  :global(.d:first-child) { border-top: 0; padding-top: 0; }
+  :global(.dfield) { font-weight: 700; font-size: .9rem; margin-bottom: .4rem; }
+  :global(.dpair) { display: flex; gap: .6rem; align-items: flex-start; margin-bottom: .3rem; }
+  :global(.dtag) {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .05em;
+    padding: .12rem .4rem; border-radius: .3rem; flex: 0 0 3.6rem; text-align: center;
+    align-self: flex-start;
+  }
+  :global(.dtag.was) { background: #fdf1e7; color: var(--warn); }
+  :global(.dtag.now) { background: #e9f7f1; color: var(--ok); }
+  :global(.dpair pre) {
+    margin: 0; font-size: .8rem; white-space: pre-wrap; word-break: break-word; flex: 1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
 </style>
