@@ -240,7 +240,29 @@ All in `scripts/`, all Node ESM, all read `.dev.vars`. Most accept `--dry-run` �
 
 ---
 
-## 9. SEO machinery
+## 9. The admin dashboard (`/admin`)
+
+A private control room for the content: metrics, a review queue, and verdict verification.
+
+| Path | What it does |
+|---|---|
+| `/admin` | Metrics, "do these next" ranked by traffic × staleness, filterable list of every corridor |
+| `/admin/review` | Approve / reject `pending_review` pages |
+| `/admin/c/<slug>` | One corridor: what it claims, its fees, and the verify form |
+| `POST /api/admin/status` | Publish / reject / requeue |
+| `POST /api/admin/verify` | Record a human verdict check, or a failed attempt |
+
+**Auth is Cloudflare Access** (`src/lib/admin-auth.ts`). The JWT in `Cf-Access-Jwt-Assertion` is *verified* — signature against Cloudflare's JWKS, plus audience and expiry — not merely checked for presence. Endpoints re-check auth themselves rather than trusting the page that called them.
+
+**Safe default:** with `ADMIN_ACCESS_TEAM_DOMAIN` or `ADMIN_ACCESS_AUD` missing, every admin route returns **404**. A missing variable locks the door; it can never open it. An unauthenticated visitor cannot even tell the dashboard exists.
+
+**Local development:** `ADMIN_DEV_BYPASS=1` in `.dev.vars` skips auth — but only alongside `import.meta.env.DEV`, which is `false` in a production build, so the branch is stripped entirely. Verified absent from `dist/`.
+
+**The guardrail that matters:** `/api/admin/verify` refuses to record a check without a source URL *and* a note, and rejects obvious non-sources. "Could not verify" is a first-class outcome that records what blocked you, so a route that beat us never looks checked. Every decision stores the acting email.
+
+Cloudflare Access is configured with two destinations — `infoonvisa.com/admin` and `infoonvisa.com/api/admin`. Both are needed: the second covers the endpoints the dashboard's buttons call.
+
+## 10. SEO machinery
 
 - **Three sitemaps**, all in `robots.txt`: `sitemap-index.xml`, `sitemap-0.xml` (listed directly — Bing read the index once and never followed through to the children), `sitemap-corridors.xml`.
 - **One canonical URL form.** Middleware 301s `www` → apex and strips trailing slashes; the sitemap `serialize` does the same, so we never offer two copies of one page.
@@ -252,7 +274,7 @@ All in `scripts/`, all Node ESM, all read `.dev.vars`. Most accept `--dry-run` �
 
 ---
 
-## 10. Security
+## 11. Security
 
 - CSP + HSTS + frame-deny set in middleware for every response.
 - `safeUrl()` sanitises every outbound link (blocks `javascript:` etc.).

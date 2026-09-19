@@ -34,6 +34,8 @@ The entire business rests on one thing: **the pages are right.** A visa site tha
 
 **Monetisation:** not yet applied to AdSense. This is the next milestone.
 
+**Admin dashboard:** live at /admin behind Cloudflare Access — see §7b.
+
 ---
 
 ## 3. The rules that govern the content
@@ -155,6 +157,29 @@ Expect 4–6 routes from a Batch 5, not 10. **Do not pad a batch with a guess** 
 - **Show the plan before big changes** when asked — the owner will say "tell me how you'll solve this, then I'll give you the go-ahead".
 - **Don't touch the home page or corridor page layout** without being asked. Mobile changes were explicitly scoped to *other* pages first, then extended to the home page with "keep as it is for desktop view".
 - **Report failures honestly.** The owner has caught a real problem before (IndexNow 202s never reaching Bing). Surfacing "this didn't work" is more valuable than a clean-looking report.
+
+---
+
+## 7b. The admin dashboard — use this before writing a script
+
+**https://infoonvisa.com/admin** — behind a Cloudflare Access email login (owner's address only). Built 19 Sep 2026.
+
+| Screen | What it replaces |
+|---|---|
+| Dashboard | reading numbers out of the database by hand |
+| Review queue | `update corridors set status='verified' where slug=…` |
+| Corridor detail | `scripts/audit-record.mjs` |
+
+**Recording a verification requires a source URL and a note.** Obvious non-sources are refused. "Could not verify" records what blocked you, so a route that beat us never looks checked. Every action stores who did it.
+
+**If `/admin` shows "Not found"**, the two Access settings are missing or wrong — that is the designed failure mode, not a bug. They live in the Cloudflare dashboard under **Settings → Runtime variables and secrets**:
+
+- `ADMIN_ACCESS_TEAM_DOMAIN` = `summer-scene-d750.cloudflareaccess.com`
+- `ADMIN_ACCESS_AUD` = the Application Audience tag, found under the Access application → **Additional settings → AUD tag** (not the Details tab, and not the Policy ID, which has dashes)
+
+Access protects **two** destinations — `infoonvisa.com/admin` and `infoonvisa.com/api/admin`. The second covers the endpoints the dashboard's buttons call; without it the buttons break.
+
+**Not built yet (Phase 3):** editing verdicts, fees and source links; a diff preview; change history and undo. Until then, content edits are still scripts.
 
 ---
 
