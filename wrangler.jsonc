@@ -8,4 +8,25 @@
   // the preview URLs disabled across every deploy (dashboard toggles get reverted).
   "workers_dev": false,
   "preview_urls": false
+
+  // NOTE: this file deliberately declares no "vars".
+  //
+  // The Worker's settings live in the Cloudflare dashboard, under
+  // Settings -> Runtime variables and secrets (NOT the Builds section, which is
+  // only read while Cloudflare builds the code — putting them there is what left
+  // the site serving blank pages on 14 Sep 2026):
+  //
+  //   PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+  //   GEMINI_API_KEY, GEMINI_MODEL
+  //   GCP_PROJECT_ID, GCP_LOCATION, GCP_SA_KEY, REGEN_KEY
+  //   ADMIN_ACCESS_TEAM_DOMAIN, ADMIN_ACCESS_AUD   (Cloudflare Access, guards /admin)
+  //
+  // The Astro adapter writes "vars": {} into the generated deploy config, and
+  // without --keep-vars wrangler treats that as the complete list and deletes
+  // everything above. The deploy command in .github/workflows/deploy.yml carries
+  // that flag for exactly this reason — DO NOT REMOVE IT. The dashboard shows a
+  // "keep deployments in sync" notice about this; --keep-vars is our answer to it.
+  //
+  // The values are kept out of this file on purpose: the repository is public,
+  // and the Access team domain and secrets should not be published in it.
 }
