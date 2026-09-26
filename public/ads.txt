@@ -1,0 +1,14 @@
+# ads.txt — Authorized Digital Sellers (IAB Tech Lab)
+#
+# This file is PUBLIC by design. It is served at https://infoonvisa.com/ads.txt
+# for anyone to read, and the publisher ID in it is not a secret: its whole
+# purpose is to let ad buyers confirm who is allowed to sell this site's
+# inventory. Without it, a fraudster can claim to be selling infoonvisa.com
+# and buyers have no way to tell.
+#
+# Format: <ad system domain>, <publisher id>, <DIRECT|RESELLER>, <cert authority id>
+# The last field is Google's own TAG certification ID and is the same for
+# every AdSense publisher — it is not account-specific.
+#
+# Added 27 September 2026, alongside the AdSense application.
+google.com, pub-5462566343196770, DIRECT, f08c47fec0942fa0
