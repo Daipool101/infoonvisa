@@ -15,82 +15,142 @@
     "means nothing: it was equally confident about Saudi Arabia twice, once right",
     "and once wrong."
   ],
-
   "india-to-japan": {
-    "liveVerdict": "embassy", "researchSays": "evisa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "embassy",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "JAPAN eVISA has run in India since 1 April 2024, so the research is not wrong that the visa is electronic. But Japan's MOFA lists India under 'Application should be made through an accredited agency', not under the countries that may apply directly online, and the Embassy of Japan in India says applicants 'have to submit applications to the Visa Application Centers as before but receive a visa issued in electronic form instead of a visa sticker'. The eVISA changed what you receive, not how you apply. Calling it an e-Visa would tell an Indian reader they can apply from home.",
     "source": "https://www.mofa.go.jp/j_info/visit/visa/visaonline.html"
   },
-
   "china-to-japan": {
-    "liveVerdict": "embassy", "researchSays": "evisa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "embassy",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "Identical to India. Japan's MOFA page of 15 May 2026 lists direct online eVISA eligibility as Australia, Brazil, Cambodia, Canada, Saudi Arabia, South Africa, Taiwan, the United Kingdom and the USA. China appears in the separate group where 'application should be made through an accredited agency'. Not a self-service e-visa.",
     "source": "https://www.mofa.go.jp/j_info/visit/visa/visaonline.html"
   },
-
   "india-to-saudi-arabia": {
-    "liveVerdict": "embassy", "researchSays": "evisa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "embassy",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "The owner checked Saudi Arabia's own eVisa signup page on 26 Sep 2026: its Country of Nationality dropdown, which the page states IS the eligibility list, holds 70 countries and India is not among them. Article 6(1) of the Tourist Visa Regulations sends non-listed nationalities to a diplomatic mission. The research keeps returning evisa because the web is saturated with it - true only for the many Indians holding a used US, UK or Schengen visa, which is the Article 6(2) exception, carried on the page as a conditional option.",
     "source": "https://cdn.mt.gov.sa/mtportal/mt-fe-production/content/policies-regulations/documents/tourism-regulations/Tourist-Visa-Regulations-En-V012.pdf"
   },
-
   "pakistan-to-saudi-arabia": {
-    "liveVerdict": "embassy", "researchSays": "evisa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "embassy",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "As India. Pakistan is not in the 70-country dropdown on Saudi Arabia's eVisa signup page either, and the same Article 6(1) applies.",
     "source": "https://cdn.mt.gov.sa/mtportal/mt-fe-production/content/policies-regulations/documents/tourism-regulations/Tourist-Visa-Regulations-En-V012.pdf"
   },
-
   "united-states-to-israel": {
-    "liveVerdict": "eta", "researchSays": "visa_free",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "eta",
+    "researchSays": "visa_free",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "The most dangerous thing the audit produced, and it was wrong. Israel's Population and Immigration Authority states: 'As of January 1st, 2025, travelers to Israel must have a valid visa or ETA-IL approval before starting their journey.' Visa-exempt does not mean nothing to obtain. The research had opened travel.state.gov and then taken the rest from Wikipedia and tour operators - it never opened an Israeli government page - and reported 'Could not confirm: none'.",
     "source": "https://israel-entry.piba.gov.il/"
   },
-
   "india-to-bhutan": {
-    "liveVerdict": "visa_free", "researchSays": "embassy",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "visa_free",
+    "researchSays": "embassy",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "Bhutan's Department of Tourism: 'All visitors require a visa before travelling to Bhutan (except those from India, Bangladesh and the Maldives)'. Indians need a permit, not a visa, and may apply for it at the point of entry. The Sustainable Development Fee is payable, which the page covers.",
     "source": "https://bhutan.travel/visa"
   },
-
   "india-to-mauritius": {
-    "liveVerdict": "visa_free", "researchSays": "voa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "visa_free",
+    "researchSays": "voa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "Mauritius publishes a country-by-country list. Entry 76 reads 'India — No visa required.' Other nationalities on the same list are explicitly marked 'Visa for sixty days on arrival', so the distinction is one Mauritius itself draws.",
     "source": "https://passport.govmu.org/passport/wp-content/uploads/2021/03/Visa-Requirement-Country-22062022.pdf"
   },
-
   "india-to-turkey": {
-    "liveVerdict": "embassy", "researchSays": "evisa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "embassy",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "Türkiye's e-Visa is open to Indians only as a conditional route - it requires a valid Schengen, US, UK or Ireland visa or residence permit - and the page already carries it as 'Tourist e-Visa (Conditional)'. The Turkish Embassy in New Delhi describes the condition and does not publish a fee, which is why that route is also unpriced. The unconditional route for an ordinary Indian passport is the sticker visa.",
     "source": "https://newdelhi-emb.mfa.gov.tr/Mission/ShowAnnouncement/361514"
   },
-
   "australia-to-indonesia": {
-    "liveVerdict": "voa", "researchSays": "evisa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "voa",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "Indonesian Immigration's own portal calls it 'Electronic Visa on Arrival (e-VOA)'. Applying online in advance is an option, not a replacement - it is still a visa on arrival, and it can still be obtained at the airport. Calling it an e-Visa would misdescribe Indonesia's own naming.",
     "source": "https://evisa.imigrasi.go.id/"
   },
-
   "switzerland-to-indonesia": {
-    "liveVerdict": "voa", "researchSays": "evisa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "voa",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "reason": "As Australia. Indonesia's portal names the product 'Electronic Visa on Arrival (e-VOA)'.",
     "source": "https://evisa.imigrasi.go.id/"
   },
-
   "india-to-belarus": {
-    "liveVerdict": "embassy", "researchSays": "evisa",
-    "decidedOn": "2026-09-26", "decidedBy": "aksjai101@gmail.com",
+    "liveVerdict": "embassy",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-26",
+    "decidedBy": "aksjai101@gmail.com",
     "unverified": true,
     "reason": "NOT SETTLED - left as it was because it could not be checked, which is a different thing. Belarus launched an eVisa for 67 states on 20 March 2025, and whether India is among them could not be established: mfa.gov.by and its embassy mirrors do not respond from here. The page's existing visa-free option is itself conditional (entry via Minsk National Airport, holding a used EU or Schengen multi-entry visa), so the unconditional route for an ordinary Indian passport remains an embassy visa. Worth a human with a working connection to mfa.gov.by.",
     "source": "https://www.belarus.by/en/travel/travel-visas"
+  },
+  "united-kingdom-to-australia": {
+    "liveVerdict": "evisa",
+    "researchSays": "eta",
+    "decidedOn": "2026-09-27",
+    "decidedBy": "aksjai101@gmail.com",
+    "reason": "Australia runs both, and steers British passports to the one we name. The ETA (subclass 601) page says 'European passport holders may be eligible for an eVisitor (subclass 651) visa', and the Australian High Commission in London says Britons 'may be eligible for an eVisitor visa or an Australian Electronic Travel Authority (ETA)' - so listing both, as the page does, is right. The eVisitor is free and Australia's own word for it is 'visa'; the ETA carries an AUD 20 app charge. Leading with the free route Australia points Europeans at.",
+    "source": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/evisitor-651"
+  },
+  "india-to-qatar": {
+    "liveVerdict": "voa",
+    "researchSays": "visa_free",
+    "decidedOn": "2026-09-27",
+    "decidedBy": "aksjai101@gmail.com",
+    "reason": "The documented 'free is not visa-free' trap, caught in the wild. Qatar's Ministry of Interior: 'Citizens from more than 95 countries around the world are permitted to enter Qatar with a visa upon arrival at the country's entry points.' It is issued free of charge for 30 days, which is why the research called it visa-free - but a visa is still issued, and the conditions (three months' passport validity, onward ticket, compulsory health insurance) attach to it.",
+    "source": "https://portal.moi.gov.qa/qatarvisas/"
+  },
+  "india-to-new-zealand": {
+    "liveVerdict": "evisa",
+    "researchSays": "embassy",
+    "decidedOn": "2026-09-27",
+    "decidedBy": "aksjai101@gmail.com",
+    "reason": "Immigration New Zealand's Visitor Visa page says 'Apply online' and runs the whole thing through Immigration Online; paper applications are being phased out. It is a full visa application - police certificates, medicals, proof of funds, from NZD $441 - but it is not made at an embassy, and telling an Indian reader to go to one would send them somewhere they do not need to go.",
+    "source": "https://www.immigration.govt.nz/visas/visitor-visa/"
+  },
+  "india-to-south-africa": {
+    "liveVerdict": "evisa",
+    "researchSays": "eta",
+    "decidedOn": "2026-09-27",
+    "decidedBy": "aksjai101@gmail.com",
+    "reason": "South Africa calls one thing by two names and is mid-migration between them. eta.dha.gov.za describes an Electronic Travel Authorisation, and then its own 'Who can apply' paragraph reads: 'Applicants who hold valid ordinary passports may apply for an e-Visa online provided they will land at O. R. Tambo, Cape Town, Lanseria or King Shaka.' That is word for word the substance already on the page, including the four-airport restriction. The naming is theirs to settle; the reader is told the right thing either way. Re-check if the eVisa portal is retired.",
+    "source": "https://eta.dha.gov.za/"
+  },
+  "india-to-indonesia": {
+    "liveVerdict": "evisa",
+    "researchSays": "voa",
+    "decidedOn": "2026-09-27",
+    "decidedBy": "aksjai101@gmail.com",
+    "unverified": true,
+    "reason": "NOT SETTLED - almost certainly a real error, but unverifiable today. Indonesia's portal was showing a four-hour maintenance banner and its eligibility list is behind a login. The suspicion is strong because our own four Indonesia pages disagree with each other: australia-, switzerland- and united-states-to-indonesia all say voa and were confirmed against Indonesia's own name for the product, 'Electronic Visa on Arrival (e-VOA)'. Only the India page says evisa. Re-check when evisa.imigrasi.go.id is back and make all four consistent.",
+    "source": "https://evisa.imigrasi.go.id/"
+  },
+  "united-states-to-indonesia": {
+    "liveVerdict": "voa",
+    "researchSays": "evisa",
+    "decidedOn": "2026-09-27",
+    "decidedBy": "aksjai101@gmail.com",
+    "reason": "As australia- and switzerland-to-indonesia: Indonesian Immigration's own portal names the product 'Electronic Visa on Arrival (e-VOA)'. Note that the research returned the OPPOSITE answer for india-to-indonesia on the same day - voa there, evisa here, for one country and one product. Its confidence was 'high' both times.",
+    "source": "https://evisa.imigrasi.go.id/"
   }
 }
