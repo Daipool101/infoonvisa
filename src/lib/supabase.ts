@@ -56,7 +56,17 @@ const PUBLIC_FALLBACK: Record<string, string | undefined> = {
 export function getEnv(): AppEnv {
   // Everything else comes only from the Cloudflare env: real secrets in
   // production, and .dev.vars through the adapter's platformProxy in local dev.
-  const pick = (k: string) => cf(k) ?? PUBLIC_FALLBACK[k] ?? '';
+  // An EMPTY value counts as absent, not as a setting. `??` alone falls
+  // through only on null/undefined, so a blank line in .dev.vars —
+  // `PUBLIC_ADSENSE_CLIENT=` — used to win over the build-time fallback and
+  // silently disable the thing it was meant to configure. That is how the
+  // prerendered blog ended up with no ad code while every server-rendered
+  // page had it: nothing errored, the value was simply "".
+  const pick = (k: string) => {
+    const fromCf = cf(k);
+    if (fromCf !== undefined && fromCf !== '') return fromCf;
+    return PUBLIC_FALLBACK[k] || '';
+  };
   return {
     PUBLIC_SUPABASE_URL: pick('PUBLIC_SUPABASE_URL'),
     PUBLIC_SUPABASE_ANON_KEY: pick('PUBLIC_SUPABASE_ANON_KEY'),

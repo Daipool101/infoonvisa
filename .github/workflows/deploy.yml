@@ -29,6 +29,19 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # The blog is prerendered HERE, at build time, not served from the
+          # Worker — so a Cloudflare *runtime* secret never reaches it. Without
+          # this line every server-rendered page carries the AdSense script and
+          # all 17 blog posts carry none: a half-installed implementation that
+          # earns nothing on those pages and reads as sloppy to a reviewer.
+          #
+          # Deliberately in the clear rather than a repository secret. A
+          # publisher ID is public by definition — it is already served to the
+          # whole internet at /ads.txt, which exists precisely so buyers can
+          # read it. Hiding it in a secret would imply it were sensitive and
+          # make this failure harder to diagnose next time.
+          PUBLIC_ADSENSE_CLIENT: ca-pub-5462566343196770
 
       # --keep-vars is load-bearing. The Astro adapter writes `"vars": {}` into
       # the generated config, and without this flag wrangler treats that as the
