@@ -28,7 +28,7 @@
 // stopped and resumed without losing what it has already learned.
 import { readFileSync, appendFileSync, existsSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenAI } from '@google/genai';
+import { loadEnv, vertexGenerate, textOf, retrievedUrls, searchTitles } from './lib-vertex.mjs';
 
 const args = process.argv.slice(2);
 const argOf = (name, dflt) => {
@@ -40,12 +40,23 @@ const SKIP = Number(argOf('--skip', 0));
 const ONLY = argOf('--slug', null);
 const OUT = new URL('../audit-regen.md', import.meta.url);
 
-const env = {};
-for (const l of readFileSync(new URL('../.dev.vars', import.meta.url), 'utf8').split(/\r?\n/)) {
-  const m = l.match(/^([A-Z0-9_]+)=(.*)$/); if (m) env[m[1]] = m[2];
-}
+const env = loadEnv(new URL('../.dev.vars', import.meta.url));
 const db = createClient(env.PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+
+// This runs on Vertex, not the AI Studio key, and that is not a preference.
+// The free Gemini tier allows 20 requests PER DAY per model
+// (GenerateRequestsPerDayPerProjectPerModel-FreeTier) — a 128-page audit
+// exhausts it in minutes, and the failures arrive mid-run as 429s. Vertex is
+// also what the deployed site uses, so auditing through it means auditing the
+// pipeline that actually produces pages.
+if (!env.GCP_SA_KEY || !env.GCP_PROJECT_ID) {
+  console.error(
+    'Missing GCP_SA_KEY / GCP_PROJECT_ID in .dev.vars.\n' +
+    'This audit runs on Vertex AI, the same credentials the deployed site uses:\n' +
+    'the free Gemini API key is capped at 20 requests per day, which this exhausts at once.'
+  );
+  process.exit(1);
+}
 
 // Mirrors src/lib/links.ts OFFICIAL_PORTALS. Read from the TypeScript source so
 // the two cannot drift: a stale copy here would seed the model with a dead
@@ -121,6 +132,13 @@ const sniffVerdict = (text) => {
   return w;
 };
 
+// Differences a human has already looked at and decided the live page wins.
+// Re-flagging a settled argument on every run buries the unsettled ones.
+let ACCEPTED = {};
+try {
+  ACCEPTED = JSON.parse(readFileSync(new URL('../audit-accepted.json', import.meta.url), 'utf8'));
+} catch { /* no decisions recorded yet */ }
+
 let rows = [];
 if (ONLY) {
   const r = await db.from('corridors').select('slug,verdict,data,search_count').eq('slug', ONLY);
@@ -136,7 +154,7 @@ if (!existsSync(OUT)) {
 }
 
 console.log(`Auditing ${rows.length} route(s)\n`);
-let agree = 0, differ = 0, failed = 0;
+let agree = 0, differ = 0, failed = 0, settledCount = 0;
 const disagreements = [];
 
 for (const row of rows) {
@@ -144,38 +162,45 @@ for (const row of rows) {
   const live = row.data?.verdict ?? row.verdict;
   process.stdout.write(`${row.slug.padEnd(42)} live=${String(live).padEnd(9)} `);
   try {
-    const res = await ai.models.generateContent({
-      model: env.GEMINI_MODEL || 'gemini-2.5-flash',
-      contents: researchPrompt(fromSlug, toSlug),
+    const res = await vertexGenerate(env, {
+      prompt: researchPrompt(fromSlug, toSlug),
+      tools: [{ urlContext: {} }, { googleSearch: {} }],
       // 8192, not 4096. This model thinks before it answers and the thinking is
       // billed against the same cap: at 4096 five of the first eight routes came
       // back with an empty body and finishReason MAX_TOKENS, which the parser
       // reported as "UNPARSED" — a silent failure dressed as a result.
-      config: { tools: [{ urlContext: {} }, { googleSearch: {} }], temperature: 0, maxOutputTokens: 8192 },
+      config: { temperature: 0, maxOutputTokens: 8192 },
     });
-    const text = res.text || '';
+    const text = textOf(res);
     const found =
       (parse(text, 'VERDICT').match(/visa_free|voa|evisa|eta|embassy/) || [''])[0] || sniffVerdict(text);
     const conf = (parse(text, 'CONFIDENCE').match(/high|medium|low/i) || ['?'])[0].toLowerCase();
     const why = parse(text, 'WHY');
     const unconfirmed = parse(text, 'UNCONFIRMED');
 
-    const c = res.candidates?.[0];
-    const retrieved = (c?.urlContextMetadata?.urlMetadata ?? [])
-      .filter((m) => String(m?.urlRetrievalStatus ?? '').includes('SUCCESS')).map((m) => m.retrievedUrl);
-    const searched = (c?.groundingMetadata?.groundingChunks ?? []).map((x) => x?.web?.title).filter(Boolean);
+    const retrieved = retrievedUrls(res);
+    const searched = searchTitles(res);
 
     if (!found) {
       // Say WHY it failed. An empty answer and a refusal are different problems.
-      const reason = res.candidates?.[0]?.finishReason || 'unknown';
+      const reason = res?.candidates?.[0]?.finishReason || 'unknown';
       console.log(`-> NO VERDICT (finish=${reason}, ${text.length} chars)`);
       failed++; continue;
     }
     const same = found === live;
-    same ? agree++ : differ++;
-    console.log(`-> ${found.padEnd(9)} ${conf.padEnd(6)} ${same ? 'agree' : '*** DIFFERS ***'}`);
-    appendFileSync(OUT, `| ${row.slug} | ${live} | ${found} | ${conf} | ${same ? 'yes' : '**NO**'} |\n`);
-    if (!same) {
+    // A recorded decision only covers the exact argument it settled. If the
+    // research now says something different again, that is a new finding and
+    // the old decision does not cover it.
+    const decided = ACCEPTED[row.slug];
+    const settled = !same && decided && decided.liveVerdict === live && decided.researchSays === found;
+
+    if (same) agree++;
+    else if (settled) settledCount++;
+    else differ++;
+
+    console.log(`-> ${found.padEnd(9)} ${conf.padEnd(6)} ${same ? 'agree' : settled ? 'settled earlier' : '*** DIFFERS ***'}`);
+    appendFileSync(OUT, `| ${row.slug} | ${live} | ${found} | ${conf} | ${same ? 'yes' : settled ? 'settled' : '**NO**'} |\n`);
+    if (!same && !settled) {
       disagreements.push({ slug: row.slug, live, found, conf, why, unconfirmed, retrieved, searched, traffic: row.search_count });
     }
   } catch (e) {
@@ -195,7 +220,7 @@ if (disagreements.length) {
   }
 }
 
-console.log(`\n${agree} agree · ${differ} DIFFER · ${failed} failed`);
+console.log(`\n${agree} agree · ${differ} DIFFER · ${settledCount} settled earlier · ${failed} failed`);
 if (differ) console.log(`\nDisagreements (check these by hand):`);
 disagreements.sort((a, b) => b.traffic - a.traffic).forEach((d) =>
   console.log(`  ${String(d.traffic).padStart(4)}  ${d.slug.padEnd(42)} ${d.live} -> ${d.found}  (${d.conf})`));
