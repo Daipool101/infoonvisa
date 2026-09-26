@@ -3,7 +3,7 @@
 Everything a new person needs to pick this up and work on it without guessing.
 Read `ARCHITECTURE.md` for *how it is built*; this file is *what state it is in, why it is that way, and what to do next*.
 
-**Last updated:** 14 September 2026
+**Last updated:** 27 September 2026
 **Owner:** Akash Jaiswal (akash@cuddlesfoundation.com)
 **Live:** https://infoonvisa.com
 
@@ -17,22 +17,22 @@ The entire business rests on one thing: **the pages are right.** A visa site tha
 
 ---
 
-## 2. Current state (14 September 2026)
+## 2. Current state (27 September 2026)
 
 | | |
 |---|---|
-| Live corridor pages | **126** (`status = 'verified'`) |
-| Awaiting review | 3 (`pending_review`) |
+| Live corridor pages | **130** (`status = 'verified'`) |
+| Awaiting review | 2 (`pending_review`) |
 | Blog posts | 17 (all published) |
 | Countries available | 198 |
 
-**Verdict spread:** visa-free 58 · e-visa 26 · embassy 25 · eta 9 · voa 8
+**Verdict spread:** visa-free 60 · embassy 27 · e-visa 26 · eta 10 · voa 7
 
-**Verdict accuracy audit:** ✅ **121 of 125 verified against official sources.** 4 left for the owner to check by hand (see §6).
+**Verdict accuracy:** **123 of 130** carry a recorded human check. Two routes remain for the owner (§6B); the rest were settled in the 8-batch audit.
 
-**Visa fees:** **39 pages** carry a verified fee amount; 58 more are visa-free and say "None". **29 still unpriced.**
+**Regeneration audit:** a full grounded re-check of every live page ran 26–27 Sep 2026. **14 disagreements, 4 real** — see §5b before believing any of its output.
 
-**Monetisation:** not yet applied to AdSense. This is the next milestone.
+**Visa fees:** **57 pages** carry a verified fee; 60 more are visa-free and say "None". **13 still unpriced**, carrying ~7% of traffic — all blocked on governments that publish no figure (§6C).
 
 **Admin dashboard:** live at /admin behind Cloudflare Access — see §7b.
 
@@ -94,6 +94,23 @@ Roughly half the work on this project is getting a number out of a site that doe
 
 **3. Watch for rules with a future effective date.** Thailand's 60-day exemption was revoked effective 15 September 2026 — caught three days out. Japan's fees rose 5× on 1 July 2026 and its *main* fee page still shows the old figures with a note pointing elsewhere. When a source mentions a pending change, chase the effective date and check whether the gazette actually published.
 
+**4. The eligibility list is usually a dropdown, not a document.** The clearest answer on this whole project came from the *Country of Nationality* menu on Saudi Arabia's own eVisa signup page: 70 entries, and the page says underneath it that anyone not listed must contact an embassy. India was not there. Neither was Pakistan. When a government runs an application portal, open the form and read the menu — it is the eligibility list, maintained because the system depends on it, and it cannot be out of date the way a help page can.
+
+**5. "Free of charge" usually belongs to somebody else.** The UAE consulate page carries that phrase three times and not once for British or American ordinary passports — those sentences are about Chinese nationals, Russian nationals, and *diplomatic* passport holders. The Maldives says the *Traveller Declaration form* is free of charge, which is not the visa. Both visas may well be free; neither government says so. Read what the sentence is attached to before believing it applies to your reader.
+
+### The "e-visa that isn't" — the most common false positive
+
+An electronic visa is not the same as an online application, and four separate pages have nearly been broken by confusing them.
+
+| Route | What it looks like | What it is |
+|---|---|---|
+| India / China → Japan | JAPAN eVISA | You still submit in person at a visa centre; only the sticker became electronic. Japan's MOFA lists both countries under *"apply through an accredited agency"* |
+| Australia / Switzerland → Indonesia | e-Visa portal | Indonesia's own name for it is **"Electronic Visa on Arrival (e-VOA)"**. It is a visa on arrival |
+| India → Türkiye | e-Visa | Open only to holders of a Schengen, US, UK or Ireland visa. Conditional, not general |
+| Brazil → Egypt | Visa on arrival | Exists, but the list of eligible nationalities is unpublished; Egypt's own portal says you *"generally must first obtain an e-Visa"* |
+
+**The test is what the traveller has to do, not what they end up holding.** If they must appear somewhere with documents, it is not an e-visa however the file arrives. And if a route is open only to people holding some *other* country's visa, the verdict is the unconditional route, with the conditional one carried as an option whose **name** states the condition.
+
 ---
 
 ## 5. What has been fixed (and why it mattered)
@@ -112,6 +129,64 @@ Other corrections: Qatar (VoA not e-visa), Malaysia, Philippines, several Scheng
 
 **Also fixed, from Phase 1 of the fee work:** the at-a-glance table said *"None — no visa is required"* against **every** option on a visa-free page — including Thailand's Tourist Visa, which costs money. Now only the exemption row says free; `isExemptionOption()` decides, and anything unrecognised falls back to the official source. Mexico's FMM and Bhutan's Entry Permit deliberately fall through — no visa needed, but the document is charged for.
 
+### The generator itself was the root cause (fixed 26 Sep 2026)
+
+Worth understanding before trusting anything a page says, because it explains the *shape* of every error above.
+
+Every page was produced by a single model call **with no tools**. The prompt told it to *"only state visa facts you can attribute to an official government source"* and to put those URLs in `sources` — to a model that could not open a web page. It was asked for footnotes with no library card, and it cannot refuse, so it recalled a URL that looked right and wrote prose that sounded sourced. The only check was that the URL loaded.
+
+That is how India → Saudi Arabia went live claiming Indians may use the tourist e-Visa, citing `mofa.gov.sa` — a real ministry homepage that says nothing about Indians.
+
+And the model was not inventing. The web is full of *"Indians can get a Saudi e-visa"* because it is true for the many Indians holding a used US visa — the Article 6(2) exception. **Ten thousand agency pages repeating an exception outweigh one ministry PDF stating the rule.** Recall is weighted by frequency and has no idea who is authoritative. That single sentence explains Saudi Arabia, the UAE 90-day error, and most of the rest.
+
+Generation now runs in two passes (`src/lib/gemini.ts`, mirrored in `vertex.ts`):
+
+1. **Research** — `urlContext` opens the destination's curated portal directly, `googleSearch` covers the rest. Plain prose out.
+2. **Structure** — tools off, input is pass 1's text *only*. It can rearrange, not invent.
+
+They are separate calls because search grounding and a strict `responseSchema` cannot be combined in one request, which is almost certainly why grounding was never switched on.
+
+> 🔴 **Grounding alone was not enough, and this is the part to remember.** Search returns what ranks, and for visa queries what ranks is visa agents. A grounded answer about Saudi Arabia came back resting on `saudievisaonline.com`, `visadeskglobal.com`, an airline and an insurer — two governments among eight — and the model wrote *"official Saudi sources consulted include the Ministry of Foreign Affairs, as referenced by TATA AIG and The Times of India."* An insurance company standing in for a ministry is **worse** than an ungrounded guess, because it arrives wearing a citation.
+
+So the check cannot live in the prompt. `src/lib/evidence.ts` judges the list of pages the **API** says were retrieved, and the publish gate reads that instead of asking whether the page cited a `.gov` URL — a test a model passes by recalling one. A page must have had its official portal successfully read, or two independent government pages retrieved, before it can publish itself.
+
+---
+
+## 5b. The regeneration audit — and why it never writes
+
+`scripts/regen-audit.mjs` re-researches every live page through the new grounded pass, compares the verdict it reaches with the one published, and **reports differences instead of fixing them**. Results land in `audit-regen.md`; decisions live in `audit-accepted.json`.
+
+**It does not overwrite, and it must not be made to.** Re-running 128 pages and saving the output would discard every human verification, every hand-checked fee and every correction made by hand — replacing known-checked text with unknown-checked text. That is not an improvement because the pipeline got better.
+
+```bash
+node scripts/regen-audit.mjs --limit 10              # top 10 by traffic
+node scripts/regen-audit.mjs --limit 10 --skip 10    # next 10
+node scripts/regen-audit.mjs --slug india-to-nepal   # one route
+```
+
+> ⚠️ **It runs on Vertex, and that is not a preference.** The free Gemini API key allows **20 requests per day** per model (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`). A 128-page audit exhausts it in minutes, and the failures arrive mid-run as 429s. `scripts/lib-vertex.mjs` holds the service-account auth and retries on 429 honouring the server's own delay hint — because a rate limit that reads as *"checked this page, found nothing"* is the same class of bug as the link checker that could not tell a crash from a healthy week.
+
+### What the first full pass actually proved
+
+**14 disagreements out of 128. Four were real. Ten were not.** Every one was taken to the government's own page rather than trusted.
+
+Real, and all four had been wrong for over a year:
+
+| Page | Was | Now |
+|---|---|---|
+| `india-to-israel` | embassy | **evisa** — Israel opened eVisa-B2 to Indians on 25 Jun 2025 |
+| `india-to-south-africa` | embassy | **evisa** — India is on the Home Affairs eVisa list (4 named airports only) |
+| `india-to-sri-lanka` | evisa | **eta** — badge only; the page already said ETA throughout |
+| `brazil-to-egypt` | voa | **evisa** — a precaution, not a proven error (see the file's header) |
+
+> 🔴 **Confidence from the research pass carries no weight whatsoever.** It reported `visa_free` for **US → Israel** at high confidence with *"could not confirm: none"* — having opened `travel.state.gov` and then taken the rest from Wikipedia and tour operators, never once opening an Israeli government page. Israel has required a visa or ETA-IL of every traveller since 1 January 2025. That change would have sent Americans to the airport with nothing. It was equally confident about Saudi Arabia twice: once right, once wrong.
+
+**Three of the ten were the tool arguing against corrections already verified by hand** — both Saudi routes and US → Israel. Treat a disagreement as *"go and look at this page"*, never as a finding.
+
+What it is genuinely good for is exactly that. Israel's eVisa-B2 and South Africa's eVisa had both been live for over a year, and neither would ever have surfaced by re-reading our own pages.
+
+**Record every decision in `audit-accepted.json`** — what was read, by whom, when. Without it each run re-opens the same settled arguments and the new findings drown. An entry only covers the exact argument it settled: if research later returns a *different* verdict, the audit flags it again.
+
 ---
 
 ## 6. Open work, in priority order
@@ -120,13 +195,12 @@ Other corrections: Qatar (VoA not e-visa), Malaysia, Philippines, several Scheng
 
 The groundwork is done: 126 verified pages, dated sources, a real blog, privacy/terms/contact/about pages, an audit trail. This is the recommended next session.
 
-### B. 4 routes the owner must verify by hand
+### B. 2 routes the owner must verify by hand
 
-In `C:\Users\Akash\Downloads\verify-manually.md`, each with what the page claims and exactly what was tried:
+In `C:\Users\Akash\Downloads\verify-manually.md`, each with what the page claims and exactly what was tried. *(Both Saudi routes came off this list on 26 Sep 2026 — see §5b.)*
 
 | Route | The one thing needed |
 |---|---|
-| `india-to-saudi-arabia`, `pakistan-to-saudi-arabia` | Open `visa.visitsaudi.com`, start an application, pick India (then Pakistan). It will either offer the eVisa (**Group A**) or send you to an embassy (**Group B**). That one answer settles both pages |
 | `india-to-pakistan` | The whole `.gov.pk` zone refuses our connections. Open `dgip.gov.pk/visa/indians.php` and paste what it says |
 | `india-to-nepal` | Nepal's visa pages never mention Indians, because they enter under the 1950 Treaty of Peace and Friendship. Confirm which IDs are accepted (passport, or Election Commission voter ID) |
 

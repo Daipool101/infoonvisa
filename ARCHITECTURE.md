@@ -1,6 +1,6 @@
 # InfoOnVisa — Architecture
 
-How the system is actually built, as of **14 September 2026**.
+How the system is actually built, as of **27 September 2026**.
 
 `BUILD_PLAN.md` is the original product spec written before any code existed. Where the two disagree, **this file describes reality**.
 
@@ -8,7 +8,7 @@ How the system is actually built, as of **14 September 2026**.
 
 ## 1. The shape of it in one paragraph
 
-A reader lands on `infoonvisa.com/india-to-japan`. Astro runs **server-side on a Cloudflare Worker**, parses the slug into two countries, and looks the corridor up in **Supabase**. If a verified row exists it renders immediately. If no row exists, the page shows a loading screen and calls `POST /api/generate`, which asks **Vertex AI** to draft the corridor from grounded sources, saves it as `pending_review` (rendered but `noindex`), and shows it. A human later flips it to `verified`, at which point it becomes indexable. Everything factual on the page traces back to an official government link captured at generation time and re-checked weekly by a GitHub Action.
+A reader lands on `infoonvisa.com/india-to-japan`. Astro runs **server-side on a Cloudflare Worker**, parses the slug into two countries, and looks the corridor up in **Supabase**. If a verified row exists it renders immediately. If no row exists, the page shows a loading screen and calls `POST /api/generate`, which asks **Vertex AI** to research the corridor against government pages and then structure what it read (two passes — see §6), saves it as `pending_review` (rendered but `noindex`), and shows it. A human later flips it to `verified`, at which point it becomes indexable. Everything factual on the page traces back to an official government link captured at generation time and re-checked weekly by a GitHub Action.
 
 ---
 
@@ -20,7 +20,7 @@ A reader lands on `infoonvisa.com/india-to-japan`. Astro runs **server-side on a
 | Hosting | **Cloudflare Workers** | via `@astrojs/cloudflare`. Not Pages — see §7 |
 | Database | **Supabase** (Postgres) | one meaningful table, `corridors` |
 | Generation (edge) | **Vertex AI** | service-account JWT signed in-worker |
-| Generation (scripts) | **Gemini API** | AI Studio key, used by Node scripts |
+| Generation (scripts) | **Vertex AI** | via `scripts/lib-vertex.mjs`. The AI Studio key is capped at 20 requests/day — see §6 |
 | Blog | Markdown in `src/content/blog` | edited through Pages CMS (`.pages.yml`) |
 | CI/CD | GitHub Actions | `deploy.yml`, `link-check.yml` |
 
@@ -52,7 +52,8 @@ src/
     countries.ts             198 countries: iso, name, slug, flag, demonym
     supabase.ts              env resolution + all DB reads/writes
     vertex.ts                Vertex AI call (edge, service-account JWT)
-    gemini.ts                Gemini call + the generation prompt & schema
+    gemini.ts                Two-pass generation: research (grounded) then structure
+    evidence.ts              What the model actually opened, and whether it may publish
     links.ts                 official-source link verification
     seed.ts                  offline fallback corridor (india-to-japan)
     tips.ts                  generic travel tips
@@ -146,6 +147,33 @@ supabase/schema.sql          the database schema
 ## 6. Things that will bite you
 
 These are all real failures that reached production.
+
+### ⚠️ A model cannot cite what it cannot open
+
+The single most expensive assumption this codebase ever made. Generation was one `generateContent` call with **no `tools`**, and a prompt instructing it to *"only state visa facts you can attribute to an official government source"* and list those URLs. With no retrieval, "attribute" collapses into "recall something plausible". The link checker then confirmed only that the URL **loaded** — so a live ministry homepage that never mentions the nationality in question passed every gate and auto-published.
+
+Generation is now two calls (`src/lib/gemini.ts`, mirrored in `vertex.ts`):
+
+| Pass | Tools | Schema | Job |
+|---|---|---|---|
+| `researchCorridor` | `urlContext` + `googleSearch` | none | open real pages, report what they say |
+| `structureCorridor` | none | `RESPONSE_SCHEMA` | shape pass 1's text into JSON |
+
+They cannot be merged: **search grounding and a strict `responseSchema` are mutually exclusive in one request.** That incompatibility is almost certainly why grounding was never enabled originally.
+
+`seedUrls()` feeds `urlContext` the destination's curated portal from `OFFICIAL_PORTALS`, plus the *origin's* — a government's advice to its own citizens is frequently clearer about one nationality than the destination's site is.
+
+### ⚠️ Grounding does not mean government — check the evidence, not the prose
+
+Search returns what ranks, and for visa queries that is visa agents. A grounded answer about Saudi Arabia rested on `saudievisaonline.com`, `visadeskglobal.com`, an airline and an insurer — two governments among eight — and the model summarised it as *"official Saudi sources consulted include the Ministry of Foreign Affairs, as referenced by TATA AIG and The Times of India."* **An insurance company standing in for a ministry is worse than an ungrounded guess, because it arrives wearing a citation.**
+
+Prompt instructions do not control what search hands back. So `src/lib/evidence.ts` classifies the URLs the **API reports as retrieved** (`urlContextMetadata.urlMetadata`, `groundingMetadata.groundingChunks`), stores them on the row as `data.evidence`, and `evidenceIsPublishable()` gates publication on them: the seeded portal must have been read successfully, or two independent government pages retrieved. The model cannot satisfy that by naming a ministry — the list does not come from its prose.
+
+`NEVER_EVIDENCE` in the same file blocks agents, insurers, airlines, comparison sites and encyclopaedias outright, whatever else is true of them.
+
+### ⚠️ The free Gemini tier is 20 requests **per day**
+
+`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, `quotaValue: 20`. Not per minute. Any script that walks the corpus must use Vertex (`scripts/lib-vertex.mjs`), which is what the deployed site uses anyway — the AI Studio key is caller-location restricted and does not work from Cloudflare's edge at all. `vertexGenerate()` retries 429 and 5xx, honouring the `retry in Ns` hint the API supplies, and prints the wait. A rate limit silently scored as "checked, nothing found" is the same failure mode as the link checker that could not distinguish a crashed script from a clean week.
 
 ### ⚠️ The verdict is stored twice
 
@@ -243,7 +271,9 @@ All in `scripts/`, all Node ESM, all read `.dev.vars`. Most accept `--dry-run` �
 | `audit-record.mjs` | records a batch result; `--export` writes the manual-check list |
 | `audit-schengen.mjs` | checks Schengen pages against Regulation (EU) 2018/1806 |
 | `check-links.mjs`, `fix-links.mjs` | official-source link health |
-| `add-fees*.mjs` | the fee batches (1–4) |
+| `add-fees*.mjs` | the fee batches (1–8) |
+| `regen-audit.mjs` | re-researches live pages and **reports** verdict differences — never writes. Vertex only |
+| `lib-vertex.mjs` | shared Vertex auth + `vertexGenerate()` with 429 backoff. Not a script; imported by the others |
 | `fix-*.mjs` | one-off content corrections, each documenting its source |
 | `indexnow.mjs` | submit URLs to Bing/Yandex |
 | `make-og.mjs`, `make-favicons.mjs` | image assets |
