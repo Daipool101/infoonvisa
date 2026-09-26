@@ -4,6 +4,7 @@ import type { CorridorData, Source, Verdict } from './corridor';
 import { REFRESH_DAYS } from './corridor';
 import { SEED } from './seed';
 import { evidenceIsPublishable, type Evidence } from './evidence';
+import { ADSENSE_CLIENT } from './adsense';
 
 // On Cloudflare, runtime secrets come from `cloudflare:workers` env (Astro v6).
 // PUBLIC_* vars are also inlined by Vite, so import.meta.env is the dev/build fallback.
@@ -50,7 +51,12 @@ function cf(key: string): string | undefined {
 // here is all that can ever reach the bundle.
 const PUBLIC_FALLBACK: Record<string, string | undefined> = {
   PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL,
-  PUBLIC_ADSENSE_CLIENT: import.meta.env.PUBLIC_ADSENSE_CLIENT,
+  // Falls back to the literal in adsense.ts. An env var has to survive
+  // GitHub Actions, Vite's inlining and the Cloudflare adapter to get here,
+  // and on the prerendered blog it did not — while every SSR page, which
+  // reads the Cloudflare secret at runtime, was fine. The constant cannot
+  // fail that way, and a Cloudflare secret still overrides it.
+  PUBLIC_ADSENSE_CLIENT: import.meta.env.PUBLIC_ADSENSE_CLIENT || ADSENSE_CLIENT,
 };
 
 export function getEnv(): AppEnv {
