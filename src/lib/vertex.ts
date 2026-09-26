@@ -1,7 +1,8 @@
 import type { AppEnv, } from './supabase';
 import type { CorridorData } from './corridor';
 import type { Country } from './countries';
-import { buildPrompt, RESPONSE_SCHEMA, type GenerationResult } from './gemini';
+import { buildResearchPrompt, buildStructurePrompt, RESPONSE_SCHEMA, type GenerationResult } from './gemini';
+import { buildEvidence } from './evidence';
 import { sanitizeCorridorLinks } from './links';
 
 // Vertex AI generation for Cloudflare Workers.
@@ -89,38 +90,66 @@ export async function generateCorridorVertex(
     const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
     const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${env.GCP_PROJECT_ID}/locations/${location}/publishers/google/models/${model}:generateContent`;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: buildPrompt(from, to) }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: RESPONSE_SCHEMA,
-          temperature: 0.2,
-          // Safety cap: normal output ~4k tokens; 8192 gives 2x headroom while
-          // bounding any runaway response so a single call can't balloon the bill.
-          maxOutputTokens: 8192,
-        },
-      }),
+    const call = async (prompt: string, cfg: Record<string, unknown>, tools?: unknown[]) => {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          ...(tools ? { tools } : {}),
+          generationConfig: { temperature: 0.2, maxOutputTokens: 8192, ...cfg },
+        }),
+      });
+      if (!res.ok) throw new Error(`vertex ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      return (await res.json()) as any;
+    };
+
+    // PASS 1 — research. Tools on, no schema: search grounding and a strict
+    // responseSchema cannot be combined in one request, which is the reason
+    // this is two calls rather than one. See the note at the top of gemini.ts.
+    const r1 = await call(
+      buildResearchPrompt(from, to),
+      { temperature: 0 },
+      [{ urlContext: {} }, { googleSearch: {} }]
+    );
+    const research: string | undefined = r1?.candidates?.[0]?.content?.parts
+      ?.map((p: any) => p?.text)
+      .filter(Boolean)
+      .join('\n');
+    if (!research) return { data: null, error: 'empty research response from vertex' };
+
+    // Taken from the API's own accounting of what it fetched, never from the
+    // model's prose about which ministries it consulted.
+    const cand = r1?.candidates?.[0];
+    const retrieved: string[] = (cand?.urlContextMetadata?.urlMetadata ?? [])
+      .filter((m: any) => String(m?.urlRetrievalStatus ?? '').includes('SUCCESS'))
+      .map((m: any) => m.retrievedUrl)
+      .filter(Boolean);
+    const searched: string[] = (cand?.groundingMetadata?.groundingChunks ?? [])
+      .map((c: any) => c?.web?.title)
+      .filter(Boolean);
+    const evidence = buildEvidence(retrieved, searched);
+
+    // PASS 2 — structure. Tools off, schema on, input is pass 1 and nothing else.
+    const r2 = await call(buildStructurePrompt(from, to, research), {
+      responseMimeType: 'application/json',
+      responseSchema: RESPONSE_SCHEMA,
     });
-    if (!res.ok) {
-      return { data: null, error: `vertex ${res.status}: ${(await res.text()).slice(0, 200)}` };
-    }
-    const json: any = await res.json();
-    const text: string | undefined = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return { data: null, error: 'empty response from vertex' };
+    const text: string | undefined = r2?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return { data: null, error: 'empty structuring response from vertex', evidence, research };
+
     const parsed = JSON.parse(text) as CorridorData;
     if (!parsed.sources?.length || !parsed.officialSource?.url) {
-      return { data: null, error: 'no official source in response' };
+      return { data: null, error: 'no official source in response', evidence, research };
     }
     // Model-written URLs rot; verify and repair them before the page is saved.
     const { data: clean, report } = await sanitizeCorridorLinks(parsed, to.slug);
     if (report.rewritten || report.dropped) {
       console.log(`links ${from.slug}->${to.slug}: ${report.rewritten} fixed, ${report.dropped} dropped`);
     }
-    if (!clean.officialSource?.url) return { data: null, error: 'no working official source' };
-    return { data: clean };
+    if (!clean.officialSource?.url) return { data: null, error: 'no working official source', evidence, research };
+    (clean as any).evidence = evidence;
+    return { data: clean, evidence, research };
   } catch (err: any) {
     const msg = (err?.message || String(err)).slice(0, 300);
     console.error('Vertex generation failed:', msg);

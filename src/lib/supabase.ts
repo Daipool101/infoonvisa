@@ -3,6 +3,7 @@ import { env as cfEnv } from 'cloudflare:workers';
 import type { CorridorData, Source, Verdict } from './corridor';
 import { REFRESH_DAYS } from './corridor';
 import { SEED } from './seed';
+import { evidenceIsPublishable, type Evidence } from './evidence';
 
 // On Cloudflare, runtime secrets come from `cloudflare:workers` env (Astro v6).
 // PUBLIC_* vars are also inlined by Vite, so import.meta.env is the dev/build fallback.
@@ -129,49 +130,24 @@ function seedRow(slug: string): CorridorRow | null {
   };
 }
 
-// Is this URL an official government / immigration authority source?
-// Auto-publish gate: pages grounded in a .gov (or equivalent) source are safe
-// to go live without manual review; anything else is held as pending_review.
-function isOfficialSourceUrl(url?: string): boolean {
-  if (!url) return false;
-  let host: string;
-  try {
-    host = new URL(url).hostname.toLowerCase();
-  } catch {
-    return false;
-  }
-  return (
-    /(^|\.)gov(\.[a-z]{2,3})*$/.test(host) || // gov.uk, .gov.sg, .gov.eg, .gov
-    /\.go\.[a-z]{2}$/.test(host) || // .go.th, .go.kr
-    /(^|\.)gob\.[a-z]{2}$/.test(host) || // .gob.mx (Spanish-speaking gov)
-    /(^|\.)gouv\.[a-z]{2}$/.test(host) || // .gouv.fr
-    host === 'u.ae' ||
-    host.endsWith('.u.ae') ||
-    host.endsWith('.admin.ch') ||
-    host.endsWith('.govt.nz') ||
-    host.endsWith('.gc.ca') || // Government of Canada
-    host === 'canada.ca' ||
-    host.endsWith('.canada.ca') || // Government of Canada (canada.ca)
-    host === 'europa.eu' ||
-    host.endsWith('.europa.eu') || // Official EU (Schengen, ec.europa.eu, etc.)
-    // Official immigration authorities that do not sit on a .gov-style domain.
-    // Without these the auto-publish gate holds a correctly sourced page:
-    // irishimmigration.ie is Ireland's Department of Justice service, and ind.nl
-    // is the Dutch Immigration and Naturalisation Service.
-    host === 'irishimmigration.ie' ||
-    host.endsWith('.irishimmigration.ie') ||
-    host === 'ind.nl' ||
-    host.endsWith('.ind.nl')
-  );
-}
-
-// Decide whether a freshly generated page can auto-publish. It must cite at
-// least one official government source (in officialSource or sources[]).
+// Decide whether a freshly generated page can auto-publish.
+//
+// The old gate asked whether the page CITED a government URL. That is a test a
+// model passes by recalling one, and it is how a page claiming Indians may use
+// Saudi Arabia's tourist e-Visa went live: it cited mofa.gov.sa, a perfectly
+// real ministry homepage that says nothing whatever about Indians. The link
+// checker confirmed the URL loaded. Nothing asked whether it supported the
+// claim, because nothing could.
+//
+// The gate now asks whether a government page was actually RETRIEVED while the
+// page was being researched. That list comes from the generation API's own
+// record of what it fetched, so the model cannot satisfy it by naming a
+// ministry it never opened. A page researched entirely off visa agents and
+// newspapers - which is what search returns for these queries - is held for
+// review instead of publishing itself.
 function autoStatus(data: CorridorData): CorridorStatus {
-  const official =
-    isOfficialSourceUrl(data.officialSource?.url) ||
-    (data.sources || []).some((s) => isOfficialSourceUrl(s.url));
-  return official ? 'verified' : 'pending_review';
+  const evidence = (data as Record<string, unknown>).evidence as Evidence | undefined;
+  return evidenceIsPublishable(evidence, data.officialSource) ? 'verified' : 'pending_review';
 }
 
 export async function saveCorridor(

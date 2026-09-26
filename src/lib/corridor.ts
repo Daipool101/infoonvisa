@@ -1,4 +1,5 @@
 import { countryBySlug, type Country } from './countries';
+import type { Evidence } from './evidence';
 
 // ---- Verdict types ----
 export type Verdict = 'visa_free' | 'voa' | 'evisa' | 'eta' | 'embassy';
@@ -124,6 +125,15 @@ export interface CorridorData {
 
   // sources used for grounding
   sources: Source[];
+
+  /**
+   * What the research pass actually opened, as the generation API reported it.
+   *
+   * Distinct from `sources`, which is what the finished page cites. A model can
+   * write a plausible ministry into `sources`; it cannot write itself a page it
+   * never fetched into here. The publish gate reads this, not `sources`.
+   */
+  evidence?: Evidence;
 }
 
 // ---- Slug helpers: "india-to-japan" <-> countries ----
