@@ -216,6 +216,29 @@ The expected behaviour — page older than 90 days, regenerate it on next view �
 
 Related: the dashboard already flags pages whose human check is over `STALE_DAYS` (60), sorted by traffic — that list is the manual version of this feature and should stay.
 
+### A3. Measure flash vs pro on the research pass — **owner will pick this up later**
+
+Deferred by the owner, 27 Sep 2026. Cheap, decisive, and worth doing **before** A2: once regeneration runs at scale, the research model's quality stops being an opinion and starts producing pages.
+
+**What is available.** Checked directly against `sage-nucleus-485517-r8` on 27 Sep 2026: `gemini-2.5-flash` and `gemini-2.5-pro` both answer. Every 3.x name — `gemini-3-flash`, `gemini-3-pro`, `gemini-3.0-flash`, `gemini-3.0-pro` — returns **404 in us-central1**. Google's Durable Caching email named 3.x models, but the project cannot call them, so that notice is a heads-up for later, not a live change. Re-test before assuming otherwise.
+
+**The proposal.** `gemini-2.5-pro` on the RESEARCH pass, `gemini-2.5-flash` on the STRUCTURING pass. Structuring only rearranges notes into JSON — flash is the right tool and upgrading it is waste. Research is where every error has come from, and they are reasoning failures rather than lookup failures:
+
+| Route | The mistake |
+|---|---|
+| `india-to-qatar` | read "free of charge" as "no visa required" |
+| `india-to-saudi-arabia` | took the Article 6(2) exception for the rule |
+| `united-states-to-israel` | read "visa-exempt" as "nothing to obtain", missing ETA-IL |
+| Indonesia | returned OPPOSITE verdicts for the same country on the same day |
+
+Generation is rare here — new corridors and audits, not steady traffic — so accuracy is the binding constraint, not cost.
+
+**The benchmark already exists, which is the point.** The 14 disagreements from the first full regeneration audit were each taken to a government page and settled by hand, so the correct answer is known for all 14 and recorded in `audit-accepted.json` and `scripts/fix-audit-round1.mjs`. Run the research pass over those same routes with `gemini-2.5-pro` and count correct verdicts against flash's score.
+
+Flash's score on that set: **4 of 14 right** (india-to-israel, india-to-south-africa, india-to-sri-lanka, brazil-to-egypt), 10 wrong.
+
+Fourteen API calls, about ten minutes. It turns "which model is better" into a number measured on this project's own work rather than a leaderboard.
+
 ### B. 2 routes the owner must verify by hand
 
 In `C:\Users\Akash\Downloads\verify-manually.md`, each with what the page claims and exactly what was tried. *(Both Saudi routes came off this list on 26 Sep 2026 — see §5b.)*
