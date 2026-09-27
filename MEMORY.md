@@ -191,9 +191,30 @@ What it is genuinely good for is exactly that. Israel's eVisa-B2 and South Afric
 
 ## 6. Open work, in priority order
 
-### A. AdSense application — **the next milestone**
+### A. AdSense — **applied 27 Sep 2026, awaiting review**
 
-The groundwork is done: 126 verified pages, dated sources, a real blog, privacy/terms/contact/about pages, an audit trail. This is the recommended next session.
+Submitted and verified. Publisher ID `ca-pub-5462566343196770`, in `src/lib/adsense.ts` (see §7c). Site ownership verified by code snippet; review requested; Google's consent message (the 3-choice version) enabled for EEA/UK/Swiss visitors.
+
+Nothing to do but wait — typically 2 days to 2 weeks. **Do not resubmit**, and ignore the "Ads.txt file not found" warning: Google's crawler checks on its own schedule and `/ads.txt` is live and correct.
+
+### A2. 🔴 The 90-day refresh does not work — build it AFTER AdSense
+
+**The owner's decision, 27 Sep 2026: implement Option B below, once AdSense is settled.**
+
+The expected behaviour — page older than 90 days, regenerate it on next view — has never run. The parts exist and nothing joins them:
+
+- `REFRESH_DAYS = 90` and `isFresh()` are declared in `corridor.ts`. **`isFresh` is called from nowhere.**
+- `next_refresh_at` is written on every save and **never read**.
+- `[corridor].astro` asks one question — *is there a row?* — and renders it at any age. Only a MISSING page triggers generation.
+- No cron does it either; the Monday job checks whether links still load, not whether content is current.
+
+> ⚠️ Dead code that looks like a working feature is worse than no feature. This was believed to be running.
+
+**Do NOT implement it as "regenerate and overwrite".** 123 pages now carry a recorded human check, hand-verified fees and this month's corrections. Overwriting them with fresh model output nobody has read would destroy all of it and silently reintroduce what we removed — the research pass said "US → Israel: visa-free, high confidence" this week, on a country requiring an ETA-IL since January 2025.
+
+**Option B, the agreed shape:** past 90 days, generate a fresh version and save it as `pending_review` **alongside** the live one. Keep serving the verified page. The dashboard shows the two side by side and the owner approves or rejects. Freshness without losing the human gate.
+
+Related: the dashboard already flags pages whose human check is over `STALE_DAYS` (60), sorted by traffic — that list is the manual version of this feature and should stay.
 
 ### B. 2 routes the owner must verify by hand
 

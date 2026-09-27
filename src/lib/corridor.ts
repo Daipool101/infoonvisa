@@ -382,6 +382,19 @@ export function corridorDescription(
 
 // Freshness window: 90 days. Visa rules change slowly, so a 90-day cache cuts
 // regeneration cost ~66% vs 30 days while keeping pages acceptably current.
+//
+// ⚠️ NOTHING ACTS ON THIS. `isFresh` is called from nowhere, `next_refresh_at`
+// is written on every save and never read, and [corridor].astro renders a row
+// at any age — only a MISSING page triggers generation. A page written in June
+// 2026 will still be served unchanged in 2030.
+//
+// Left in place deliberately, with this notice, because it is the agreed shape
+// of work planned after the AdSense review (MEMORY.md §6 A2). Do NOT wire it up
+// as "regenerate and overwrite": 123 pages carry a recorded human check and
+// hand-verified fees, and replacing them with unreviewed model output would
+// destroy that and reintroduce errors removed by hand. The agreed design saves
+// the regenerated version as `pending_review` ALONGSIDE the live one and keeps
+// serving the verified page until a human approves the replacement.
 export const REFRESH_DAYS = 90;
 export const isFresh = (generatedAt: string) =>
   Date.now() - new Date(generatedAt).getTime() < REFRESH_DAYS * 24 * 60 * 60 * 1000;
