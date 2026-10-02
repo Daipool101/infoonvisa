@@ -262,6 +262,7 @@ Expect 4–6 routes from a Batch 5, not 10. **Do not pad a batch with a guess** 
 ### D. Smaller items
 
 - **Rotate the Supabase service-role key.** It has been shared in chat and is still live.
+- ~~`india-to-indonesia` disagreed with the three other Indonesia pages~~ — **done 3 Oct 2026**: Indonesia's own visa selector returns "B1 - Tourist (Visa On Arrival)" first for INDIA, so the verdict moved `evisa` → `voa` and all four pages now agree. Found only because the regeneration audit compares pages against a fresh reading — reading that page alone showed nothing wrong with it.
 - ~~`do-you-really-need-a-visa-agent-an-honest-guide` — draft with a placeholder title~~ — **done 14 Sep 2026**: retitled "Do you really need a visa agent? An honest guide" and published.
 - `united-states-to-bahamas` and `united-states-to-south-africa` — generation failed, retry.
 - Airport Transit Visa (Type A) rows on Schengen pages are unpriced — the Visa Code governs them but Article 16 as read says "applicants" without naming Type A.

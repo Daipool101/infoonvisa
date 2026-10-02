@@ -136,15 +136,6 @@
     "reason": "South Africa calls one thing by two names and is mid-migration between them. eta.dha.gov.za describes an Electronic Travel Authorisation, and then its own 'Who can apply' paragraph reads: 'Applicants who hold valid ordinary passports may apply for an e-Visa online provided they will land at O. R. Tambo, Cape Town, Lanseria or King Shaka.' That is word for word the substance already on the page, including the four-airport restriction. The naming is theirs to settle; the reader is told the right thing either way. Re-check if the eVisa portal is retired.",
     "source": "https://eta.dha.gov.za/"
   },
-  "india-to-indonesia": {
-    "liveVerdict": "evisa",
-    "researchSays": "voa",
-    "decidedOn": "2026-09-27",
-    "decidedBy": "aksjai101@gmail.com",
-    "unverified": true,
-    "reason": "NOT SETTLED - almost certainly a real error, but unverifiable today. Indonesia's portal was showing a four-hour maintenance banner and its eligibility list is behind a login. The suspicion is strong because our own four Indonesia pages disagree with each other: australia-, switzerland- and united-states-to-indonesia all say voa and were confirmed against Indonesia's own name for the product, 'Electronic Visa on Arrival (e-VOA)'. Only the India page says evisa. Re-check when evisa.imigrasi.go.id is back and make all four consistent.",
-    "source": "https://evisa.imigrasi.go.id/"
-  },
   "united-states-to-indonesia": {
     "liveVerdict": "voa",
     "researchSays": "evisa",
