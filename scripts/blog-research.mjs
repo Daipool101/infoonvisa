@@ -106,11 +106,52 @@ try {
 }
 
 // ── PASS 1 — research ───────────────────────────────────────────────────────
-const researchPrompt = `Find visa and immigration developments announced between ${windowFrom} and ${windowTo}.
+// Which countries the site actually writes about. Without this the research
+// drifts to whatever immigration news ranks highest, which is US employment and
+// investor law written by law firms for corporate clients — the first dry run
+// came back with EB-5 investor fees and H.R.1 adjustments, neither of which any
+// reader of this site has ever wanted.
+const topDestinations = Object.entries(
+  (corridorRows ?? []).reduce((acc, r) => {
+    const d = r.slug.split('-to-')[1];
+    acc[d] = (acc[d] ?? 0) + 1;
+    return acc;
+  }, {})
+).sort((a, b) => b[1] - a[1]).map(([d]) => d.replace(/-/g, ' '));
 
-Look for: new or withdrawn visa types, fee changes, eligibility list changes, entry
-requirement changes, policy announcements, embassy or immigration-department notices,
-travel restrictions imposed or lifted, and changes to electronic travel authorisations.
+const topOrigins = Object.entries(
+  (corridorRows ?? []).reduce((acc, r) => {
+    const o = r.slug.split('-to-')[0];
+    acc[o] = (acc[o] ?? 0) + 1;
+    return acc;
+  }, {})
+).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([o]) => o.replace(/-/g, ' '));
+
+const researchPrompt = `Find TOURIST and SHORT-STAY visa developments announced between ${windowFrom} and ${windowTo}.
+
+WHO THIS IS FOR
+InfoOnVisa answers one question for ordinary travellers: "do I need a visa to go there,
+and how do I get it?" Its readers are tourists and people visiting family, holding
+ordinary passports. They are not companies, investors, students or migrants.
+
+IN SCOPE
+Tourist and visitor visas, visa-free arrangements, visas on arrival, e-visas, electronic
+travel authorisations (ETA/ESTA/ETIAS-style), transit visas, and the fees, eligibility
+lists, passport-validity rules and entry requirements attached to them.
+
+OUT OF SCOPE — do not report these, however prominent
+Employment and work visas, investor or "golden visa" programmes (EB-5 and equivalents),
+student visas, permanent residence, citizenship, asylum, and corporate immigration
+compliance. Law firms and mobility vendors publish constantly about these and they
+dominate search results; none of it is what this site is about. Only include such a change
+if it directly alters what an ordinary tourist must do.
+
+COUNTRIES THAT MATTER MOST
+The site covers these destinations: ${topDestinations.join(', ')}.
+Its readers travel mainly on these passports: ${topOrigins.join(', ')}.
+A change affecting one of those is worth far more than a change affecting a country the
+site does not cover. Prefer them, but do not force it — a genuinely significant change
+elsewhere still counts.
 
 WHAT COUNTS AS A SOURCE
 A claim about a RULE must come from a government page: an immigration department, a
@@ -139,6 +180,12 @@ TRAPS — every one of these has produced a published error on this site
    official / diplomatic) and by nationality.
 6. Check the effective date. A rule announced now may start later, and the thing that
    changed may be the date rather than the rule.
+
+URLS — IMPORTANT
+Give the publisher's own address, for example https://ec.europa.eu/... or
+https://www.mofa.go.jp/... . Never give a vertexaisearch.cloud.google.com redirect: those
+are internal search plumbing, they expire, and they tell a reader nothing about who
+published the page.
 
 Report up to 6 developments, most significant first. Use EXACTLY this format, repeated:
 
@@ -202,11 +249,88 @@ console.log(`\n  stories reported: ${stories.length}`);
 
 // A story with no government page behind it does not become a post. Producing
 // nothing is a correct outcome; producing something unsourced is not.
+//
+// Two separate checks, and the second one matters more. The first asks whether
+// the cited URL LOOKS governmental. The second asks whether it is a page the
+// API says it actually FETCHED — because a model can name a ministry it never
+// opened, and in the first dry run it did exactly that: two stories cited
+// government URLs while four of the five pages actually retrieved were
+// immigration law firms. A citation nothing opened is not evidence.
+const fetchedHosts = new Set(
+  sources.map((x) => {
+    try { return new URL(x.url ?? `https://${x.title}`).hostname.replace(/^www\./, ''); }
+    catch { return String(x.title).replace(/^www\./, ''); }
+  })
+);
+const wasFetched = (url) => {
+  try {
+    const h = new URL(url).hostname.replace(/^www\./, '');
+    // Host match, not exact URL: grounding reports bare domains, and a ministry
+    // page reached through search is still a page that was read.
+    return [...fetchedHosts].some((f) => h === f || h.endsWith(`.${f}`) || f.endsWith(`.${h}`));
+  } catch { return false; }
+};
+
+// Grounding hands the model redirect stubs on vertexaisearch.cloud.google.com
+// rather than real addresses, and the model cites what it was given. A stub is
+// useless twice over: it hides whether the page is governmental, and it expires,
+// so one published in a post becomes a dead link within days. Resolve it to the
+// address it actually points at, once, and work with that.
+const resolveStub = async (url) => {
+  if (!/vertexaisearch\.cloud\.google\.com/.test(url ?? '')) return url;
+  try {
+    const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
+    return res.url || url;
+  } catch {
+    return url;
+  }
+};
+for (const st of stories) {
+  const real = await resolveStub(st.gov);
+  if (real !== st.gov) {
+    console.log(`    resolved redirect -> ${real.slice(0, 80)}`);
+    st.gov = real;
+  }
+}
+
+// Embassies, which isGovernmentUrl cannot know about.
+//
+// A country's own embassy abroad is a government source — MEMORY.md names the
+// "embassy mirror" as the most useful technique on this project, because the
+// main ministry portal is so often bot-walled while a small mission site
+// republishes the same text in the open. But embassies sit on ordinary national
+// domains: the Cambodian embassy in Germany is kambodscha-botschaft.de, and no
+// pattern of .gov-shaped domains will ever match it.
+//
+// So this allowance exists HERE and not in src/lib/evidence.ts. Corridor pages
+// keep the strict gate unchanged; only the blog, where a story is dropped
+// entirely rather than published wrongly, accepts the wider net. It is still
+// narrow: the host must name an embassy or consulate in one of the common
+// languages, must not be one of the domains that are never evidence, and must
+// not contain "visa" — real missions do not put it in their domain, and the
+// agencies that impersonate them almost always do.
+const EMBASSY_HOST =
+  /(^|[.\-])(embassy|embassies|embajada|ambassade|ambasciata|ambasada|botschaft|consulate|consulado|konsulat|mission)([.\-]|$)/i;
+const AGENCY_HOST = /visa|evisa|permit|apply|travel|tour/i;
+
+const looksLikeMission = (url) => {
+  try {
+    const h = new URL(url).hostname.replace(/^www\./, '');
+    return EMBASSY_HOST.test(h) && !AGENCY_HOST.test(h);
+  } catch { return false; }
+};
+
 const usable = stories.filter((s) => {
-  const ok = s.gov && !/^none$/i.test(s.gov) && classifySource(s.gov, 'url').government;
-  console.log(`    ${ok ? 'KEEP  ' : 'DROP  '}${s.headline.slice(0, 72)}`);
-  if (!ok && s.gov) console.log(`           (source not a government page: ${s.gov.slice(0, 60)})`);
-  return ok;
+  const named = s.gov && !/^none$/i.test(s.gov);
+  const mission = named && looksLikeMission(s.gov);
+  const governmental = named && (classifySource(s.gov, 'url').government || mission);
+  const opened = governmental && wasFetched(s.gov);
+  console.log(`    ${opened ? (mission ? 'KEEP* ' : 'KEEP  ') : 'DROP  '}${s.headline.slice(0, 72)}`);
+  if (opened && mission) console.log(`           (accepted as an embassy/consulate: ${new URL(s.gov).hostname})`);
+  if (!named) console.log('           (no government source cited)');
+  else if (!governmental) console.log(`           (cited source is not a government page: ${s.gov.slice(0, 60)})`);
+  else if (!opened) console.log(`           (cited ${s.gov.slice(0, 60)} but never opened it — citation without evidence)`);
+  return opened;
 }).slice(0, MAX_DRAFTS);
 
 if (!usable.length) {
@@ -315,6 +439,15 @@ for (const story of usable) {
       (clean.startsWith('/from/') && originSlugs.has(clean.slice(6)));
     if (ok) return match;
     problems.push(`removed dead internal link ${clean}`);
+    return text;
+  });
+
+  // An external link to a grounding stub expires. Point it at the real page, or
+  // unwrap it to plain text — never publish a URL that will rot.
+  body = body.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (match, text, href) => {
+    if (!/vertexaisearch\.cloud\.google\.com/.test(href)) return match;
+    if (story.gov && !/vertexaisearch/.test(story.gov)) return `[${text}](${story.gov})`;
+    problems.push('unwrapped a Google redirect link');
     return text;
   });
 
