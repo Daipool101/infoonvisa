@@ -377,10 +377,39 @@ LINKS
 - Never write an internal link that is not in those lists. A broken internal link is worse
   than no link.
 
+FOUND IN SEARCH
+- The TITLE is what appears in Google. Put the country and what changed at the FRONT,
+  in the words someone would actually type: "Cambodia ends sticker visas: what travellers
+  need to know", not "A New Era for Cambodian Travel". Aim for 50-60 characters so it is
+  not cut off. No clickbait, no colons used for drama, no "Everything you need to know".
+- The DESCRIPTION is the snippet under that title. One complete sentence, 140-160
+  characters, that answers the question rather than teasing it. Someone must be able to
+  read it alone and know whether this affects them.
+- Put the answer in the FIRST PARAGRAPH — what changed, who it affects, from when.
+  Google lifts that paragraph into featured snippets and AI overviews, and a reader who
+  only sees that much should already have what they came for.
+- Write "##" headings as the questions people type: "Who does this affect?",
+  "When does it start?", "Do I need to do anything?" — not "Background" or "Overview".
+
+QUOTED BY AI ASSISTANTS
+This site is read by ChatGPT, Claude, Perplexity and Google's AI overviews — robots.txt
+welcomes all of them by name. They quote sentences, not pages, and a sentence only
+survives being lifted out of its paragraph if it carries its own context.
+
+- Attribute inline, in the sentence: "Cambodia's Ministry of Foreign Affairs says the
+  sticker visa ends on 1 November 2026" — not "the ministry says it ends soon", and not a
+  claim whose source is three paragraphs away.
+- Date every claim explicitly. "From 1 November 2026", never "soon", "recently" or
+  "later this year". A sentence with a real date is quotable a year from now; one with
+  "recently" is wrong the moment it is quoted.
+- Name the specifics: the country, the visa type, the fee with its currency, the number of
+  days. An assistant cannot cite "a modest increase".
+- Never write a sentence that only makes sense after the one before it.
+
 Return JSON only:
 {
-  "title": "...",            // plain, specific, no clickbait
-  "description": "...",      // ONE sentence; this is the Google snippet
+  "title": "...",            // 50-60 chars, country and change at the front
+  "description": "...",      // ONE sentence, 140-160 chars; this is the Google snippet
   "tags": ["...", "..."],    // 2-4, ONLY from: ${TAGS.join(', ')}
   "coverHint": "japan",      // the country this is about, lowercase, one word
   "body": "..."              // markdown, no frontmatter, no H1
@@ -457,6 +486,16 @@ for (const story of usable) {
   const hint = (post.coverHint ?? '').toLowerCase().replace(/[^a-z]/g, '');
   const cover = covers.find((f) => hint && f.toLowerCase().startsWith(hint)) ?? null;
   if (!cover && hint) problems.push(`no cover image for "${hint}" — field omitted`);
+
+  // The title and description ARE the search result. Too long and Google
+  // truncates them mid-word; too short and the snippet says nothing. Reported
+  // rather than rewritten — the wording is the model's job, the warning is ours.
+  const titleLen = (post.title ?? '').length;
+  if (titleLen > 65) problems.push(`title ${titleLen} chars — Google will truncate it`);
+  if (titleLen < 30) problems.push(`title only ${titleLen} chars — likely too vague to rank`);
+  const descLen = (post.description ?? '').length;
+  if (descLen > 165) problems.push(`description ${descLen} chars — the snippet will be cut`);
+  if (descLen < 110) problems.push(`description only ${descLen} chars — wasting the snippet`);
 
   const words = body.split(/\s+/).filter(Boolean).length;
   if (words < 450) problems.push(`short: ${words} words`);
