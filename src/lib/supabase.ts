@@ -27,6 +27,10 @@ export interface AppEnv {
   // the safe default: a missing variable must lock the door, never open it.
   ADMIN_ACCESS_TEAM_DOMAIN: string; // e.g. yourteam.cloudflareaccess.com
   ADMIN_ACCESS_AUD: string; // Application Audience (AUD) tag from Access
+  // Fine-grained GitHub token with Actions: write, used only by
+  // /api/admin/blog-run to fire the weekly research workflow. Absent = the
+  // Run now button reports that it is missing, which is the safe default.
+  GITHUB_DISPATCH_TOKEN: string;
 }
 
 // Accessing the cloudflare env proxy can throw during prerender/build — guard it.
@@ -87,6 +91,7 @@ export function getEnv(): AppEnv {
     ADMIN_ACCESS_TEAM_DOMAIN: pick('ADMIN_ACCESS_TEAM_DOMAIN'),
     ADMIN_ACCESS_AUD: pick('ADMIN_ACCESS_AUD'),
     ADMIN_DEV_BYPASS: pick('ADMIN_DEV_BYPASS'),
+    GITHUB_DISPATCH_TOKEN: pick('GITHUB_DISPATCH_TOKEN'),
   };
 }
 

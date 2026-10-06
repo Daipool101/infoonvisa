@@ -10,6 +10,7 @@ const { title, email } = Astro.props;
 const NAV = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/review', label: 'Review queue' },
+  { href: '/admin/blog', label: 'Blog research' },
 ];
 const path = Astro.url.pathname.replace(/\/+$/, '') || '/admin';
 ---

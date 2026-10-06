@@ -1,0 +1,98 @@
+name: Weekly blog research
+
+# Researches the week's visa news and commits 2-4 DRAFT posts to main.
+#
+# This runs here rather than in the Cloudflare Worker for one reason: Workers
+# are built to answer a request in under a second and enforce CPU and subrequest
+# limits. A fifteen-minute multi-source research job gets cut off partway through
+# and looks like it simply stopped — no error, no partial result. GitHub Actions
+# has no such limit, and the job is allowed to take as long as it needs.
+#
+# What lands on main is always `draft: true`. Verified in this repo: a draft is
+# excluded from the blog list, carries noindex, is kept out of the sitemap, and
+# shows a draft banner — reachable only by direct link. So committing straight to
+# main risks nothing, and the post appears in Pages CMS with every field filled,
+# ready to edit and publish by switching one toggle. A pull request would add an
+# approval step that `draft: true` already provides, and would force review of
+# raw markdown instead of the editor.
+on:
+  schedule:
+    # Mondays 05:00 UTC. The source-link check runs at 04:00 the same morning;
+    # an hour apart keeps their logs and their emails separate.
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — research and report, write nothing'
+        type: boolean
+        default: false
+
+concurrency:
+  group: blog-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # commits the drafts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      # --experimental-strip-types lets the script import src/lib/evidence.ts
+      # directly, so what counts as a government source is the SAME code the
+      # corridor pipeline uses. A reimplementation here would drift, and the
+      # thing it decides — whether a visa agency can pass as a ministry — is
+      # exactly what must not drift.
+      - name: Research and draft
+        id: research
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node --experimental-strip-types --no-warnings scripts/blog-research.mjs \
+            --trigger ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }} \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Commit drafts
+        if: steps.research.outputs.drafts != '' && steps.research.outputs.drafts != '0'
+        run: |
+          git config user.name  "InfoOnVisa bot"
+          git config user.email "noreply@infoonvisa.com"
+          git add src/content/blog/
+          if git diff --cached --quiet; then
+            echo "Nothing staged — the script wrote no new files."
+            exit 0
+          fi
+          git commit -m "Blog drafts: ${{ steps.research.outputs.titles }}
+
+          Researched the week to $(date -u +%Y-%m-%d). Every post is draft: true —
+          hidden from the blog list, noindex, out of the sitemap — so nothing here
+          is public until someone opens it in Pages CMS and switches Draft off.
+
+          Written by .github/workflows/blog-research.yml"
+          git push
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Weekly blog research" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.research.outputs.drafts }}" = "" ] || [ "${{ steps.research.outputs.drafts }}" = "0" ]; then
+            echo "No drafts written." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "That is a valid outcome: a week with nothing traceable to a government page should produce nothing. See the job log for what was found and why it was dropped." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**${{ steps.research.outputs.drafts }} draft(s) committed to \`main\`:**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.research.outputs.titles }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "They are drafts — invisible on the live site. Open [Pages CMS](https://app.pagescms.org/daipool101/infoonvisa/main/collection/blog) to read, edit and publish." >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,287 @@
+---
+// Weekly blog research: start a run, manage the API key pool, see what came out.
+//
+// The research itself runs in GitHub Actions, not here — a fifteen-minute job
+// cannot live inside a Cloudflare Worker. This page pulls the lever and reads
+// the result out of the blog_runs and blog_drafts tables.
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getEnv } from '../../lib/supabase';
+import { getAdminUser, notFound } from '../../lib/admin-auth';
+import { loadBlogAdmin, nextScheduledRun } from '../../lib/blog-admin';
+import { fmtDate } from '../../lib/admin-data';
+
+export const prerender = false;
+
+const env = getEnv();
+const user = await getAdminUser(env, Astro.request);
+if (!user) return notFound();
+
+const loaded = await loadBlogAdmin(env);
+const schemaMissing = !loaded || loaded.setupNeeded === true;
+const ready = loaded && !loaded.setupNeeded ? loaded : null;
+const keys = ready?.keys ?? [];
+const runs = ready?.runs ?? [];
+const drafts = ready?.drafts ?? [];
+
+const enabledKeys = keys.filter((k) => k.enabled);
+const next = nextScheduledRun();
+const latest = runs[0];
+const CMS = 'https://app.pagescms.org/daipool101/infoonvisa/main/collection/blog';
+
+const when = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+---
+
+<AdminLayout title="Weekly blog research" email={user.email}>
+  {schemaMissing && (
+    <div class="banner">
+      <strong>The blog tables are not set up yet.</strong> Run <code>supabase/blog-schema.sql</code>
+      in the Supabase SQL editor, then reload this page.
+    </div>
+  )}
+
+  <section class="panel">
+    <div class="top">
+      <div>
+        <h2>Run the research</h2>
+        <p class="sub">
+          Searches the last 10 days for visa rule changes, keeps only what a government page
+          confirms, and writes 2–4 drafts. Takes 10–15 minutes. Every post lands as a
+          <strong>draft</strong> — invisible on the site until you publish it.
+        </p>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" id="dry" disabled={!enabledKeys.length}>Dry run</button>
+        <button class="btn primary" type="button" id="run" disabled={!enabledKeys.length}>Run now</button>
+      </div>
+    </div>
+
+    {!enabledKeys.length && (
+      <p class="warntext">Add an API key below before running.</p>
+    )}
+
+    <p class="msg" id="runmsg"></p>
+
+    <div class="facts">
+      <div><span class="k">Next automatic run</span><span class="v">{next.toUTCString().slice(0, 16)} 05:00 UTC</span></div>
+      <div><span class="k">Keys available</span><span class="v">{enabledKeys.length} of {keys.length}</span></div>
+      <div><span class="k">Last run</span><span class="v">{latest ? `${when(latest.startedAt)} — ${latest.status}` : 'never'}</span></div>
+    </div>
+  </section>
+
+  <!-- ── API keys ──────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <h2>API keys <span class="count">{keys.length}</span></h2>
+    <p class="sub">
+      Google AI Studio keys, free tier. Each allows <strong>20 requests a day</strong> and a run
+      uses about 5–7, so one key is enough — but when a key runs out mid-run the job switches to
+      the next one instead of stopping. Get keys at
+      <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.
+    </p>
+
+    {keys.length > 0 && (
+      <table class="t">
+        <thead><tr><th>Label</th><th>Key</th><th class="num">Used today</th><th>State</th><th></th></tr></thead>
+        <tbody>
+          {keys.map((k) => (
+            <tr>
+              <td><strong>{k.label}</strong></td>
+              <td class="mono muted">{k.masked}</td>
+              <td class="num">{k.callsToday} / 20</td>
+              <td>
+                {!k.enabled
+                  ? <span class="chip">disabled</span>
+                  : k.exhaustedAt
+                    ? <span class="chip warn">out of quota</span>
+                    : <span class="chip ok">ready</span>}
+              </td>
+              <td class="actions">
+                <button class="btn sm" type="button" data-key-action={k.enabled ? 'disable' : 'enable'} data-key-id={k.id}>
+                  {k.enabled ? 'Disable' : 'Enable'}
+                </button>
+                <button class="btn sm danger" type="button" data-key-action="delete" data-key-id={k.id}>Remove</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+
+    <form id="addkey">
+      <div class="grid2">
+        <div>
+          <label class="f" for="klabel">Label</label>
+          <input class="f" id="klabel" placeholder="personal gmail" required />
+          <div class="hint">So you can tell your accounts apart.</div>
+        </div>
+        <div>
+          <label class="f" for="kval">API key</label>
+          <input class="f mono" id="kval" type="password" placeholder="AIza…" required autocomplete="off" />
+          <div class="hint">Stored server-side. It is never shown again after you save it.</div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:.9rem"><button class="btn primary" type="submit">Add key</button></div>
+      <p class="msg" id="keymsg"></p>
+    </form>
+  </section>
+
+  <!-- ── Drafts ────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <h2>Drafts produced <span class="count">{drafts.length}</span></h2>
+    {drafts.length === 0 ? (
+      <p class="empty">Nothing yet. Run the research, or wait for Monday.</p>
+    ) : (
+      <>
+        <p class="sub">
+          Each one is committed to the repo as a draft. Open it in
+          <a href={CMS} target="_blank" rel="noopener">Pages CMS</a> to edit and publish, or use the
+          preview link to read it as a real page.
+        </p>
+        <table class="t">
+          <thead><tr><th>Title</th><th class="num">Words</th><th>Tags</th><th>Sources</th><th></th></tr></thead>
+          <tbody>
+            {drafts.map((d) => (
+              <tr>
+                <td><strong>{d.title}</strong><div class="tag">{fmtDate(d.createdAt)}</div></td>
+                <td class="num">{d.words ?? '—'}</td>
+                <td class="muted">{d.tags.join(', ')}</td>
+                <td>
+                  <span class={d.govSources ? 'chip ok' : 'chip warn'}>{d.govSources} gov</span>
+                  <span class="tag"> of {d.sources.length}</span>
+                </td>
+                <td class="actions">
+                  <a class="btn sm" href={`/blog/${d.slug}`} target="_blank" rel="noopener">Preview ↗</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    )}
+  </section>
+
+  <!-- ── Runs ──────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <h2>Run history <span class="count">{runs.length}</span></h2>
+    {runs.length === 0 ? (
+      <p class="empty">No runs yet.</p>
+    ) : (
+      <table class="t">
+        <thead><tr><th>Started</th><th>How</th><th>Result</th><th class="num">Stories</th><th class="num">Drafts</th><th class="num">Calls</th><th>Keys</th></tr></thead>
+        <tbody>
+          {runs.map((r) => (
+            <tr>
+              <td class="nowrap">{when(r.startedAt)}</td>
+              <td class="muted">{r.trigger}</td>
+              <td>
+                {r.status === 'ok' && <span class="chip ok">wrote drafts</span>}
+                {r.status === 'empty' && <span class="chip">nothing verifiable</span>}
+                {r.status === 'running' && <span class="chip warn">running</span>}
+                {r.status === 'failed' && <span class="chip warn">failed</span>}
+                {(r.note || r.error) && <div class="tag">{r.error ?? r.note}</div>}
+              </td>
+              <td class="num">{r.storiesFound}</td>
+              <td class="num">{r.draftsWritten}</td>
+              <td class="num">{r.apiCalls}</td>
+              <td class="muted">{r.keysUsed.map((k) => `${k.label} (${k.calls})`).join(', ') || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+    <p class="hint">
+      "Nothing verifiable" is a success, not a failure: a week with no change traceable to a
+      government page should produce no posts.
+    </p>
+  </section>
+</AdminLayout>
+
+<script is:inline>
+  const msg = (el, text, kind) => {
+    const n = document.getElementById(el);
+    n.textContent = text;
+    n.className = 'msg ' + (kind || '');
+  };
+
+  async function post(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok || !out.ok) throw new Error(out.error || `failed (${res.status})`);
+    return out;
+  }
+
+  async function start(dryRun) {
+    const ids = ['run', 'dry'];
+    ids.forEach((i) => (document.getElementById(i).disabled = true));
+    msg('runmsg', dryRun ? 'Starting a dry run…' : 'Starting…');
+    try {
+      const out = await post('/api/admin/blog-run', { dryRun });
+      msg('runmsg',
+        (dryRun
+          ? 'Dry run started. It researches and reports but writes nothing. '
+          : 'Started. It takes 10–15 minutes; drafts appear here when it finishes. ') +
+        'Watch it live in GitHub Actions.',
+        'ok');
+      if (out.actions) window.open(out.actions, '_blank', 'noopener');
+    } catch (e) {
+      msg('runmsg', e.message, 'bad');
+    } finally {
+      ids.forEach((i) => (document.getElementById(i).disabled = false));
+    }
+  }
+
+  document.getElementById('run')?.addEventListener('click', () => start(false));
+  document.getElementById('dry')?.addEventListener('click', () => start(true));
+
+  document.getElementById('addkey')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const label = document.getElementById('klabel').value.trim();
+    const key = document.getElementById('kval').value.trim();
+    msg('keymsg', 'Saving…');
+    try {
+      await post('/api/admin/blog-keys', { action: 'add', label, key });
+      msg('keymsg', 'Added.', 'ok');
+      location.reload();
+    } catch (err) {
+      msg('keymsg', err.message, 'bad');
+    }
+  });
+
+  for (const b of document.querySelectorAll('[data-key-action]')) {
+    b.addEventListener('click', async () => {
+      const action = b.dataset.keyAction;
+      if (action === 'delete' && !confirm('Remove this key? The pool will stop using it.')) return;
+      msg('keymsg', 'Saving…');
+      try {
+        await post('/api/admin/blog-keys', { action, id: Number(b.dataset.keyId) });
+        location.reload();
+      } catch (err) {
+        msg('keymsg', err.message, 'bad');
+      }
+    });
+  }
+</script>
+
+<style>
+  .top { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; justify-content: space-between; }
+  .top .sub { margin-bottom: 0; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .facts { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  .facts > div { display: grid; gap: .1rem; }
+  .facts .k { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+  .facts .v { font-size: .92rem; font-weight: 600; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; }
+  .actions { display: flex; gap: .35rem; justify-content: flex-end; }
+  .nowrap { white-space: nowrap; }
+  .msg { font-size: .88rem; margin-top: .6rem; min-height: 1.2rem; }
+  .msg.ok { color: var(--ok); }
+  .msg.bad { color: #a11; }
+  .warntext { color: var(--warn); font-weight: 650; font-size: .9rem; margin-top: .75rem; }
+  form#addkey { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+</style>
