@@ -41,11 +41,20 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (action === 'add') {
     if (!label) return json({ ok: false, error: 'Give the key a label, so you can tell your accounts apart.' }, 400);
-    // Google AI Studio keys start AIza and are 39 characters. Catching an
-    // obvious paste error here beats discovering it at 5am on a Monday when
-    // the run fails.
-    if (!/^AIza[\w-]{30,}$/.test(key)) {
-      return json({ ok: false, error: 'That does not look like a Google AI Studio key — they begin "AIza". Copy it from aistudio.google.com/apikey.' }, 400);
+    // Google issues AI Studio keys in two shapes: the long-standing "AIza..."
+    // and a newer "AQ.Ab8..." form. The first version of this check accepted
+    // only AIza and would have rejected the key already working in this
+    // project — a validator that refuses a valid credential is worse than no
+    // validator, because the person trying to use it has no way to tell it is
+    // the form being rejected rather than the key.
+    //
+    // So this catches an obvious paste error (whitespace, a truncated copy,
+    // someone pasting a URL) and nothing more. The run itself is the real test.
+    if (key.length < 30 || /\s/.test(key) || /^https?:/i.test(key)) {
+      return json({
+        ok: false,
+        error: 'That does not look like an API key. Copy the whole value from aistudio.google.com/apikey — it starts with "AIza" or "AQ." and has no spaces.',
+      }, 400);
     }
     const { error } = await db.from('blog_api_keys').insert({ label, api_key: key });
     if (error) return json({ ok: false, error: error.message }, 500);
