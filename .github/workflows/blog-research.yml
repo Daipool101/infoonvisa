@@ -15,11 +15,21 @@ name: Weekly blog research
 # ready to edit and publish by switching one toggle. A pull request would add an
 # approval step that `draft: true` already provides, and would force review of
 # raw markdown instead of the editor.
+# ── THE WEEKLY SCHEDULE IS OFF ON PURPOSE (10 Oct 2026) ─────────────────────
+#
+# Google stopped giving new accounts free Google Search grounding, and the
+# research pass cannot work without it. Left enabled, this would fail every
+# Monday at 05:00 and send a failed-workflow email each time — weekly noise
+# about a thing the owner has deliberately parked.
+#
+# To switch it back on, delete the two comment characters below. Do that only
+# once the research pass has a working grounded path again; MEMORY.md §6 A4
+# has the detail and the options.
+#
+# on:
+#   schedule:
+#     - cron: '0 5 * * 1'   # Mondays 05:00 UTC (link-check runs 04:00)
 on:
-  schedule:
-    # Mondays 05:00 UTC. The source-link check runs at 04:00 the same morning;
-    # an hour apart keeps their logs and their emails separate.
-    - cron: '0 5 * * 1'
   workflow_dispatch:
     inputs:
       dry_run:

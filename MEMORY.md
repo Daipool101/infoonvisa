@@ -239,6 +239,40 @@ Flash's score on that set: **4 of 14 right** (india-to-israel, india-to-south-af
 
 Fourteen API calls, about ten minutes. It turns "which model is better" into a number measured on this project's own work rather than a leaderboard.
 
+### A4. 🟡 Blog research is BUILT but PARKED — Google removed free search grounding
+
+**Owner's decision, 10 Oct 2026: on hold. No spending.** The tool is finished, committed and working except for one thing it cannot work without.
+
+**What exists and runs:** `/admin/blog` (behind Cloudflare Access), `scripts/blog-research.mjs`, `scripts/lib-blog-keys.mjs`, `.github/workflows/blog-research.yml`, the three `blog_*` tables (`supabase/blog-schema.sql`, already applied), and `GITHUB_DISPATCH_TOKEN` in Cloudflare. A dry run on the old key produced two drafts of 896 and 736 words on three API calls. The pipeline is sound.
+
+**What blocks it.** Google changed the free tier under us, and this is the thing to understand before touching any of it:
+
+| Tested 10 Oct 2026 on a brand-new Google account | |
+|---|---|
+| `gemini-2.5-flash` | ❌ *"no longer available to new users"* — use `gemini-3.8-flash` |
+| `gemini-3.8-flash`, plain call | ✅ |
+| `gemini-3.8-flash` + `urlContext` | ✅ reads a page you name |
+| `gemini-3.8-flash` + **`googleSearch`** | ❌ **429 on a key with zero calls — no free allowance at all** |
+
+The existing key still runs `2.5-flash` because it is grandfathered. New accounts get a different lineup, and **Google Search grounding is no longer free on them**.
+
+> The irony is worth recording: the key pool and its rotation were built to solve a 20-requests-a-day quota problem, and Google solved that problem differently — by removing the free allowance entirely. Rotation across accounts no longer buys search quota. More free keys will not fix this.
+
+**The research pass cannot work without `googleSearch`.** `urlContext` only reads pages you already know about; finding what changed this week is the entire job.
+
+**Options, when the owner wants to revisit:**
+
+- **A — put the research on Vertex** (recommended). Grounded search works there, it is already configured, and `scripts/lib-vertex.mjs` already handles auth and 429s. Roughly **$1–2/month** for a weekly run: grounding is about $35 per 1,000 queries and a run makes 3–5. The architecture does not change — only the `call()` inside `KeyPool`.
+- **B — free key for drafting, Vertex for research.** Saves pennies, adds a second code path.
+- **C — stay free-only.** The tool can then only read pages it is handed, which is not research.
+
+**Already done so it cannot nag or cost anything while parked:**
+- The **weekly cron is commented out** in `blog-research.yml`. Left on it would fail every Monday and email about it. Manual trigger still works.
+- The key pasted into chat during testing was **deleted from `blog_api_keys`**.
+- Nothing runs on its own. `/admin/blog` is a page with a button nobody is pressing.
+
+**If you pick up this task:** read `scripts/lib-blog-keys.mjs` first. The rotation logic stays useful whichever path is chosen; only the endpoint and credentials change.
+
 ### B. 2 routes the owner must verify by hand
 
 In `C:\Users\Akash\Downloads\verify-manually.md`, each with what the page claims and exactly what was tried. *(Both Saudi routes came off this list on 26 Sep 2026 — see §5b.)*

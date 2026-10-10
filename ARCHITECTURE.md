@@ -171,6 +171,19 @@ Prompt instructions do not control what search hands back. So `src/lib/evidence.
 
 `NEVER_EVIDENCE` in the same file blocks agents, insurers, airlines, comparison sites and encyclopaedias outright, whatever else is true of them.
 
+### ⚠️ Free Gemini is not one tier — a new account gets a different one
+
+Tested on a brand-new Google account, 10 Oct 2026. `gemini-2.5-flash` returns 404: *"no longer available to new users. Please update your code to use models/gemini-3.8-flash"*. Existing keys keep working because they are grandfathered, so a model that runs fine here can be unavailable to the next person who sets this up.
+
+Worse for anything that researches: on `gemini-3.8-flash` with that new key, `urlContext` works and **`googleSearch` returns 429 on a key with zero calls**. Grounded search has no free allowance on new accounts at all. It is not a daily cap to pace around; it is zero.
+
+Two consequences:
+
+- **Rotating across free accounts buys nothing for grounded work.** `scripts/lib-blog-keys.mjs` was written to pool several free keys against a 20/day limit, and that premise no longer holds for the research pass. The rotation code is still right; the quota it was routing around has been replaced by an allowance of none.
+- **Anything that must search the web has to go through Vertex**, where grounding is billed and works. `scripts/lib-vertex.mjs` is the path. Reading a page you already know about still works free through `urlContext`.
+
+Check this before assuming a model or a tool is available: list models for the key in question rather than trusting that what runs here runs there.
+
 ### ⚠️ The free Gemini tier is 20 requests **per day**
 
 `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, `quotaValue: 20`. Not per minute. Any script that walks the corpus must use Vertex (`scripts/lib-vertex.mjs`), which is what the deployed site uses anyway — the AI Studio key is caller-location restricted and does not work from Cloudflare's edge at all. `vertexGenerate()` retries 429 and 5xx, honouring the `retry in Ns` hint the API supplies, and prints the wait. A rate limit silently scored as "checked, nothing found" is the same failure mode as the link checker that could not distinguish a crashed script from a clean week.
