@@ -191,11 +191,36 @@ What it is genuinely good for is exactly that. Israel's eVisa-B2 and South Afric
 
 ## 6. Open work, in priority order
 
-### A. AdSense — **applied 27 Sep 2026, awaiting review**
+### A. AdSense — **rejected 11 Oct 2026 for account details; fixed, site review requested 15 Oct 2026**
 
-Submitted and verified. Publisher ID `ca-pub-5462566343196770`, in `src/lib/adsense.ts` (see §7c). Site ownership verified by code snippet; review requested; Google's consent message (the 3-choice version) enabled for EEA/UK/Swiss visitors.
+Publisher ID `ca-pub-5462566343196770`, in `src/lib/adsense.ts` (see §7c). Site ownership verified by code snippet; Google's consent message (the 3-choice version) enabled for EEA/UK/Swiss visitors.
 
-Nothing to do but wait — typically 2 days to 2 weeks. **Do not resubmit**, and ignore the "Ads.txt file not found" warning: Google's crawler checks on its own schedule and `/ads.txt` is live and correct.
+**The rejection was not about content.** It read *"The account details you entered are inaccurate or incomplete"*. The same email's advice to "focus on your content" is boilerplate — it also said a specialist *would* review the site once the details were fixed, which means **the site had never been reviewed at all**. Two weeks were spent waiting on a form, not on the pages.
+
+The cause was three empty fields in the Google payments profile (`payments.google.com`, profile `7117-5163-9403`):
+
+| Field | Status |
+|---|---|
+| Phone | verified, `+91 93247 62926` |
+| India tax info | Accepted 13 Oct 2026 — Unregistered individual (no GSTIN), PAN on file, 5% withholding |
+| US tax info | Form W-8BEN **Approved** 14 Oct 2026, expires 31 Dec 2029 |
+
+Two answers on the W-8BEN that are easy to get wrong, both now settled:
+
+- Income type is **"Services or other business income"**, *not* "Other Copyright Royalties". AdSense revenue to a non-US individual with no US presence is business income.
+- The treaty claim is **Article 7 paragraph 1 at 0%**, not 15%. Confirmed live: the profile shows "Services WHT rate: 0% — Claimed". Getting this wrong costs 30% of US earnings.
+- The optional **Unchanged status affidavit was left unticked**. It defaults to year 2016, is signed under penalties of perjury, and only matters where Google has already paid and over-withheld — which had never happened here.
+
+On 15 Oct 2026 the Sites page showed ownership verified; **Request review** was clicked and all three onboarding cards went green. The review is running.
+
+**UI traps worth remembering:**
+
+- The "Your account wasn't approved" banner and the yellow "add your payment info and connect your site" notice are **stale** — they do not clear when the underlying problem is fixed. Judge by the onboarding cards and the Sites page.
+- The SITES card sits **below the fold**; use **Sites** in the left menu instead.
+- During onboarding, Payments and Account in the AdSense sidebar are greyed out. Account details have to be edited at `payments.google.com`.
+- The INDIA TAX INFO row on the payments Settings summary renders blank even when accepted — open "Manage tax information" for the real status.
+
+Nothing to do but wait — typically a few days to 2 weeks. **Do not touch the ad snippet or `/ads.txt` during the review**, and ignore any "Ads.txt file not found" warning: Google's crawler checks on its own schedule, and both were verified live on 15 Oct 2026.
 
 ### A2. 🔴 The 90-day refresh does not work — build it AFTER AdSense
 
