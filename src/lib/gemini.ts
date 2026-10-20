@@ -3,7 +3,7 @@ import type { AppEnv } from './supabase';
 import type { CorridorData } from './corridor';
 import type { Country } from './countries';
 import { sanitizeCorridorLinks, OFFICIAL_PORTALS } from './links';
-import { buildEvidence, type Evidence } from './evidence';
+import { buildEvidence, retrievedUrls, type Evidence } from './evidence';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Generation runs in TWO passes, and the reason is the whole story of this file.
@@ -178,16 +178,70 @@ REPORT, in plain prose, no JSON:
 2. Each visa category realistically available, with validity, maximum stay,
    entries, and who each is for. Include conditional routes with the condition.
 3. Maximum stay in days, processing time, documents, how and where to apply.
-4. For EVERY statement above: which page you read it on, and what it said.
+4. For EVERY statement above: the FULL URL of the page you read it on, written
+   out in the prose as https://… , and what it said. A site's name is not a
+   source — "the immigration department's website" is unusable downstream,
+   because the next step may only cite URLs that appear here verbatim. If you
+   opened a page, its URL belongs in these notes.
 5. WHAT YOU COULD NOT CONFIRM on a government page. Be explicit. It is far more
    useful to say "the fee is not published" than to supply a number.
 
 Do not state a fee unless you read it on a government page in this session.`;
 }
 
-export function buildStructurePrompt(from: Country, to: Country, research: string): string {
+/**
+ * `retrieved` is the list of URLs the API itself reports as successfully
+ * fetched during pass 1 — not the model's account of what it read.
+ *
+ * It has to be passed in explicitly. Pass 1 is told to write its URLs into the
+ * prose, but it does not reliably comply: it writes "the Fiji Immigration
+ * website" and moves on. Pass 2 is then told to cite only URLs appearing in
+ * the notes, finds none, and — correctly refusing to invent one — puts the
+ * sentence "URL not provided in research notes" in the url field. That is how
+ * a route with a perfectly good government source still failed to generate.
+ *
+ * So the one signal that cannot be fabricated is handed over directly. The
+ * model may only cite from this list, which is the same rule `evidence.ts`
+ * applies when deciding whether a page is publishable at all.
+ */
+export function buildStructurePrompt(
+  from: Country,
+  to: Country,
+  research: string,
+  retrieved: string[] = []
+): string {
   return `Turn the research notes below into the required JSON for a visa guide:
 a citizen of ${from.name} travelling to ${to.name} for tourism.
+
+${
+  retrieved.length
+    ? `PAGES THAT WERE ACTUALLY OPENED AND READ (confirmed by the system, not by
+the notes). "officialSource" and every entry in "sources" must be one of these
+URLs, copied exactly:
+${retrieved.map((u) => `  - ${u}`).join('\n')}
+
+"officialSource" is the single page a ${from.demonym} traveller should open
+first, and it must be ${to.name}'s own visa or immigration authority — the
+body that decides this application. Two wrong choices to avoid, both of which
+have been made here before:
+  - ${from.name}'s own portals. ${from.name} government pages about inbound
+    travel TO ${from.name}, or visas FOR foreigners, have nothing to do with
+    this journey. ${from.name}'s travel advice for its citizens abroad is a
+    useful "source" but is not the official source for a ${to.name} visa.
+  - The right country, the wrong department. A revenue, tax, health or trade
+    ministry is not the visa authority even when the domain looks official.
+
+Never write a sentence, a site name, or a placeholder into a url field — not
+"URL not provided in research notes", not "see official website". If none of
+the pages above is ${to.name}'s visa authority, leave officialSource out
+entirely and the system will substitute the verified portal for ${to.name}.
+`
+    : `No page retrieval was confirmed for this route, so there is no URL you are
+permitted to cite. Leave "officialSource" out and "sources" empty rather than
+writing a site name or a sentence into a url field — a missing source is
+recoverable, a fabricated one is not.
+`
+}
 
 THE ONE RULE: every fact in your JSON must already appear in the notes. You are
 rearranging, not researching. If the notes do not settle something, leave the
@@ -271,12 +325,13 @@ export async function structureCorridor(
   env: AppEnv,
   from: Country,
   to: Country,
-  research: string
+  research: string,
+  retrieved: string[] = []
 ): Promise<{ data: CorridorData } | { error: string }> {
   const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
   const res = await ai.models.generateContent({
     model: env.GEMINI_MODEL || 'gemini-2.5-flash',
-    contents: buildStructurePrompt(from, to, research),
+    contents: buildStructurePrompt(from, to, research, retrieved),
     config: {
       responseMimeType: 'application/json',
       responseSchema: RESPONSE_SCHEMA as any,
@@ -303,15 +358,32 @@ export async function generateCorridor(
     const researched = await researchCorridor(env, from, to);
     if ('error' in researched) return { data: null, error: researched.error };
 
-    const structured = await structureCorridor(env, from, to, researched.text);
+    const structured = await structureCorridor(
+      env,
+      from,
+      to,
+      researched.text,
+      retrievedUrls(researched.evidence)
+    );
     if ('error' in structured) {
       return { data: null, error: structured.error, evidence: researched.evidence, research: researched.text };
     }
 
     const parsed = structured.data;
-    if (!parsed.sources?.length || !parsed.officialSource?.url) {
-      return { data: null, error: 'no official source in response', evidence: researched.evidence, research: researched.text };
-    }
+    // No pre-check on officialSource here, deliberately. The prompt tells the
+    // model to cite only URLs the research pass actually read, so when it has
+    // nothing it honestly returns `officialSource.url` as "" rather than
+    // inventing one — which is the behaviour we asked for. An earlier guard
+    // rejected that empty string outright and returned "no official source in
+    // response", which meant the route failed even when the notes DID contain
+    // a usable government page the model had listed under `sources`.
+    //
+    // sanitizeCorridorLinks already resolves this: it keeps a working link of
+    // the model's own, else the curated portal for the destination, else the
+    // first source that verified. Running it first and judging the result is
+    // the same safety with none of the false negatives, and the evidence gate
+    // in autoStatus still decides whether the page may go live or lands in the
+    // review queue.
     const { data: clean } = await sanitizeCorridorLinks(parsed, to.slug);
     if (!clean.officialSource?.url) {
       return { data: null, error: 'no working official source', evidence: researched.evidence, research: researched.text };

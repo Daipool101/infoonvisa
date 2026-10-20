@@ -107,16 +107,35 @@ export async function generateCorridorVertex(
     // PASS 1 — research. Tools on, no schema: search grounding and a strict
     // responseSchema cannot be combined in one request, which is the reason
     // this is two calls rather than one. See the note at the top of gemini.ts.
-    const r1 = await call(
-      buildResearchPrompt(from, to),
-      { temperature: 0 },
-      [{ urlContext: {} }, { googleSearch: {} }]
-    );
-    const research: string | undefined = r1?.candidates?.[0]?.content?.parts
-      ?.map((p: any) => p?.text)
-      .filter(Boolean)
-      .join('\n');
-    if (!research) return { data: null, error: 'empty research response from vertex' };
+    const textOf = (r: any): string =>
+      (r?.candidates?.[0]?.content?.parts ?? [])
+        .map((p: any) => p?.text)
+        .filter(Boolean)
+        .join('\n');
+
+    // Pass 1 occasionally returns HTTP 200, finishReason STOP and no text at
+    // all — seen on united-states->bahamas, which answered in 3s with 141
+    // thinking tokens and zero output, then generated normally on the next
+    // attempt. One empty response was enough to fail the whole route, and the
+    // reader saw "this guide is on the way" for a route that works.
+    //
+    // So: one retry, and only for a genuinely empty body. A real error still
+    // throws out of `call`, and a route that is simply hard still fails — this
+    // buys a second roll of the dice on an outcome that carries no information,
+    // at the cost of one extra request on the rare occasions it happens.
+    let r1 = await call(buildResearchPrompt(from, to), { temperature: 0 }, [
+      { urlContext: {} },
+      { googleSearch: {} },
+    ]);
+    if (!textOf(r1)) {
+      console.warn(`empty research response for ${from.slug}->${to.slug}, retrying once`);
+      r1 = await call(buildResearchPrompt(from, to), { temperature: 0 }, [
+        { urlContext: {} },
+        { googleSearch: {} },
+      ]);
+    }
+    const research = textOf(r1);
+    if (!research) return { data: null, error: 'empty research response from vertex (twice)' };
 
     // Taken from the API's own accounting of what it fetched, never from the
     // model's prose about which ministries it consulted.
@@ -130,8 +149,11 @@ export async function generateCorridorVertex(
       .filter(Boolean);
     const evidence = buildEvidence(retrieved, searched);
 
-    // PASS 2 — structure. Tools off, schema on, input is pass 1 and nothing else.
-    const r2 = await call(buildStructurePrompt(from, to, research), {
+    // PASS 2 — structure. Tools off, schema on. Input is pass 1's prose plus the
+    // URLs the API confirmed were fetched: the prose alone frequently names
+    // sites without their addresses, and then there is nothing legitimate for
+    // this pass to cite. See buildStructurePrompt for the full account.
+    const r2 = await call(buildStructurePrompt(from, to, research, retrieved), {
       responseMimeType: 'application/json',
       responseSchema: RESPONSE_SCHEMA,
     });
@@ -139,9 +161,12 @@ export async function generateCorridorVertex(
     if (!text) return { data: null, error: 'empty structuring response from vertex', evidence, research };
 
     const parsed = JSON.parse(text) as CorridorData;
-    if (!parsed.sources?.length || !parsed.officialSource?.url) {
-      return { data: null, error: 'no official source in response', evidence, research };
-    }
+    // No pre-check on officialSource here — see the note in gemini.ts. The
+    // model returns "" when the notes gave it no page it is willing to cite,
+    // and sanitizeCorridorLinks below is what repairs that (curated portal, or
+    // the first source that verifies). Judging before the repair rejected live
+    // routes that had a perfectly good source sitting in `sources`.
+    //
     // Model-written URLs rot; verify and repair them before the page is saved.
     const { data: clean, report } = await sanitizeCorridorLinks(parsed, to.slug);
     if (report.rewritten || report.dropped) {

@@ -166,9 +166,11 @@ function seedRow(slug: string): CorridorRow | null {
 // ministry it never opened. A page researched entirely off visa agents and
 // newspapers - which is what search returns for these queries - is held for
 // review instead of publishing itself.
-function autoStatus(data: CorridorData): CorridorStatus {
+function autoStatus(data: CorridorData, fromIso?: string, toIso?: string): CorridorStatus {
   const evidence = (data as Record<string, unknown>).evidence as Evidence | undefined;
-  return evidenceIsPublishable(evidence, data.officialSource) ? 'verified' : 'pending_review';
+  return evidenceIsPublishable(evidence, data.officialSource, fromIso, toIso)
+    ? 'verified'
+    : 'pending_review';
 }
 
 export async function saveCorridor(
@@ -193,7 +195,7 @@ export async function saveCorridor(
   const status =
     prev?.status === 'verified' || prev?.status === 'low_quality'
       ? prev.status
-      : autoStatus(row.data);
+      : autoStatus(row.data, row.from_country, row.to_country);
   const { error } = await db.from('corridors').upsert(
     {
       ...row,
