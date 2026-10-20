@@ -191,6 +191,29 @@ What it is genuinely good for is exactly that. Israel's eVisa-B2 and South Afric
 
 ## 6. Open work, in priority order
 
+### A0. Generation of NEW routes was broken until 20 Oct 2026 — fixed, read this before touching the two passes
+
+Symptom: entering any unpublished from/to showed "this guide is on the way" every time. Generation was not down — it ran both passes, took a minute, and discarded the result at the final gate.
+
+Pass 1 reads real pages and the API reports which URLs it fetched. That list was captured for the evidence record and then **not given to pass 2**. Pass 2 is told to cite only URLs appearing in its notes, and the notes name sites without addresses ("the Fiji Immigration website"), so it wrote the sentence `"URL not provided in research notes"` into the url field. The guard above then failed the page for having no official source — one line before `sanitizeCorridorLinks`, which exists to substitute the curated portal or the first verified source.
+
+Fixed by handing pass 2 the API-confirmed URLs (`retrievedUrls()` in `evidence.ts`), asking pass 1 for full URLs rather than page names, judging `officialSource` **after** the repair, and retrying pass 1 once when it returns 200 with no text (a real, observed failure).
+
+Two traps found while testing, both of which would have made the fix worse than the bug:
+
+- **`indianvisaonline.gov.in` was classed as a commercial visa agent.** The blocklist pattern `visa(online|desk|hq|...)` matches inside the hostname of India's own national visa portal. A government domain is registry-controlled and cannot be an agent, so the government test now stands alone; the blocklist marks a source `commercial` for the reviewer instead.
+- **That alone would have published pages citing the wrong country.** Research often cannot reach a small destination's immigration site and returns holding the *traveller's own* government — India's inbound portal as the official source for an Indian going to Panama. It is governmental, so every prior test passed it. `evidenceIsPublishable` now takes the corridor's endpoints and holds a page for review when the official source belongs to the origin rather than the destination. **Someone else's government is a fine source and never the official one.**
+
+Diagnosis tooling, because `/api/generate` deliberately returns a flat `generation_failed` and logs detail server-side only:
+
+```
+node --import ./scripts/ts-resolve.mjs --experimental-strip-types scripts/diagnose-generate.mjs india fiji
+```
+
+It prints finishReason, thinking vs output tokens, every URL in the notes, which of the five failure points fires, and the publish decision. `scripts/ts-resolve.mjs` resolves the extensionless imports in `src/lib`, so a script can import the real modules instead of regexing values out of the TypeScript the way `regen-audit.mjs` does.
+
+Verified in production after deploy: `india-to-fiji` → `immigration.gov.fj`, verified and in the sitemap. `united-states-to-bahamas` (failing since August) and `india-to-mongolia` → generated, held for review with `noindex` and out of the sitemap, because both came back citing the origin's government. That is the gate working, not a failure.
+
 ### A. AdSense — **rejected 11 Oct 2026 for account details; fixed, site review requested 15 Oct 2026**
 
 Publisher ID `ca-pub-5462566343196770`, in `src/lib/adsense.ts` (see §7c). Site ownership verified by code snippet; Google's consent message (the 3-choice version) enabled for EEA/UK/Swiss visitors.
@@ -221,6 +244,34 @@ On 15 Oct 2026 the Sites page showed ownership verified; **Request review** was 
 - The INDIA TAX INFO row on the payments Settings summary renders blank even when accepted — open "Manage tax information" for the real status.
 
 Nothing to do but wait — typically a few days to 2 weeks. **Do not touch the ad snippet or `/ads.txt` during the review**, and ignore any "Ads.txt file not found" warning: Google's crawler checks on its own schedule, and both were verified live on 15 Oct 2026.
+
+#### A1. ⏸️ Branch `hold/no-ads-on-brand-pages` — merge it the day AdSense approves
+
+Two commits, finished and tested on 15 Oct 2026, deliberately not on `main`:
+
+```
+git merge hold/no-ads-on-brand-pages && git push
+```
+
+They remove the ad script from the five pages that carry the brand — `/`,
+`/about`, `/contact`, `/privacy`, `/terms` — through one `AD_FREE_PATHS` set in
+`src/layouts/Base.astro`. The owner's decision: *"i want make brand… it will
+make it cheaper website"*. Those pages are where a reader decides whether to
+believe the verdicts, and the two legal pages are `noindex` so they earn
+nothing anyway. Corridor pages, hubs and the blog keep their ads — people
+arrive there from search wanting the answer.
+
+Held because Google's crawler usually starts at the homepage when checking for
+ad code, and losing the snippet there mid-review could read as the code being
+gone. The risk is small; a bounce costs another two weeks and waiting costs
+nothing.
+
+Verified before it was parked: the five pages serve no ad script, while
+`/india-to-japan`, `/countries`, `/from/india`, `/blog` and all 16 prerendered
+blog posts still do. Trailing-slash URLs 301 to the canonical path.
+
+It lives on a branch rather than on `main` so that unrelated fixes can ship
+without dragging it along — which is exactly what happened on 20 Oct.
 
 ### A2. 🔴 The 90-day refresh does not work — build it AFTER AdSense
 
