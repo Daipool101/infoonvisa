@@ -214,7 +214,27 @@ It prints finishReason, thinking vs output tokens, every URL in the notes, which
 
 Verified in production after deploy: `india-to-fiji` → `immigration.gov.fj`, verified and in the sitemap. `united-states-to-bahamas` (failing since August) and `india-to-mongolia` → generated, held for review with `noindex` and out of the sitemap, because both came back citing the origin's government. That is the gate working, not a failure.
 
-### A. AdSense — **rejected 11 Oct 2026 for account details; fixed, site review requested 15 Oct 2026**
+### A. AdSense — **rejected 20 Nov 2026 for LOW VALUE CONTENT; site fixed 21 Nov; do not resubmit yet**
+
+**Timeline:** rejected for account details 11 Oct and again 27 Oct (address did not match Aadhaar, Google birthday off by a year — both fixed 8 Nov, profile shows "complete"). The site itself was reviewed for the first time on 20 Nov: **"Low value content"**. Google's wording asks for "substantial unique value", "a consistent presence on the web" and "a level of user interest" — the last two are about age and traffic, not page quality.
+
+**What was wrong, all fixed and live 21 Nov** (commits `89b9658`, `c9ea3ac`, `8791d1d`):
+- Every corridor page opened behind a modal making the visitor tick *"I understand this is AI-generated information…"*. Removed; the disclosure stays on the page ("How this page was made") and in the footer.
+- 123 of 138 verdicts were hand-checked (`verdictCheckedOn`) and the public page never said so. Now a badge and the note show it — only where true.
+- "Trip essentials" cards with "Soon" badges and `href="#"` on all 138 pages. Removed.
+- **The CSP blocked most of AdSense** — its traffic-quality check, the ad frames, and the EEA consent message. Fixed in `src/middleware.ts` (`ADS` list).
+- Homepage: three template five-star reviews nobody wrote, a "Last verified" card set to today by a script, "190+ countries" claims, FAQ claims of updates "within days" and "trusted partners". All removed or made true; the homepage now reads its numbers from the database (`siteTrustStats`).
+
+What was already fine: ~2,000 words per page with ~8% shared boilerplate; hubs link only to published pages; ads.txt "Authorized".
+
+**Next, agreed with the owner — do NOT click Request review straight away:**
+1. First-hand articles only he can write (ex-VFS Global).
+2. Hand-check the 15 unchecked live pages from the dashboard (each then gets the badge).
+3. Let traffic grow ~4–6 weeks, then request review.
+
+---
+
+#### A-history. The account-details rejections (Oct–Nov 2026)
 
 Publisher ID `ca-pub-5462566343196770`, in `src/lib/adsense.ts` (see §7c). Site ownership verified by code snippet; Google's consent message (the 3-choice version) enabled for EEA/UK/Swiss visitors.
 
