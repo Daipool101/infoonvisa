@@ -2,6 +2,11 @@
 import Base from '../layouts/Base.astro';
 import CountrySearch from '../components/CountrySearch.astro';
 import { COUNTRIES } from '../lib/countries';
+import { getEnv, siteTrustStats } from '../lib/supabase';
+
+// Real figures, read on each request. See siteTrustStats for why the homepage
+// no longer states anything it cannot back.
+const stats = await siteTrustStats(getEnv());
 
 const options = [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -26,28 +31,29 @@ const STEPS = [
   { n: 3, icon: 'fileCheck', title: 'Plan with confidence', desc: 'Documents, steps, links and tips — dated and sourced.' },
 ];
 
+// "190+ countries — every route, mapped" was here. The country picker knows
+// 198 countries; the published guides number in the low hundreds and come
+// from 34 origins. The first card now states the real count.
 const FEATURES = [
-  { icon: 'globe', title: '190+ countries', desc: 'From major hubs to hidden gems — every route, mapped.' },
+  stats
+    ? { icon: 'globe', title: `${stats.live} route guides`, desc: 'One passport, one destination, one page — each with its official source.' }
+    : { icon: 'globe', title: 'One route, one page', desc: 'One passport, one destination — each with its official source.' },
   { icon: 'shield', title: 'Official sources only', desc: 'Every page links to embassy and government pages.' },
-  { icon: 'clock', title: 'Always fresh', desc: 'A clear "last verified" date so you know it\'s current.' },
-  { icon: 'mapPin', title: 'Land-ready tips', desc: 'What to do at immigration, SIM, currency, transport.' },
+  { icon: 'clock', title: 'Dated and checked', desc: 'Every page shows when it was last updated, and when a person checked its verdict.' },
+  { icon: 'mapPin', title: 'Entry tips', desc: 'Practical notes for arrival and immigration, where the official pages give them.' },
 ];
 
-const TESTIMONIALS = [
-  { name: 'Aarav S.', route: 'IN → JP', quote: 'Saved me hours of digging through embassy PDFs. The doc checklist alone was worth it.' },
-  { name: 'Meera P.', route: 'IN → AE', quote: 'I booked my flight with confidence. Knowing the visa-on-arrival rules upfront was a relief.' },
-  { name: 'Karan T.', route: 'IN → GB', quote: 'Clean, sourced, and actually current. No ads, no signup. Bookmarked.' },
-];
+// A "Loved by travellers" block of three five-star reviews sat here. They came
+// with the design template and no visitor wrote them — removed 21 Nov 2026 at
+// the owner's instruction. Add reviews back only from real people.
 
 const FAQS = [
   { q: 'Is the information official?', a: 'Every page links to the relevant embassy, consulate, or government source. We assemble — you can always verify at the source.' },
-  { q: 'Do you process visas for me?', a: "No. We're an information service. We point you to official sources and trusted partners so you can apply confidently." },
-  { q: 'How often is content updated?', a: "Every page shows a 'last verified' date. Major changes are reflected within days of publication." },
+  { q: 'Do you process visas for me?', a: "No. We're an information service. We point you to the official sources so you can apply yourself." },
+  { q: 'How often is content updated?', a: "Every page shows the date it was last updated, and — where a person has checked the verdict against the official source — that date too. Visa rules change, so always confirm on the official page linked from each guide." },
   { q: 'Do I need to sign up?', a: 'Nope. Search any route and read the full guide — no account, no paywall, no popups.' },
 ];
 
-// Fallback date for the "last verified" demo chip (updated to today on the client).
-const buildDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
 // Inline lucide icon path data (24x24, stroke).
 const I: Record<string, string> = {
@@ -157,7 +163,10 @@ const jsonLd = {
             <div class="kicker">Popular routes</div>
             <h2 class="h2">Where travellers are headed</h2>
           </div>
-          <a href="#" class="link-orange">View all 190+ countries →</a>
+          {/* Was href="#" and read "View all 190+ countries". The selector
+              knows 198 countries, but /countries lists the 34 that have
+              published guides — the link now goes there and says only that. */}
+          <a href="/countries" class="link-orange">Browse guides by country →</a>
         </div>
         <div class="routes-grid">
           {ROUTES.map((r, i) => (
@@ -222,40 +231,21 @@ const jsonLd = {
             <img src="/images/uae.jpg" alt="UAE" loading="lazy" />
             <img src="/images/australia.jpg" alt="Australia" loading="lazy" class="down" />
           </div>
-          <div class="verified-chip">
-            <span class="verified-ic"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.shield}></svg></span>
-            <div>
-              <div class="verified-t">Last verified</div>
-              <div class="verified-d" id="home-verified-date">{buildDate}</div>
+          {/* Showed "Last verified" with a date a script set to today for every
+              visitor. Now the real count of hand-checked verdicts, or nothing. */}
+          {stats && stats.handChecked > 0 && (
+            <div class="verified-chip">
+              <span class="verified-ic"><svg viewBox="0 0 24 24" class="ic sm" set:html={I.shield}></svg></span>
+              <div>
+                <div class="verified-t">Checked by hand</div>
+                <div class="verified-d">{stats.handChecked} of {stats.live} verdicts</div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>
 
-    <!-- TESTIMONIALS -->
-    <section class="tms">
-      <div class="container">
-        <div class="reveal tms-head">
-          <div class="kicker">Loved by travellers</div>
-          <h2 class="h2">Trusted before every trip</h2>
-        </div>
-        <div class="tms-grid">
-          {TESTIMONIALS.map((t, i) => (
-            <figure class="reveal tcard" style={`transition-delay:${i * 80}ms`}>
-              <div class="stars">
-                {Array.from({ length: 5 }).map(() => <svg viewBox="0 0 24 24" class="ic sm star" set:html={star}></svg>)}
-              </div>
-              <blockquote>"{t.quote}"</blockquote>
-              <figcaption>
-                <span class="tname">{t.name}</span>
-                <span class="troute">{t.route}</span>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      </div>
-    </section>
 
     <!-- FAQ -->
     <section id="faq" class="faq">
@@ -345,8 +335,8 @@ const jsonLd = {
   .container.narrow { max-width: 48rem; }
   .ic { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
   .ic.sm { width: 1rem; height: 1rem; }
-  .ic.xs { width: .85rem; height: .85rem; }
   .ic.star { fill: currentColor; stroke: none; }
+  .ic.xs { width: .85rem; height: .85rem; }
   .h2 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; color: var(--navy); font-size: clamp(2rem, 4vw, 3rem); line-height: 1.1; }
   .kicker { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; color: var(--primary); font-weight: 700; }
   .navy { color: var(--navy); } .orange { color: var(--primary); }
@@ -502,19 +492,6 @@ const jsonLd = {
   .verified-t { font-weight: 700; color: var(--navy); font-size: .875rem; }
   .verified-d { font-size: .75rem; color: var(--muted-foreground); }
 
-  /* TESTIMONIALS */
-  .tms { background: var(--cream); padding: 6rem 0; }
-  .tms-head { text-align: center; max-width: 42rem; margin: 0 auto 3.5rem; }
-  .tms-head .h2 { margin-top: .5rem; }
-  .tms-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-  @media (max-width: 880px) { .tms-grid { grid-template-columns: 1fr; } }
-  .tcard { border-radius: 1.5rem; background: var(--card); padding: 1.75rem; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.05); transition: box-shadow .2s; }
-  .tcard:hover { box-shadow: var(--shadow-soft); }
-  .stars { display: flex; gap: .125rem; color: var(--primary); }
-  .tcard blockquote { margin-top: 1rem; color: color-mix(in oklab, var(--navy) 85%, transparent); line-height: 1.6; }
-  .tcard figcaption { margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; }
-  .tname { font-weight: 700; color: var(--navy); }
-  .troute { font-size: .75rem; font-weight: 700; color: var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); padding: .25rem .5rem; border-radius: 999px; }
 
   /* FAQ */
   .faq { padding: 6rem 0; }
@@ -571,10 +548,6 @@ const jsonLd = {
 </style>
 
 <script>
-  // Keep the "last verified" demo chip showing the current date.
-  const vd = document.getElementById('home-verified-date');
-  if (vd) vd.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
   // Reveal-on-scroll
   const io = new IntersectionObserver(
     (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }),

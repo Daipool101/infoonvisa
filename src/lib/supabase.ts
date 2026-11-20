@@ -233,6 +233,33 @@ export async function listVerifiedCorridors(env: AppEnv): Promise<CorridorSummar
   return data as CorridorSummary[];
 }
 
+/**
+ * What the homepage can truthfully say about how the guides were checked.
+ *
+ * The homepage used to show a "Last verified" card whose date a script set to
+ * today for every visitor, next to "190+ countries — every route, mapped" and
+ * three invented five-star reviews. AdSense judged the site low value content
+ * on 20 Nov 2026. These figures come from the database on each request, so the
+ * claim and the record cannot drift apart. Null when the database is
+ * unreachable: the homepage then says nothing rather than guessing.
+ */
+export async function siteTrustStats(
+  env: AppEnv
+): Promise<{ live: number; handChecked: number; lastCheckedOn: string | null } | null> {
+  const db = client(env, true);
+  if (!db) return null;
+  const { data, error } = await db
+    .from('corridors')
+    .select('checked:data->>verdictCheckedOn')
+    .eq('status', 'verified');
+  if (error || !data) return null;
+  const dates = (data as { checked: string | null }[])
+    .map((r) => r.checked)
+    .filter((d): d is string => !!d)
+    .sort();
+  return { live: data.length, handChecked: dates.length, lastCheckedOn: dates.at(-1) ?? null };
+}
+
 export async function bumpSearchCount(env: AppEnv, corridorId: string): Promise<void> {
   const db = client(env, true);
   if (!db) return;
