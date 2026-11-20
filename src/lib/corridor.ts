@@ -161,12 +161,36 @@ export const corridorId = (from: Country, to: Country) => `${from.iso}-${to.iso}
 
 // Only allow http/https URLs from generated content (blocks javascript:, data:, etc.).
 // Returns a safe href string, or null if the URL is unusable/unsafe.
+/**
+ * Domains reserved by standards bodies for documentation and testing, plus the
+ * local loopback names. They are never anybody's visa authority.
+ *
+ * They have to be named explicitly because every other check passes them:
+ * example.com is a real, registered, permanently reachable site, so a link
+ * verifier reports it alive and a page citing it looks sourced. That is how
+ * `https://example.com/` reached the india-to-panama record, labelled
+ * "Official source URL not provided in research notes" — the model had no URL,
+ * said so in the label, and filled the url field with the canonical stand-in.
+ */
+const PLACEHOLDER_HOSTS = new RegExp(
+  '^(?:' +
+    // example.com and any subdomain of it (RFC 2606 documentation domains)
+    '(?:[a-z0-9-]+\\.)*example\\.(?:com|net|org|edu)' +
+    // the reserved TLDs themselves, bare or with subdomains
+    '|(?:[a-z0-9-]+\\.)*(?:example|test|invalid|localhost)' +
+    // loopback
+    '|127\\.0\\.0\\.1|\\[::1\\]' +
+    ')$',
+  'i'
+);
+
 export function safeUrl(u?: string | null): string | null {
   if (!u) return null;
   try {
     const p = new URL(u.trim());
-    if (p.protocol === 'http:' || p.protocol === 'https:') return p.href;
-    return null;
+    if (p.protocol !== 'http:' && p.protocol !== 'https:') return null;
+    if (PLACEHOLDER_HOSTS.test(p.hostname)) return null;
+    return p.href;
   } catch {
     return null;
   }

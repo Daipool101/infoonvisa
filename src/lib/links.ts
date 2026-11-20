@@ -52,6 +52,56 @@ export const OFFICIAL_PORTALS: Record<string, Source> = {
   russia: { label: 'Russia — Consular Department, Ministry of Foreign Affairs', url: 'https://www.kdmid.ru/' },
   azerbaijan: { label: 'Azerbaijan ASAN Visa (e-Visa)', url: 'https://evisa.gov.az/' },
   pakistan: { label: 'Pakistan Online Visa System (NADRA)', url: 'https://visa.nadra.gov.pk/' },
+  // Added 20 Oct 2026 after each of these routes generated citing the wrong
+  // country's government: with no curated portal, research could not reach the
+  // destination's own site and fell back on whatever did load.
+  bahamas: { label: 'The Bahamas Department of Immigration', url: 'https://www.immigration.gov.bs/' },
+  mongolia: { label: 'Mongolia Immigration Agency', url: 'https://immigration.gov.mn/' },
+  panama: { label: 'Panama — Servicio Nacional de Migración', url: 'https://www.migracion.gob.pa/' },
+  botswana: { label: 'Botswana e-Visa portal', url: 'https://evisa.gov.bw/' },
+  ghana: { label: 'Ghana Immigration Service', url: 'https://immigration.gov.gh/' },
+  fiji: { label: 'Fiji Immigration Department', url: 'https://www.immigration.gov.fj/' },
+};
+
+/**
+ * Portals that are the right LINK for a reader but the wrong page to hand the
+ * research pass, because they are JavaScript applications whose HTML carries
+ * no text at all.
+ *
+ * evisa.gov.bw is the worked example: it is where an Indian applies for a
+ * Botswana visa, so it belongs in OFFICIAL_PORTALS as the page a reader is
+ * sent to. But fetched without a browser it returns zero words, and when the
+ * research pass was seeded with it the model read the empty shell and stopped
+ * in under four seconds with no output — twice running, on 20 Nov 2026. The
+ * route could not generate at all.
+ *
+ * Listed here, the portal is still the curated fallback link; it is simply not
+ * offered as reading material, and research proceeds by search instead.
+ */
+export const UNREADABLE_PORTALS = new Set<string>(['botswana']);
+
+/**
+ * What a government publishes for its OWN citizens travelling abroad.
+ *
+ * Separate from OFFICIAL_PORTALS on purpose. That map answers "where does a
+ * foreigner apply to enter this country", which is the wrong page to hand the
+ * research pass when the country is the traveller's origin. For India it is
+ * `indianvisaonline.gov.in` — the portal for foreigners entering India — and
+ * seeding it meant pass 1 reliably retrieved it, found nothing else that
+ * loaded, and offered India's own inbound portal as the official source for an
+ * Indian going to Panama or Mongolia. Both pages landed in the review queue.
+ *
+ * Only countries that actually publish outbound travel advice appear here. A
+ * missing entry is correct and means no origin seed: India has no equivalent
+ * page, and guessing one would recreate the problem this map exists to fix.
+ */
+export const TRAVEL_ADVICE: Record<string, string> = {
+  'united-kingdom': 'https://www.gov.uk/foreign-travel-advice',
+  'united-states':
+    'https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories.html',
+  canada: 'https://travel.gc.ca/destinations',
+  australia: 'https://www.smartraveller.gov.au/',
+  'new-zealand': 'https://www.safetravel.govt.nz/',
 };
 
 /** Path segments the model invents: visa-centre / locale codes such as

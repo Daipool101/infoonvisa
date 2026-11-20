@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import type { AppEnv } from './supabase';
 import type { CorridorData } from './corridor';
 import type { Country } from './countries';
-import { sanitizeCorridorLinks, OFFICIAL_PORTALS } from './links';
+import { sanitizeCorridorLinks, OFFICIAL_PORTALS, TRAVEL_ADVICE, UNREADABLE_PORTALS } from './links';
 import { buildEvidence, retrievedUrls, type Evidence } from './evidence';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,13 +125,21 @@ export const RESPONSE_SCHEMA = {
 export function seedUrls(from: Country, to: Country): string[] {
   const urls: string[] = [];
   const dest = OFFICIAL_PORTALS[to.slug];
-  if (dest) urls.push(dest.url);
+  // An empty JavaScript shell is worse than no seed: the model reads nothing
+  // and stops. See UNREADABLE_PORTALS.
+  if (dest && !UNREADABLE_PORTALS.has(to.slug)) urls.push(dest.url);
   // The origin's own foreign ministry is the single most under-used source in
   // this project: gov.uk settled the UAE question when the UAE's own site
   // would not load, because a government's travel advice for its own citizens
   // is written for exactly the corridor we are describing.
-  const origin = OFFICIAL_PORTALS[from.slug];
-  if (origin) urls.push(origin.url);
+  //
+  // It must come from TRAVEL_ADVICE, not OFFICIAL_PORTALS. The latter holds
+  // the page a FOREIGNER uses to enter that country, which is the wrong
+  // document entirely when the country is where the traveller starts — and
+  // seeding India's inbound portal is how India→Panama and India→Mongolia
+  // both ended up citing indianvisaonline.gov.in as their official source.
+  const origin = TRAVEL_ADVICE[from.slug];
+  if (origin) urls.push(origin);
   return urls;
 }
 
