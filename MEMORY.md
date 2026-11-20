@@ -374,7 +374,12 @@ Expect 4–6 routes from a Batch 5, not 10. **Do not pad a batch with a guess** 
 - **Rotate the Supabase service-role key.** It has been shared in chat and is still live.
 - ~~`india-to-indonesia` disagreed with the three other Indonesia pages~~ — **done 3 Oct 2026**: Indonesia's own visa selector returns "B1 - Tourist (Visa On Arrival)" first for INDIA, so the verdict moved `evisa` → `voa` and all four pages now agree. Found only because the regeneration audit compares pages against a fresh reading — reading that page alone showed nothing wrong with it.
 - ~~`do-you-really-need-a-visa-agent-an-honest-guide` — draft with a placeholder title~~ — **done 14 Sep 2026**: retitled "Do you really need a visa agent? An honest guide" and published.
-- `united-states-to-bahamas` and `united-states-to-south-africa` — generation failed, retry.
+- ~~`united-states-to-bahamas` and `united-states-to-south-africa` — generation failed, retry~~ — **done 20 Oct / 20 Nov 2026**. Both generate. Bahamas now cites `immigration.gov.bs`.
+- ~~Review queue~~ — **emptied 20 Nov 2026**: 138 verified, 0 pending, 2 rejected.
+  - `india-to-panama`, `india-to-mongolia`, `united-states-to-bahamas` regenerated after the seed fix (`bebab07`) and auto-verified on their own destination's immigration site. Panama had been stored with `https://example.com/` as its official source.
+  - `india-to-botswana` could not be researched: `evisa.gov.bw` is a JS shell with no text, and every other Botswana government host refuses connections. Read in a real browser instead and corrected by `scripts/fix-india-botswana.mjs`, which also **priced** it (BWP 300 single / BWP 500 multiple, non-refundable) from Botswana's Visa Application Terms. The generated page had claimed no multiple-entry tourist visa existed; the government page lists one and its price.
+  - `norway-to-guinea-bissau` and `antigua-and-barbuda-to-afghanistan` **rejected** (`low_quality`, still noindex). Research could open no page for either; the stored pages cite a dead embassy site and the pre-2021 Afghan embassy in Washington. Reversible with `node scripts/review.mjs approve <slug>` if a real source turns up.
+  - **Method for a destination whose official site is a JS app:** the built-in browser renders it. Botswana's site had an official "Do I need a visa?" checker and a terms page with fees — better evidence than anything search returned.
 - Airport Transit Visa (Type A) rows on Schengen pages are unpriced — the Visa Code governs them but Article 16 as read says "applicants" without naming Type A.
 
 ---
