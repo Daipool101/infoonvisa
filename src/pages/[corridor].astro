@@ -98,7 +98,15 @@ const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
 const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
 ---
 
-<Base title={title} description={description} noindex={noindex} jsonLd={jsonLd} showDisclaimer={!!row} hideChrome={true}>
+{/* No consent pop-up. It used to stop every visitor at the door until they
+    ticked "I understand this is AI-generated information and I will verify
+    critical details on official government sources". The disclosure was
+    honest; the gate was not proportionate. It hid the page behind a statement
+    that its own content could not be relied on — the opposite of what the 123
+    hand-checked verdicts show — and AdSense judged the site "low value
+    content" on 20 Nov 2026. The same disclosure now sits on the page itself,
+    in the "How this page was made" note, and in the footer. */}
+<Base title={title} description={description} noindex={noindex} jsonLd={jsonLd} hideChrome={true}>
   <div class="brand corridor">
     <!-- Header -->
     <header class="cnav">
